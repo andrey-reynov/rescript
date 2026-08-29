@@ -6,9 +6,27 @@ import type { TimeRange } from "./types";
 
 const CORE_BASE = "/vendor/ffmpeg";
 const INPUT_NAME = "input_video";
+const MOUNT_DIR = "/mnt_input";
+
+/**
+ * Above this, the input is mounted instead of copied into MEMFS.
+ *
+ * Copying stays the default because it is measurably faster: MEMFS reads are
+ * plain memory reads, while a mounted file pays a `Blob.slice` +
+ * `FileReaderSync` round trip per avio block (~1.7x slower end to end on a
+ * 300 MB file). But it also holds the whole file in memory several times over
+ * — the `fetchFile` ArrayBuffer, the structured clone to the worker, and
+ * MEMFS's own copy, which is a JS-heap `Uint8Array` rather than wasm memory —
+ * and it cannot work at all at 2 GiB (see `mountInput`). A quarter-gig cap
+ * keeps the fast path for the sizes it comfortably handles and mounts the rest.
+ */
+const COPY_INPUT_MAX_BYTES = 256 * 1024 * 1024;
 
 let ffmpegPromise: Promise<FFmpeg> | null = null;
 let writtenFor: File | null = null;
+/** Path `writtenFor`'s media is readable at, and whether it came from a mount. */
+let inputPath = INPUT_NAME;
+let inputMounted = false;
 
 /** Lazily load a singleton multi-threaded ffmpeg.wasm instance. */
 export async function getFFmpeg(): Promise<FFmpeg> {
@@ -63,6 +81,9 @@ export async function releaseFFmpeg(): Promise<void> {
   // handing out the one we are about to terminate.
   ffmpegPromise = null;
   writtenFor = null;
+  // The worker owns the filesystem, so its mounts and MEMFS files die with it.
+  inputMounted = false;
+  inputPath = INPUT_NAME;
   try {
     (await pending).terminate();
   } catch {
@@ -70,13 +91,74 @@ export async function releaseFFmpeg(): Promise<void> {
   }
 }
 
-async function ensureInput(ffmpeg: FFmpeg, file: File): Promise<string> {
-  if (writtenFor !== file) {
-    const { fetchFile } = await import("@ffmpeg/util");
-    await ffmpeg.writeFile(INPUT_NAME, await fetchFile(file));
-    writtenFor = file;
+/**
+ * Expose `file` to ffmpeg via WORKERFS rather than copying it in.
+ *
+ * WORKERFS serves reads straight off the `Blob` — one `slice` plus a
+ * `FileReaderSync` per avio block — so the media is never materialised as a
+ * single ArrayBuffer. That is what makes multi-gigabyte imports possible at
+ * all: a `Uint8Array` cannot exceed 2 GiB in Chrome, so `fetchFile`'s
+ * `FileReader.readAsArrayBuffer` fails outright at exactly that size (measured:
+ * 2040 MiB reads, 2048 MiB does not). It surfaces as the opaque "File could not
+ * be read! Code=-1" from `@ffmpeg/util`, because a modern DOMException has no
+ * legacy `.code` for the template to interpolate.
+ *
+ * Mounted as a named blob so the path we hand ffmpeg is always `input_video`,
+ * whatever the user called their file. Read-only, which is all input needs.
+ */
+async function mountInput(ffmpeg: FFmpeg, file: File): Promise<string> {
+  const { FFFSType } = await import("@ffmpeg/ffmpeg");
+  try {
+    await ffmpeg.createDir(MOUNT_DIR);
+  } catch {
+    // Already there from a previous file; the unmount in clearInput left it.
   }
-  return INPUT_NAME;
+  await ffmpeg.mount(
+    FFFSType.WORKERFS,
+    { blobs: [{ name: INPUT_NAME, data: file }] },
+    MOUNT_DIR
+  );
+  inputMounted = true;
+  return `${MOUNT_DIR}/${INPUT_NAME}`;
+}
+
+/** Release the previous input so a second file doesn't stack onto the first. */
+async function clearInput(ffmpeg: FFmpeg): Promise<void> {
+  if (!writtenFor) return;
+  const wasMounted = inputMounted;
+  writtenFor = null;
+  inputMounted = false;
+  try {
+    if (wasMounted) await ffmpeg.unmount(MOUNT_DIR);
+    else await ffmpeg.deleteFile(INPUT_NAME);
+  } catch {
+    // Nothing there to reclaim — mounting/writing the next input still works.
+  }
+}
+
+async function ensureInput(ffmpeg: FFmpeg, file: File): Promise<string> {
+  if (writtenFor === file) return inputPath;
+  await clearInput(ffmpeg);
+
+  if (file.size > COPY_INPUT_MAX_BYTES) {
+    try {
+      inputPath = await mountInput(ffmpeg, file);
+      writtenFor = file;
+      return inputPath;
+    } catch (err) {
+      // No WORKERFS in this core, or the mount was rejected. Copying will
+      // probably fail too at this size, but it fails with ffmpeg's own error
+      // rather than ours, so let it try.
+      console.warn("WORKERFS mount failed, copying input instead:", err);
+      inputMounted = false;
+    }
+  }
+
+  const { fetchFile } = await import("@ffmpeg/util");
+  await ffmpeg.writeFile(INPUT_NAME, await fetchFile(file));
+  writtenFor = file;
+  inputPath = INPUT_NAME;
+  return inputPath;
 }
 
 /**
