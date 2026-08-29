@@ -8,6 +8,7 @@ import {
   buildNleTimeline,
   mediaFileUrl,
   serializeTimelineXml,
+  stripFcpxmlModDate,
 } from "../lib/serializeTimeline";
 import {
   AAF_MAX_CLIPS,
@@ -134,7 +135,72 @@ async function main() {
   assert(fcpx.includes("<fcpxml"), "fcpxml root");
   assert(fcpx.includes("<spine>") || fcpx.includes("<spine "), "fcpxml spine");
   assert(fcpx.includes("asset-clip") || fcpx.includes("asset"), "fcpxml assets");
+  // FCP fails DTD validation on an unparseable modDate, so we omit it.
+  assert(!fcpx.includes("modDate"), "fcpxml has no modDate");
+  // V1/A1 are the same media over the same ranges; a single asset-clip per
+  // range carries both, so no duplicate connected clips in lane 1.
+  assert(!fcpx.includes("lane="), "fcpxml has no connected-clip lanes");
+  assert(
+    fcpx.match(/<asset-clip/g)?.length === keeps.length,
+    "one fcpxml asset-clip per keep range"
+  );
   console.log("fcpxml: ok");
+}
+
+{
+  // Audio-only projects have a single track and must still land on the spine.
+  const fcpx = serializeTimelineXml(
+    {
+      keepRanges: keeps,
+      duration: 5,
+      mediaFileName: "podcast.m4a",
+      frameRate: "30",
+      withVideo: false,
+      withAudio: true,
+    },
+    "fcpx"
+  );
+  assert(fcpx.includes('hasAudio="1"'), "fcpxml audio-only asset");
+  assert(!fcpx.includes('hasVideo="1"'), "fcpxml audio-only has no video");
+  assert(
+    fcpx.match(/<asset-clip/g)?.length === keeps.length,
+    "audio-only fcpxml asset-clips"
+  );
+  console.log("fcpxml audio-only: ok");
+}
+
+{
+  assert(
+    stripFcpxmlModDate('<project name="a" modDate="2026-01-01 00:00:00 UTC">') ===
+      '<project name="a">',
+    "strips modDate"
+  );
+  assert(
+    stripFcpxmlModDate('<project modDate="x" uid="u"/>') === '<project uid="u"/>',
+    "strips modDate mid-tag"
+  );
+  // Only the project tag; a clip named "modDate=..." must survive untouched.
+  const kept = '<asset-clip name="my modDate=&quot;x&quot; take.mp4"/>';
+  assert(stripFcpxmlModDate(kept) === kept, "leaves non-project tags alone");
+  console.log("strip modDate: ok");
+}
+
+{
+  // Premiere/Resolve still need the parallel audio track.
+  const premiere = serializeTimelineXml(
+    {
+      keepRanges: keeps,
+      duration: 5,
+      mediaFileName: "interview.mp4",
+      frameRate: "24",
+      withVideo: true,
+      withAudio: true,
+    },
+    "premiere"
+  );
+  assert(premiere.includes("<video>"), "premiere keeps video track");
+  assert(premiere.includes("<audio>"), "premiere keeps audio track");
+  console.log("xmeml tracks intact: ok");
 }
 
 {
