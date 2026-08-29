@@ -175,6 +175,23 @@ export function timelineExtension(format: TimelineExportFormat): string {
   return TIMELINE_FORMATS.find((f) => f.value === format)?.ext ?? format;
 }
 
+/**
+ * Drop `modDate` from the exported project.
+ *
+ * Final Cut Pro rejects the entire document with "DTD validation failed" when
+ * it cannot parse this attribute. The upstream writer stamps an IANA zone name
+ * (`2026-08-29 12:37:45 America/Los_Angeles`) where FCP wants a numeric UTC
+ * offset (`-0700`), and FCP 10.6.x additionally only accepts the clock format
+ * matching the user's system 12/24-hour setting. modDate is optional and we
+ * have nothing meaningful to put in it, so the safe answer is to omit it.
+ *
+ * Attribute values are XML-escaped by the writer, so `"` and `>` cannot appear
+ * inside one — matching up to the tag's `>` is safe even for odd file names.
+ */
+export function stripFcpxmlModDate(xml: string): string {
+  return xml.replace(/(<project\b[^>]*?)\s+modDate="[^"]*"/g, "$1");
+}
+
 export function serializeTimelineXml(
   options: TimelineExportOptions,
   format: Exclude<TimelineExportFormat, "aaf">
@@ -193,7 +210,15 @@ export function serializeTimelineXml(
     return writeXMEML(timeline);
   }
   if (format === "premiere") return writeXMEML(timeline);
-  return writeFCPXML(timeline);
+
+  // A single FCP asset-clip carries both the video and the audio of its asset.
+  // Our parallel V1/A1 tracks are the same media over the same ranges, so
+  // keeping both makes the writer attach A1 as connected clips in lane 1 —
+  // FCP imports that as a duplicate video overlay with doubled audio.
+  if (timeline.tracks.length > 1) {
+    timeline.tracks = timeline.tracks.filter((t) => t.kind === "video");
+  }
+  return stripFcpxmlModDate(writeFCPXML(timeline));
 }
 
 export async function serializeTimelineAaf(
