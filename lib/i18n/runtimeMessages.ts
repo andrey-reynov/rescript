@@ -23,6 +23,8 @@ const runtimeMessageKeyList = [
   "error.workerCrashed",
   "error.mediaEngineNetwork",
   "error.mediaEngineStalled",
+  "error.mediaEngineNotReady",
+  "error.simdUnsupported",
   "error.processFile",
   "error.extractAudio",
   "error.nothingToExport",

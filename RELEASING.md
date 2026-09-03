@@ -58,6 +58,25 @@ A single Developer ID cert + App Store Connect API key works across app IDs.
 > add a code-signing cert and pass `CSC_LINK`/`CSC_KEY_PASSWORD` to the
 > Windows job (electron-builder picks them up the same way).
 
+## Windows arm64
+
+`build.win` targets both `x64` and `arm64`, cross-built from the same x64
+runner — the app has no native modules (`--config.npmRebuild=false`), so
+electron-builder just fetches the arm64 Electron and packs it.
+
+Both architectures ship inside **one** `Rescript-Setup.exe`, which is
+electron-builder's default for NSIS with more than one arch: `NsisTarget`
+combines them unless `nsis.buildUniversalInstaller` is `false`. That keeps the
+download URL, the artifact name and the update manifests exactly as they were,
+at the cost of a roughly twice-as-large installer. Splitting them would mean
+adding `${arch}` to `nsis.artifactName` — without it the two builds collide on
+one output path — which renames the file every existing download link points at.
+
+An arm64 build matters beyond speed: running the x64 build under Windows-on-Arm
+emulation can leave V8 without the SSE4.1 it requires to enable Wasm SIMD, and
+every wasm binary the app ships is a SIMD build, so the editor cannot start at
+all. See `lib/wasmFeatures.ts`.
+
 ## How signing & notarization work (macOS)
 
 - `build.mac` in `package.json` sets `hardenedRuntime: true`, points at

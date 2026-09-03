@@ -23,7 +23,7 @@ import ModelSelector, {
 } from "./ModelSelector";
 import ImportTranscriptOption from "./ImportTranscriptOption";
 import { MODEL_ORDER } from "@/lib/models";
-import { useCrossOriginIsolated } from "@/hooks/useCrossOriginIsolated";
+import { useMediaEngineSupport } from "@/hooks/useMediaEngineSupport";
 import { detectMediaKind, MEDIA_ACCEPT } from "@/lib/media";
 import { formatTime } from "@/lib/edits";
 import {
@@ -170,10 +170,11 @@ export default function UploadScreen({
   const [dragging, setDragging] = useState(false);
   const [projects, setProjects] = useState<ProjectMeta[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
-  // The pipeline needs SharedArrayBuffer, so don't accept a file until the page
-  // is confirmed cross-origin isolated — transcription would fail immediately.
-  const isolation = useCrossOriginIsolated();
-  const ready = isolation === "ready";
+  // Don't accept a file until the media engine is known to be usable —
+  // transcription would fail immediately otherwise.
+  const engine = useMediaEngineSupport();
+  const ready = engine === "ready";
+  const unsupported = engine === "no-isolation" || engine === "no-simd";
   const source = useEditorStore((s) => s.source);
   const pendingTranscript = useEditorStore((s) => s.pendingTranscript);
   const openProject = useEditorStore((s) => s.openProject);
@@ -340,25 +341,33 @@ export default function UploadScreen({
               <MediaCards dragging={dragging} />
             ) : (
               <div
-                className={`mb-3 flex h-12 w-12 items-center justify-center rounded-full ${isolation === "unavailable"
+                className={`mb-3 flex h-12 w-12 items-center justify-center rounded-full ${unsupported
                   ? "bg-amber-50 text-amber-600 dark:bg-amber-950/40 dark:text-amber-400"
                   : "bg-neutral-100 text-neutral-600 dark:bg-neutral-800 dark:text-neutral-300"
                   }`}
               >
-                {isolation === "unavailable" ? (
+                {unsupported ? (
                   <ShieldAlert size={20} />
                 ) : (
                   <Loader2 size={20} className="animate-spin" />
                 )}
               </div>
             )}
-            {isolation === "unavailable" ? (
+            {unsupported ? (
               <>
                 <p className="text-[15px] font-medium text-zinc-800 dark:text-zinc-100">
-                  {t("upload.unsupported")}
+                  {t(
+                    engine === "no-simd"
+                      ? "upload.unsupportedSimd"
+                      : "upload.unsupported"
+                  )}
                 </p>
                 <p className="mt-1 max-w-sm text-[13px] leading-relaxed text-zinc-400 dark:text-zinc-500">
-                  {t("upload.unsupportedHelp")}
+                  {t(
+                    engine === "no-simd"
+                      ? "upload.unsupportedSimdHelp"
+                      : "upload.unsupportedHelp"
+                  )}
                 </p>
               </>
             ) : ready ? (

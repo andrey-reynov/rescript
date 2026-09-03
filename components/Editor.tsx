@@ -10,7 +10,7 @@ import { isNetworkError } from "@/lib/network";
 import { isElectron } from "@/lib/platform";
 import { reportError } from "@/lib/sentry";
 import { startSessionReporting } from "@/lib/telemetry";
-import { useCrossOriginIsolated } from "@/hooks/useCrossOriginIsolated";
+import { useMediaEngineSupport } from "@/hooks/useMediaEngineSupport";
 import { useDesktopMenu } from "@/hooks/useDesktopMenu";
 import { useIsDesktopLayout } from "@/hooks/useIsDesktopLayout";
 import { useTranscriber } from "@/hooks/useTranscriber";
@@ -149,10 +149,9 @@ export default function Editor() {
   // File › Open Project… reaches the same picker the upload screen uses, from
   // anywhere in the app.
   const menuInputRef = useRef<HTMLInputElement>(null);
-  const isolation = useCrossOriginIsolated();
-  const isolated = isolation === "ready";
+  const engineReady = useMediaEngineSupport() === "ready";
   const openFilePicker = useCallback(() => menuInputRef.current?.click(), []);
-  useDesktopMenu(openFilePicker, isolated);
+  useDesktopMenu(openFilePicker, engineReady);
 
   const startMenuFile = useCallback(
     (file: File) => {
@@ -173,19 +172,19 @@ export default function Editor() {
     [loadVideo, t]
   );
 
-  // The pipeline needs SharedArrayBuffer, so a file picked before the page is
-  // cross-origin isolated waits here instead of failing on load.
+  // A file picked before the media engine is known to be usable waits here
+  // instead of failing on load.
   const deferredFile = useRef<File | null>(null);
   const startMenuFileRef = useRef(startMenuFile);
   useEffect(() => {
     startMenuFileRef.current = startMenuFile;
   }, [startMenuFile]);
   useEffect(() => {
-    if (!isolated || !deferredFile.current) return;
+    if (!engineReady || !deferredFile.current) return;
     const file = deferredFile.current;
     deferredFile.current = null;
     startMenuFileRef.current(file);
-  }, [isolated]);
+  }, [engineReady]);
 
   const handleMenuFile = useCallback(
     (file: File | undefined) => {
@@ -194,13 +193,13 @@ export default function Editor() {
         alert(t("editor.chooseMedia"));
         return;
       }
-      if (!isolated) {
+      if (!engineReady) {
         deferredFile.current = file;
         return;
       }
       startMenuFile(file);
     },
-    [isolated, startMenuFile, t]
+    [engineReady, startMenuFile, t]
   );
 
   // Daily-active signal: reports the launch, then again on each day rollover so

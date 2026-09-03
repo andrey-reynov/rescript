@@ -44,6 +44,8 @@ export const de: Record<MessageKey, string> = {
   "upload.unsupported": "Dieser Browser kann den Editor nicht ausführen",
   "upload.unsupportedHelp":
     "Die Bearbeitung benötigt SharedArrayBuffer, dafür muss die Seite Cross-Origin-isoliert sein. Probiere eine aktuelle Version von Chrome, Edge, Safari oder Firefox über HTTPS.",
+  "upload.unsupportedSimd": "Dieses Gerät kann den Editor nicht ausführen",
+  "upload.unsupportedSimdHelp": "Zum Bearbeiten wird WebAssembly SIMD benötigt, das dieser Prozessor nicht meldet. Aktualisiere auf einem Windows-on-Arm-PC auf die neueste Rescript-Version — aktuelle Installer enthalten einen nativen Arm64-Build, der nicht emuliert läuft.",
   "upload.transcribeTitle": "Transkribieren",
   "upload.transcribeText": "Whisper lokal nutzen oder SRT / VTT importieren.",
   "upload.editTitle": "Bearbeiten",
@@ -193,6 +195,8 @@ export const de: Record<MessageKey, string> = {
   "error.workerCrashed": "Transkriptions-Worker ist abgestürzt.",
   "error.mediaEngineNetwork": "Die Medien-Engine konnte nicht geladen werden — die Verbindung wurde unterbrochen. Prüfe deine Internetverbindung und versuche es erneut.",
   "error.mediaEngineStalled": "Die Medien-Engine hat nicht mehr reagiert und wurde neu gestartet. Schließe andere Apps und Tabs, um Speicher freizugeben, und versuche es erneut.",
+  "error.mediaEngineNotReady": "Die Medien-Engine ist noch nicht bereit — lade die Seite neu und versuche es erneut.",
+  "error.simdUnsupported": "Dieser Prozessor unterstützt kein WebAssembly SIMD, das die Medien-Engine benötigt. Aktualisiere auf einem Windows-on-Arm-PC auf die neueste Rescript-Version — aktuelle Installer enthalten einen nativen Arm64-Build, der nicht emuliert läuft.",
   "error.processFile": "Diese Datei konnte nicht verarbeitet werden.",
   "error.extractAudio": "Audio konnte aus dieser Datei nicht extrahiert werden.",
   "error.nothingToExport": "Alles wurde gelöscht — nichts zu exportieren.",

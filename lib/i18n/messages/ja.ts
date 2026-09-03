@@ -44,6 +44,8 @@ export const ja: Record<MessageKey, string> = {
   "upload.unsupported": "このブラウザではエディターを実行できません",
   "upload.unsupportedHelp":
     "編集には SharedArrayBuffer が必要で、ページがクロスオリジン分離されている必要があります。HTTPS で最新の Chrome、Edge、Safari、Firefox をお試しください。",
+  "upload.unsupportedSimd": "このデバイスではエディターを実行できません",
+  "upload.unsupportedSimdHelp": "編集には WebAssembly SIMD が必要ですが、このプロセッサはサポートを報告していません。Windows on Arm の PC では Rescript を最新版に更新してください。現在のインストーラーにはエミュレーションで動作しないネイティブ Arm64 版が含まれています。",
   "upload.transcribeTitle": "文字起こし",
   "upload.transcribeText": "Whisper をローカルで使うか、SRT / VTT をインポートします。",
   "upload.editTitle": "編集",
@@ -193,6 +195,8 @@ export const ja: Record<MessageKey, string> = {
   "error.workerCrashed": "文字起こしワーカーがクラッシュしました。",
   "error.mediaEngineNetwork": "メディアエンジンを読み込めませんでした — 接続が切れました。インターネット接続を確認して、もう一度お試しください。",
   "error.mediaEngineStalled": "メディアエンジンが応答しなくなったため再起動しました。他のアプリやタブを閉じてメモリを空けてから、もう一度お試しください。",
+  "error.mediaEngineNotReady": "メディアエンジンの準備がまだできていません — ページを再読み込みして、もう一度お試しください。",
+  "error.simdUnsupported": "このプロセッサはメディアエンジンに必要な WebAssembly SIMD をサポートしていません。Windows on Arm の PC では Rescript を最新版に更新してください。現在のインストーラーにはエミュレーションで動作しないネイティブ Arm64 版が含まれています。",
   "error.processFile": "このファイルを処理できませんでした。",
   "error.extractAudio": "このファイルから音声を抽出できませんでした。",
   "error.nothingToExport": "すべて削除されています — 書き出すものがありません。",

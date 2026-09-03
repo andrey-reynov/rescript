@@ -43,6 +43,10 @@ export const en = {
   "upload.unsupported": "This browser can't run the editor",
   "upload.unsupportedHelp":
     "Editing needs SharedArrayBuffer, which requires a cross-origin-isolated page. Try a recent Chrome, Edge, Safari or Firefox over HTTPS.",
+  "upload.unsupportedSimd":
+    "This device can't run the editor",
+  "upload.unsupportedSimdHelp":
+    "Editing needs WebAssembly SIMD, which this processor doesn't report support for. On a Windows on Arm PC, update to the latest Rescript — current installers include a native Arm64 build that doesn't run under emulation.",
   "upload.transcribeTitle": "Transcribe",
   "upload.transcribeText": "Whisper locally, or import SRT / VTT.",
   "upload.editTitle": "Edit",
@@ -194,6 +198,10 @@ export const en = {
     "Couldn't load the media engine — the connection dropped. Check your internet and try again.",
   "error.mediaEngineStalled":
     "The media engine stopped responding and was restarted. Close other apps and tabs to free up memory, then try again.",
+  "error.mediaEngineNotReady":
+    "The media engine isn't ready yet — reload the page and try again.",
+  "error.simdUnsupported":
+    "This processor doesn't support WebAssembly SIMD, which the media engine needs. On a Windows on Arm PC, update to the latest Rescript — current installers include a native Arm64 build that doesn't run under emulation.",
   "error.processFile": "Failed to process this file.",
   "error.extractAudio": "Could not extract audio from this file.",
   "error.nothingToExport": "Everything has been deleted — nothing to export.",

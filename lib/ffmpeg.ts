@@ -2,6 +2,7 @@
 
 import type { FFmpeg } from "@ffmpeg/ffmpeg";
 import { en } from "@/lib/i18n/messages/en";
+import { hasWasmSimd } from "@/lib/wasmFeatures";
 import type { TimeRange } from "./types";
 
 const CORE_BASE = "/vendor/ffmpeg";
@@ -53,9 +54,16 @@ export async function getFFmpeg(): Promise<FFmpeg> {
       // the app:// handler in Electron). Without it the core throws a bare
       // "SharedArrayBuffer is not defined" from deep inside the worker.
       if (!self.crossOriginIsolated || typeof SharedArrayBuffer === "undefined") {
-        throw new Error(
-          "The media engine isn't ready yet — reload the page and try again."
-        );
+        throw new Error(en["error.mediaEngineNotReady"]);
+      }
+      // ffmpeg-core is a SIMD build, so on an engine without it the core fails
+      // to compile — as an emscripten abort() wrapping "CompileError:
+      // ... Wasm SIMD unsupported", which reaches the caller as an opaque
+      // string and ends up shown as the generic "Failed to process this file."
+      // Check first so the message names the actual problem. UploadScreen gates
+      // on the same check, so this only fires if support changed underneath us.
+      if (!hasWasmSimd()) {
+        throw new Error(en["error.simdUnsupported"]);
       }
       const ffmpeg = new FFmpeg();
       await ffmpeg.load({
