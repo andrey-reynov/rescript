@@ -44,6 +44,9 @@ jobs:
       - name: Timeline export tests
         run: npm run test:timeline
 
+      - name: ffmpeg watchdog tests
+        run: npm run test:ffmpeg
+
       - name: Build Next.js
         run: npm run build
 

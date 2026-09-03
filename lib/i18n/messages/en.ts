@@ -192,6 +192,8 @@ export const en = {
   "error.workerCrashed": "Transcription worker crashed.",
   "error.mediaEngineNetwork":
     "Couldn't load the media engine — the connection dropped. Check your internet and try again.",
+  "error.mediaEngineStalled":
+    "The media engine stopped responding and was restarted. Close other apps and tabs to free up memory, then try again.",
   "error.processFile": "Failed to process this file.",
   "error.extractAudio": "Could not extract audio from this file.",
   "error.nothingToExport": "Everything has been deleted — nothing to export.",

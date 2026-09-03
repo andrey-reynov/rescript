@@ -192,6 +192,7 @@ export const de: Record<MessageKey, string> = {
   "error.selectModel": "Wähle ein Sprachmodell zum Transkribieren aus.",
   "error.workerCrashed": "Transkriptions-Worker ist abgestürzt.",
   "error.mediaEngineNetwork": "Die Medien-Engine konnte nicht geladen werden — die Verbindung wurde unterbrochen. Prüfe deine Internetverbindung und versuche es erneut.",
+  "error.mediaEngineStalled": "Die Medien-Engine hat nicht mehr reagiert und wurde neu gestartet. Schließe andere Apps und Tabs, um Speicher freizugeben, und versuche es erneut.",
   "error.processFile": "Diese Datei konnte nicht verarbeitet werden.",
   "error.extractAudio": "Audio konnte aus dieser Datei nicht extrahiert werden.",
   "error.nothingToExport": "Alles wurde gelöscht — nichts zu exportieren.",

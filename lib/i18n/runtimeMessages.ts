@@ -22,6 +22,7 @@ const runtimeMessageKeyList = [
   "error.selectModel",
   "error.workerCrashed",
   "error.mediaEngineNetwork",
+  "error.mediaEngineStalled",
   "error.processFile",
   "error.extractAudio",
   "error.nothingToExport",

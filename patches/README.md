@@ -6,8 +6,9 @@ fails loudly rather than silently reverting to the buggy behaviour.
 **Patched dependencies are pinned to an exact version in `package.json`, not a
 caret range.** A patch filename carries the version it was cut against, and on a
 mismatch `patch-package` only *warns* — so a range would let a minor bump quietly
-drop the fix. That matters more than usual here: the unpatched failure mode below
-is a silently truncated transcript, not an error. When bumping
+drop the fix. That matters more than usual here, because neither unpatched
+failure mode below announces itself: one is a silently truncated transcript, the
+other an export that hangs forever instead of erroring. When bumping
 `@huggingface/transformers`, re-cut the patch (`npx patch-package
 @huggingface/transformers`) and re-run the CrisperWhisper models against a clip
 containing a filler.
@@ -68,3 +69,41 @@ already does. Also:
 **Upstreaming.** Worth a PR — the fix is small and the tokenizer already computes
 the correct bound. Until then this patch is required for the CrisperWhisper
 entries in `lib/models.ts` to work at all.
+
+## `@ffmpeg/ffmpeg` — reject in-flight calls when the worker dies
+
+**Upstream bug.** `FFmpeg` tracks every request in `#resolves` / `#rejects` keyed
+by message id, and the only thing that ever settles them is a reply from the
+worker. `#registerHandlers` installs `worker.onmessage` and nothing else — no
+`onerror`, no `onmessageerror`. The worker's own `self.onmessage` has a
+`try`/`catch` that posts an `ERROR` reply, so *synchronous* failures on the
+worker's message thread do report back. Everything else does not:
+
+- an emscripten `pthread` trapping (the multi-threaded core runs the filtergraph
+  and x264 on real threads, and their errors do not surface on the class
+  worker's message thread);
+- the browser killing the worker under memory pressure;
+- any async rejection outside the awaited path.
+
+In all three the promise stays pending forever. `FFmpeg.terminate()` is the only
+code that clears `#rejects`, and a caller stuck awaiting `exec()` never gets to
+call it.
+
+**How it broke Rescript.** Export sat at "Rendering in your browser… 0%"
+indefinitely with no error — the dialog has no timeout of its own, so the run
+never ended and never failed. The underlying crash *was* reaching Sentry as an
+unhandled `RuntimeError: memory access out of bounds`, tagged to no stage,
+because it never travelled through any of our `catch` blocks.
+
+**The patch.** Adds `#failAllPending(reason)` and wires it to `worker.onerror`
+and `worker.onmessageerror`, so a dead worker rejects every outstanding call
+instead of stranding it. It deliberately does *not* `preventDefault()` the error
+event — the crash should still reach the global handler so Sentry keeps seeing
+it.
+
+This covers the class worker dying. A trap inside a nested emscripten pthread
+does not bubble to the parent `Worker`, so `lib/ffmpeg.ts` also runs a liveness
+watchdog over `exec()`; see the comment on `execWithWatchdog` there.
+
+**Upstreaming.** Worth a PR — this is a bug in any consumer, not something
+specific to Rescript.

@@ -22,6 +22,18 @@ const MOUNT_DIR = "/mnt_input";
  */
 const COPY_INPUT_MAX_BYTES = 256 * 1024 * 1024;
 
+/**
+ * How long `exec` may go without any log or progress event before we treat the
+ * core as wedged (see {@link execWithWatchdog}).
+ *
+ * This is a liveness budget, not a time limit: a genuinely slow 4K export runs
+ * for hours and resets the timer several times a second the whole way. It only
+ * has to clear the longest legitimate silence, which is the final mux —
+ * `-movflags +faststart` rewrites the entire output file after the last frame
+ * is encoded, and nothing is logged while it does.
+ */
+const EXEC_STALL_TIMEOUT_MS = 120_000;
+
 let ffmpegPromise: Promise<FFmpeg> | null = null;
 let writtenFor: File | null = null;
 /** Path `writtenFor`'s media is readable at, and whether it came from a mount. */
@@ -88,6 +100,69 @@ export async function releaseFFmpeg(): Promise<void> {
     (await pending).terminate();
   } catch {
     // Load failed or the worker is already gone — the heap went with it.
+  }
+}
+
+/**
+ * Run `ffmpeg.exec` under a liveness watchdog, so a wedged core fails instead
+ * of hanging.
+ *
+ * The multi-threaded core runs the filtergraph and the encoder on real
+ * pthreads. When one of those traps — reliably, when the fixed 1 GiB heap runs
+ * out — that thread dies and the main ffmpeg thread blocks on a futex it will
+ * never be woken from. Nothing reports this: the trap happens in a nested
+ * worker, so it never reaches the class worker's `onerror` (patched in, see
+ * `patches/README.md`), and the message protocol has no reply for "the core
+ * stopped existing". The `exec` promise simply never settles, which is what put
+ * export at "Rendering in your browser… 0%" forever.
+ *
+ * Silence is the signal. The core logs continuously while it is working — the
+ * encoder's status line alone lands several times a second — and `postMessage`
+ * from the worker still reaches us while its message thread is blocked inside
+ * `exec`. So a long enough gap with no log *and* no progress means the work has
+ * stopped, whatever killed it.
+ *
+ * Terminating is the only recovery: it kills the pthreads along with the
+ * worker, hands the gigabyte back, and makes the pending `exec` reject so the
+ * caller unblocks. The next export builds a fresh core.
+ *
+ * Exported, and `stallTimeoutMs` overridable, only so `tests/ffmpeg-watchdog-test.ts`
+ * can drive it against a stub — there is no way to wedge a real core on demand.
+ */
+export async function execWithWatchdog(
+  ffmpeg: FFmpeg,
+  args: string[],
+  stallTimeoutMs: number = EXEC_STALL_TIMEOUT_MS
+): Promise<number> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  let stalled = false;
+  const beat = () => {
+    if (stalled) return;
+    clearTimeout(timer);
+    timer = setTimeout(() => {
+      stalled = true;
+      // Drop the singleton first (that part of releaseFFmpeg is synchronous) so
+      // the next export builds a fresh core, then kill this instance by hand:
+      // releaseFFmpeg skips the terminate if anything already swapped the
+      // singleton out, and skipping it here would leave us hung after all.
+      void releaseFFmpeg();
+      ffmpeg.terminate();
+    }, stallTimeoutMs);
+  };
+  ffmpeg.on("log", beat);
+  ffmpeg.on("progress", beat);
+  beat();
+  try {
+    return await ffmpeg.exec(args);
+  } catch (err) {
+    // The rejection we get here is `terminate()`'s, which describes our own
+    // recovery rather than what went wrong. Say what the user saw instead.
+    if (stalled) throw new Error(en["error.mediaEngineStalled"]);
+    throw err;
+  } finally {
+    clearTimeout(timer);
+    ffmpeg.off("log", beat);
+    ffmpeg.off("progress", beat);
   }
 }
 
@@ -178,7 +253,7 @@ export async function extractAudio(file: File): Promise<Float32Array | null> {
   ffmpeg.on("log", logHandler);
   let code: number;
   try {
-    code = await ffmpeg.exec([
+    code = await execWithWatchdog(ffmpeg, [
       "-i", input,
       "-vn",
       "-ac", "1",
@@ -311,7 +386,7 @@ export async function exportVideo(
             "-movflags", "+faststart",
           ];
 
-    const code = await ffmpeg.exec([
+    const code = await execWithWatchdog(ffmpeg, [
       "-i", input,
       "-filter_complex", filter,
       "-map", videoMap,
@@ -375,7 +450,7 @@ export async function exportAudio(
           ? ["-c:a", "pcm_s16le"]
           : ["-c:a", "aac", "-b:a", "192k", "-movflags", "+faststart"];
 
-    const code = await ffmpeg.exec([
+    const code = await execWithWatchdog(ffmpeg, [
       "-i", input,
       "-filter_complex", filter,
       "-map", "[outa]",

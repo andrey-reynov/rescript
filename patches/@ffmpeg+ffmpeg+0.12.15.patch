@@ -1,0 +1,36 @@
+diff --git a/node_modules/@ffmpeg/ffmpeg/dist/esm/classes.js b/node_modules/@ffmpeg/ffmpeg/dist/esm/classes.js
+index fae4753..625b7f7 100644
+--- a/node_modules/@ffmpeg/ffmpeg/dist/esm/classes.js
++++ b/node_modules/@ffmpeg/ffmpeg/dist/esm/classes.js
+@@ -20,11 +20,31 @@ export class FFmpeg {
+     #logEventCallbacks = [];
+     #progressEventCallbacks = [];
+     loaded = false;
++    /**
++     * Reject every in-flight request. Used when the worker dies outright, which
++     * the message protocol has no way to report: without this the promises stay
++     * pending forever and callers hang with no error.
++     */
++    #failAllPending = (reason) => {
++        for (const id of Object.keys(this.#rejects)) {
++            this.#rejects[id](reason);
++            delete this.#rejects[id];
++            delete this.#resolves[id];
++        }
++    };
+     /**
+      * register worker message event handlers.
+      */
+     #registerHandlers = () => {
+         if (this.#worker) {
++            // Deliberately not preventDefault()-ing: the error should still
++            // reach the page's global handler so crash reporting can see it.
++            this.#worker.onerror = (event) => {
++                this.#failAllPending(new Error(event.message || "ffmpeg worker crashed"));
++            };
++            this.#worker.onmessageerror = () => {
++                this.#failAllPending(new Error("ffmpeg worker sent a message that could not be deserialized"));
++            };
+             this.#worker.onmessage = ({ data: { id, type, data }, }) => {
+                 switch (type) {
+                     case FFMessageType.LOAD:
