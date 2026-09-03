@@ -192,6 +192,7 @@ export const es: Record<MessageKey, string> = {
   "error.selectModel": "Selecciona un modelo de voz para transcribir.",
   "error.workerCrashed": "El worker de transcripción falló.",
   "error.mediaEngineNetwork": "No se pudo cargar el motor multimedia — se cortó la conexión. Revisa tu internet e inténtalo de nuevo.",
+  "error.mediaEngineStalled": "El motor multimedia dejó de responder y se reinició. Cierra otras apps y pestañas para liberar memoria e inténtalo de nuevo.",
   "error.processFile": "No se pudo procesar este archivo.",
   "error.extractAudio": "No se pudo extraer audio de este archivo.",
   "error.nothingToExport": "Todo se ha eliminado — no hay nada que exportar.",

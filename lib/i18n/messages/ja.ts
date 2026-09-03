@@ -192,6 +192,7 @@ export const ja: Record<MessageKey, string> = {
   "error.selectModel": "文字起こしに使う音声モデルを選択してください。",
   "error.workerCrashed": "文字起こしワーカーがクラッシュしました。",
   "error.mediaEngineNetwork": "メディアエンジンを読み込めませんでした — 接続が切れました。インターネット接続を確認して、もう一度お試しください。",
+  "error.mediaEngineStalled": "メディアエンジンが応答しなくなったため再起動しました。他のアプリやタブを閉じてメモリを空けてから、もう一度お試しください。",
   "error.processFile": "このファイルを処理できませんでした。",
   "error.extractAudio": "このファイルから音声を抽出できませんでした。",
   "error.nothingToExport": "すべて削除されています — 書き出すものがありません。",

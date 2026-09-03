@@ -192,6 +192,7 @@ export const fr: Record<MessageKey, string> = {
   "error.selectModel": "Sélectionnez un modèle vocal pour transcrire.",
   "error.workerCrashed": "Le worker de transcription a planté.",
   "error.mediaEngineNetwork": "Impossible de charger le moteur multimédia — la connexion a été interrompue. Vérifiez votre connexion internet et réessayez.",
+  "error.mediaEngineStalled": "Le moteur multimédia ne répondait plus et a été redémarré. Fermez d’autres applications et onglets pour libérer de la mémoire, puis réessayez.",
   "error.processFile": "Impossible de traiter ce fichier.",
   "error.extractAudio": "Impossible d’extraire l’audio de ce fichier.",
   "error.nothingToExport": "Tout a été supprimé — rien à exporter.",

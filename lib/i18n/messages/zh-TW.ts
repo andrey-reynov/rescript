@@ -191,6 +191,7 @@ export const zhTW: Record<MessageKey, string> = {
   "error.selectModel": "請選擇要用來轉錄的語音模型。",
   "error.workerCrashed": "轉錄 worker 已當機。",
   "error.mediaEngineNetwork": "無法載入媒體引擎 — 連線中斷。請檢查網路後再試一次。",
+  "error.mediaEngineStalled": "媒體引擎停止回應，已重新啟動。請關閉其他應用程式與分頁以釋放記憶體，然後再試一次。",
   "error.processFile": "無法處理此檔案。",
   "error.extractAudio": "無法從此檔案擷取音訊。",
   "error.nothingToExport": "所有內容都已刪除 — 沒有可匯出的內容。",

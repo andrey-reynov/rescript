@@ -192,6 +192,8 @@ export const zhCN: Record<MessageKey, string> = {
   "error.workerCrashed": "转录进程发生崩溃。",
   "error.mediaEngineNetwork":
     "媒体引擎加载失败，网络连接已中断。请检查网络后重试。",
+  "error.mediaEngineStalled":
+    "媒体引擎停止响应，已重新启动。请关闭其他应用和标签页以释放内存，然后重试。",
   "error.processFile": "无法处理此文件。",
   "error.extractAudio": "无法从此文件提取音频。",
   "error.nothingToExport": "所有内容都已删除，没有可导出的内容。",

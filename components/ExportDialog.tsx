@@ -11,6 +11,7 @@ import {
   X,
 } from "lucide-react";
 import { useEditorStore } from "@/lib/store";
+import { reportError } from "@/lib/sentry";
 import { trackEvent } from "@/lib/telemetry";
 import { formatTime, getEditedDuration, getKeepRanges } from "@/lib/edits";
 import {
@@ -224,6 +225,11 @@ export default function ExportDialog() {
         ...(activeTab === "audio" ? {} : { resolution }),
       });
     } catch (err) {
+      // The message we show is friendly and lossy — "Export failed while
+      // rendering the video" says nothing about which of ffmpeg's failure modes
+      // it was. Send the original so the export path is visible in Sentry at
+      // all; until now only the crashes that escaped this catch were.
+      reportError(err, `export-${activeTab}`);
       setError(err instanceof Error ? err.message : en["error.export"]);
     } finally {
       setStatus("ready");

@@ -192,6 +192,7 @@ export const ko: Record<MessageKey, string> = {
   "error.selectModel": "자막을 만들 음성 모델을 선택하세요.",
   "error.workerCrashed": "자막 생성 워커가 충돌했습니다.",
   "error.mediaEngineNetwork": "미디어 엔진을 불러오지 못했습니다 — 연결이 끊겼습니다. 인터넷을 확인한 뒤 다시 시도하세요.",
+  "error.mediaEngineStalled": "미디어 엔진이 응답하지 않아 다시 시작했습니다. 다른 앱과 탭을 닫아 메모리를 확보한 뒤 다시 시도하세요.",
   "error.processFile": "이 파일을 처리하지 못했습니다.",
   "error.extractAudio": "이 파일에서 오디오를 추출할 수 없습니다.",
   "error.nothingToExport": "모든 내용이 삭제되었습니다 — 내보낼 항목이 없습니다.",
