@@ -44,6 +44,8 @@ export const ko: Record<MessageKey, string> = {
   "upload.unsupported": "이 브라우저에서는 편집기를 실행할 수 없습니다",
   "upload.unsupportedHelp":
     "편집에는 SharedArrayBuffer가 필요하며, 페이지가 교차 출처 격리 상태여야 합니다. HTTPS에서 최신 Chrome, Edge, Safari 또는 Firefox를 사용해 보세요.",
+  "upload.unsupportedSimd": "이 기기에서는 편집기를 실행할 수 없습니다",
+  "upload.unsupportedSimdHelp": "편집에는 WebAssembly SIMD가 필요하지만 이 프로세서는 지원을 보고하지 않습니다. Windows on Arm PC에서는 Rescript를 최신 버전으로 업데이트하세요. 현재 설치 프로그램에는 에뮬레이션으로 실행되지 않는 네이티브 Arm64 빌드가 포함되어 있습니다.",
   "upload.transcribeTitle": "자막 만들기",
   "upload.transcribeText": "Whisper를 로컬에서 실행하거나 SRT / VTT를 가져옵니다.",
   "upload.editTitle": "편집",
@@ -193,6 +195,8 @@ export const ko: Record<MessageKey, string> = {
   "error.workerCrashed": "자막 생성 워커가 충돌했습니다.",
   "error.mediaEngineNetwork": "미디어 엔진을 불러오지 못했습니다 — 연결이 끊겼습니다. 인터넷을 확인한 뒤 다시 시도하세요.",
   "error.mediaEngineStalled": "미디어 엔진이 응답하지 않아 다시 시작했습니다. 다른 앱과 탭을 닫아 메모리를 확보한 뒤 다시 시도하세요.",
+  "error.mediaEngineNotReady": "미디어 엔진이 아직 준비되지 않았습니다 — 페이지를 새로 고친 뒤 다시 시도하세요.",
+  "error.simdUnsupported": "이 프로세서는 미디어 엔진에 필요한 WebAssembly SIMD를 지원하지 않습니다. Windows on Arm PC에서는 Rescript를 최신 버전으로 업데이트하세요. 현재 설치 프로그램에는 에뮬레이션으로 실행되지 않는 네이티브 Arm64 빌드가 포함되어 있습니다.",
   "error.processFile": "이 파일을 처리하지 못했습니다.",
   "error.extractAudio": "이 파일에서 오디오를 추출할 수 없습니다.",
   "error.nothingToExport": "모든 내용이 삭제되었습니다 — 내보낼 항목이 없습니다.",

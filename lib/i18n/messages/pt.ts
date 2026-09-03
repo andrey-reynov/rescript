@@ -44,6 +44,8 @@ export const pt: Record<MessageKey, string> = {
   "upload.unsupported": "Este navegador não pode executar o editor",
   "upload.unsupportedHelp":
     "A edição precisa de SharedArrayBuffer, que exige uma página isolada entre origens. Experimente uma versão recente do Chrome, Edge, Safari ou Firefox via HTTPS.",
+  "upload.unsupportedSimd": "Este dispositivo não consegue executar o editor",
+  "upload.unsupportedSimdHelp": "A edição precisa de WebAssembly SIMD, que este processador não informa suportar. Em um PC com Windows no Arm, atualize para a versão mais recente do Rescript — os instaladores atuais incluem uma versão Arm64 nativa que não roda emulada.",
   "upload.transcribeTitle": "Transcrever",
   "upload.transcribeText": "Whisper localmente, ou importe SRT / VTT.",
   "upload.editTitle": "Editar",
@@ -193,6 +195,8 @@ export const pt: Record<MessageKey, string> = {
   "error.workerCrashed": "O worker de transcrição falhou.",
   "error.mediaEngineNetwork": "Não foi possível carregar o motor de mídia — a conexão caiu. Verifique sua internet e tente de novo.",
   "error.mediaEngineStalled": "O motor de mídia parou de responder e foi reiniciado. Feche outros apps e abas para liberar memória e tente de novo.",
+  "error.mediaEngineNotReady": "O motor de mídia ainda não está pronto — recarregue a página e tente de novo.",
+  "error.simdUnsupported": "Este processador não suporta WebAssembly SIMD, de que o motor de mídia precisa. Em um PC com Windows no Arm, atualize para a versão mais recente do Rescript — os instaladores atuais incluem uma versão Arm64 nativa que não roda emulada.",
   "error.processFile": "Não foi possível processar este arquivo.",
   "error.extractAudio": "Não foi possível extrair áudio deste arquivo.",
   "error.nothingToExport": "Tudo foi excluído — não há nada para exportar.",

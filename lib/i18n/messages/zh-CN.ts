@@ -44,6 +44,10 @@ export const zhCN: Record<MessageKey, string> = {
   "upload.unsupported": "此浏览器无法运行编辑器",
   "upload.unsupportedHelp":
     "编辑功能需要 SharedArrayBuffer，因此页面必须处于跨源隔离状态。请使用较新的 Chrome、Edge、Safari 或 Firefox，并通过 HTTPS 访问。",
+  "upload.unsupportedSimd":
+    "此设备无法运行编辑器",
+  "upload.unsupportedSimdHelp":
+    "编辑功能需要 WebAssembly SIMD，但此处理器未报告支持。在 Windows on Arm 电脑上，请更新到最新版 Rescript——当前安装程序包含无需模拟运行的原生 Arm64 版本。",
   "upload.transcribeTitle": "转录",
   "upload.transcribeText": "在本机运行 Whisper，或导入 SRT / VTT。",
   "upload.editTitle": "编辑",
@@ -194,6 +198,10 @@ export const zhCN: Record<MessageKey, string> = {
     "媒体引擎加载失败，网络连接已中断。请检查网络后重试。",
   "error.mediaEngineStalled":
     "媒体引擎停止响应，已重新启动。请关闭其他应用和标签页以释放内存，然后重试。",
+  "error.mediaEngineNotReady":
+    "媒体引擎尚未就绪，请刷新页面后重试。",
+  "error.simdUnsupported":
+    "此处理器不支持媒体引擎所需的 WebAssembly SIMD。在 Windows on Arm 电脑上，请更新到最新版 Rescript——当前安装程序包含无需模拟运行的原生 Arm64 版本。",
   "error.processFile": "无法处理此文件。",
   "error.extractAudio": "无法从此文件提取音频。",
   "error.nothingToExport": "所有内容都已删除，没有可导出的内容。",

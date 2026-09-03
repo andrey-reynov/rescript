@@ -44,6 +44,8 @@ export const zhTW: Record<MessageKey, string> = {
   "upload.unsupported": "此瀏覽器無法執行編輯器",
   "upload.unsupportedHelp":
     "編輯需要 SharedArrayBuffer，因此頁面必須是跨來源隔離。請透過 HTTPS 使用較新的 Chrome、Edge、Safari 或 Firefox。",
+  "upload.unsupportedSimd": "此裝置無法執行編輯器",
+  "upload.unsupportedSimdHelp": "編輯功能需要 WebAssembly SIMD，但此處理器未回報支援。在 Windows on Arm 電腦上，請更新至最新版 Rescript——目前的安裝程式包含無須模擬執行的原生 Arm64 版本。",
   "upload.transcribeTitle": "轉錄",
   "upload.transcribeText": "在本機使用 Whisper，或匯入 SRT / VTT。",
   "upload.editTitle": "編輯",
@@ -192,6 +194,8 @@ export const zhTW: Record<MessageKey, string> = {
   "error.workerCrashed": "轉錄 worker 已當機。",
   "error.mediaEngineNetwork": "無法載入媒體引擎 — 連線中斷。請檢查網路後再試一次。",
   "error.mediaEngineStalled": "媒體引擎停止回應，已重新啟動。請關閉其他應用程式與分頁以釋放記憶體，然後再試一次。",
+  "error.mediaEngineNotReady": "媒體引擎尚未就緒，請重新整理頁面後再試一次。",
+  "error.simdUnsupported": "此處理器不支援媒體引擎所需的 WebAssembly SIMD。在 Windows on Arm 電腦上，請更新至最新版 Rescript——目前的安裝程式包含無須模擬執行的原生 Arm64 版本。",
   "error.processFile": "無法處理此檔案。",
   "error.extractAudio": "無法從此檔案擷取音訊。",
   "error.nothingToExport": "所有內容都已刪除 — 沒有可匯出的內容。",
