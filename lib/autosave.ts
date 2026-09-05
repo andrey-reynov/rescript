@@ -27,6 +27,7 @@ export function projectPayload() {
     manualCuts:s.manualCuts, sceneBoundaries:s.sceneBoundaries, speakers:s.speakers,
     currentTime:s.currentTime, thumbnail:s.projectThumbnail ?? undefined,
     transcriptionComplete:s.skipTranscription || s.status === 'ready' || s.status === 'exporting',
+    transcriptionResultKey:s.transcriptionResultKey ?? undefined,
     media:s.videoFile, mediaType:s.videoFile.type };
 }
 
@@ -53,13 +54,26 @@ export function flushProjectAutosave(): Promise<void> {
 
 export async function saveProjectAs(): Promise<void> {
   await flushProjectAutosave();
-  const s=useEditorStore.getState();
-  if(!s.projectId || !window.rescriptDesktop?.projects) throw new Error('Save As requires the desktop app.');
-  const {media,mediaType,...data}=projectPayload();void media;void mediaType;
-  const result=await window.rescriptDesktop.projects.saveAs(s.projectId,{...data,id:s.projectId});
-  if(result) {
-    useEditorStore.setState({projectId:result.id,projectName:result.data.name,lastSavedAt:result.updatedAt,saveState:'saved'});
+  const s=useEditorStore.getState();const desktop=window.rescriptDesktop;
+  if(!s.projectId || !desktop?.projects) throw new Error('Save As requires the desktop app.');
+  const originalId=s.projectId;
+  const job=await desktop.jobs.read(originalId);
+  const wasRunning=job?.status==='running'||job?.status==='preparing';
+  if(wasRunning)await desktop.jobs.pause(originalId);
+  let switched=false;
+  try {
+    await flushProjectAutosave();
+    const {media,mediaType,...data}=projectPayload();void media;void mediaType;
+    const result=await desktop.projects.saveAs(originalId,{...data,id:originalId});
+    if(!result)return;
+    await desktop.jobs.fork(originalId,result.id);
+    await useEditorStore.getState().openProject(result.id);
+    switched=true;
+    if(wasRunning&&job)await desktop.jobs.start(result.id,job.model,job.language,job.transcribe);
     window.dispatchEvent(new Event('rescript:projects-changed'));
+  } finally {
+    // Cancelling the dialog or failing to copy must not silently stop the old job.
+    if(!switched&&wasRunning&&job)await desktop.jobs.start(originalId,job.model,job.language,job.transcribe);
   }
 }
 

@@ -5,7 +5,9 @@ export interface DesktopJobs {
   start(id:string,model:string,language:string,transcribe:boolean):Promise<JobState>;
   read(id:string):Promise<(JobState&{progress?:{message:string;value:number|null}})|null>;
   pause(id:string):Promise<JobState>;
-  result(id:string):Promise<{words:Word[];waveform:StoredPeaks|null}>;
+  retryChunks(id:string,indices:number[]):Promise<JobState>;
+  fork(sourceId:string,destinationId:string):Promise<JobState|null>;
+  result(id:string):Promise<{words:Word[];waveform:StoredPeaks|null;project:ProjectDocument}>;
   onChanged(callback:(id:string)=>void):()=>void;
 }
 export interface ProcessingBridge {

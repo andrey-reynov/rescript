@@ -1,6 +1,8 @@
 "use client";
 import { useEffect } from 'react';
 import { useEditorStore } from '@/lib/store';
+import { speakersFromWords } from '@/lib/speakers';
+import type { Word, SpeakerInfo } from '@/lib/types';
 
 /** Reconnects to the main-process job; owns no inference worker or job lifetime. */
 export function useDesktopJob() {
@@ -21,7 +23,10 @@ export function useDesktopJob() {
           const result=await api.result(projectId);
           if(disposed||useEditorStore.getState().projectId!==projectId)return;
           const latest=useEditorStore.getState();
-          if(job.transcribe&&!latest.skipTranscription){latest.setWords(result.words);useEditorStore.setState({skipTranscription:true});}
+          if(job.transcribe&&latest.transcriptionResultKey!==job.key&&result.project.data.transcriptionResultKey===job.key){
+            const words=result.project.data.words as Word[];
+            useEditorStore.setState({words,speakers:speakersFromWords(words,result.project.data.speakers as SpeakerInfo[]??[]),skipTranscription:true,transcriptionResultKey:job.key,past:[],future:[],selectedWordIds:[]});
+          }
           const waveform=result.waveform;
           useEditorStore.setState({waveform:waveform?{...waveform,min:new Int8Array(waveform.min),max:new Int8Array(waveform.max)}:null,hasAudio:job.sampleCount>0,error:null,partialText:''});
           latest.setStatus('ready');latest.setProgress({message:'',value:null});

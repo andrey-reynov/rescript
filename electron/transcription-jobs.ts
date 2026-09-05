@@ -1,6 +1,6 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
-import { createHash } from 'node:crypto';
+import { createHash, randomUUID } from 'node:crypto';
 import { atomicJson, ProjectFiles } from './project-files';
 export interface JobWord { id:number; text:string; start:number; end:number; speaker:number; deleted:boolean; }
 type Word = JobWord;
@@ -11,6 +11,8 @@ const PAD_SECONDS=2;
 export interface JobState {
   projectId:string;
   key:string;
+  baseKey?:string;
+  replacementChunks?:number[];
   model:string;
   language:string;
   transcribe:boolean;
@@ -31,6 +33,16 @@ export function mapChunkWords(chunk:Pick<JobChunk,'index'|'start'|'coreStart'|'c
     .map(word=>({...word,start:word.start+chunk.start,end:word.end+chunk.start}))
     .filter(word=>{const center=(word.start+word.end)/2;return center>=chunk.coreStart&&center<chunk.coreEnd;})
     .map((word,index)=>({...word,id:chunk.index*100000+index,start:Math.max(0,word.start),deleted:false}));
+}
+
+/** Replace only requested source-time batches; keep edits and IDs everywhere else. */
+export function mergeChunkReplacement(existing:Word[],generated:Word[],chunks:number[]):Word[] {
+  const selected=new Set(chunks);
+  const inSelected=(word:Word)=>selected.has(Math.floor(((word.start+word.end)/2)/JOB_CHUNK_SECONDS));
+  const kept=existing.filter(word=>!inSelected(word));
+  let nextId=existing.reduce((max,word)=>Math.max(max,word.id),-1)+1;
+  const replacement=generated.filter(inSelected).map(word=>({...word,id:nextId++}));
+  return [...kept,...replacement].sort((a,b)=>a.start-b.start||a.id-b.id);
 }
 
 export class TranscriptionJobs {
@@ -54,7 +66,7 @@ export class TranscriptionJobs {
     const doc=await this.projects.read(id);await this.projects.mediaPath(id);
     const key=createHash('sha256').update(JSON.stringify({fingerprint:doc.media.fingerprint,model,language,version:1,chunk:JOB_CHUNK_SECONDS,transcribe})).digest('hex').slice(0,24);
     const old=await this.read(id);
-    const job:JobState=old?.key===key?{...old,status:'running',message:'Resuming completed checkpoints'}:{projectId:id,key,model,language,transcribe,status:'preparing',message:'Preparing audio',completed:[],total:0,sampleCount:0,sourceFingerprint:doc.media.fingerprint,updatedAt:Date.now()};
+    const job:JobState=old&&(old.baseKey??old.key)===key?{...old,status:'running',message:'Resuming completed checkpoints'}:{projectId:id,key,model,language,transcribe,status:'preparing',message:'Preparing audio',completed:[],total:0,sampleCount:0,sourceFingerprint:doc.media.fingerprint,updatedAt:Date.now()};
     try{
       const cache=await this.cache(id);
       const info=JSON.parse(await fs.readFile(path.join(cache,'audio.json'),'utf8'));
@@ -63,6 +75,43 @@ export class TranscriptionJobs {
       job.sampleCount=info.sampleCount;job.total=transcribe?Math.ceil(info.sampleCount/(RATE*JOB_CHUNK_SECONDS)):0;
       job.completed=await this.completed(job);job.status=job.completed.length===job.total?'complete':'running';
     }catch{job.status='preparing';}
+    return this.write(job);
+  });}
+  fork(sourceId:string,destinationId:string):Promise<JobState|null>{return this.serial(async()=>{
+    if(sourceId===destinationId)throw Error('A project variant needs a distinct identity.');
+    const job=await this.read(sourceId);if(!job)return null;
+    if(job.status==='running'||job.status==='preparing')throw Error('Pause processing before copying its checkpoints.');
+    const source=await this.projects.read(sourceId),destination=await this.projects.read(destinationId);
+    if(source.media.fingerprint!==destination.media.fingerprint)throw Error('Project sources do not match.');
+    const cloned:JobState={...job,projectId:destinationId};
+    const sourceCache=await this.cache(sourceId),destinationCache=await this.cache(destinationId);
+    await fs.mkdir(destinationCache,{recursive:true});
+    for(const name of ['audio.f32','audio.json','waveform.json']){
+      try{await fs.copyFile(path.join(sourceCache,name),path.join(destinationCache,name));}catch(error){if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;}
+    }
+    const sourceDirectory=await this.resultDirectory(job),destinationDirectory=await this.resultDirectory(cloned);
+    await fs.mkdir(destinationDirectory,{recursive:true});
+    for(const index of await this.completed(job))await fs.copyFile(path.join(sourceDirectory,index+'.json'),path.join(destinationDirectory,index+'.json'));
+    cloned.completed=await this.completed(cloned);
+    // The destination becomes resumable only after all available checkpoints copy.
+    return this.write(cloned);
+  });}
+  retryChunks(id:string,indices:number[]):Promise<JobState>{return this.serial(async()=>{
+    const old=await this.read(id);if(!old||!old.transcribe||old.total===0)throw Error('No transcription batches are available.');
+    if(old.status==='running'||old.status==='preparing')throw Error('Pause processing before selecting batches to retry.');
+    if(!Array.isArray(indices)||!indices.length||indices.some(i=>!Number.isInteger(i)||i<0||i>=old.total))throw Error('Select valid transcription batches.');
+    const selected=[...new Set(indices)].sort((a,b)=>a-b);
+    const key=randomUUID();
+    const job:JobState={...old,key,baseKey:old.baseKey??old.key,status:'paused',message:'Selected batches are ready to transcribe',completed:[],replacementChunks:[...new Set([...(old.status==='complete'?[]:old.replacementChunks??[]),...selected])]};
+    const oldDirectory=await this.resultDirectory(old),directory=await this.resultDirectory(job);
+    await fs.mkdir(directory,{recursive:true});
+    for(const index of await this.completed(old))if(!selected.includes(index)){
+      const row=JSON.parse(await fs.readFile(path.join(oldDirectory,index+'.json'),'utf8'));
+      await atomicJson(path.join(directory,index+'.json'),{...row,key});
+      job.completed.push(index);
+    }
+    // Switching the manifest is the commit point. A crash while copying retains
+    // the previous valid generation; committed source chunks are never deleted.
     return this.write(job);
   });}
   async audioFile(id:string){return path.join(await this.cache(id),'audio.f32');}

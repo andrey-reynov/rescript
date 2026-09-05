@@ -5,6 +5,7 @@ import { useEditorStore } from '@/lib/store';
 import { flushProjectAutosave, saveProjectAs, scheduleProjectAutosave } from '@/lib/autosave';
 
 export default function ProjectControls() {
+  const selectedWordIds=useEditorStore(s=>s.selectedWordIds);
   const name=useEditorStore(s=>s.projectName);
   const file=useEditorStore(s=>s.videoFile);
   const state=useEditorStore(s=>s.saveState);
@@ -28,8 +29,13 @@ export default function ProjectControls() {
     {job && job!=='complete' && <button disabled={busy} className="rounded border px-2 py-1" onClick={()=>void act(async()=>{
       await flushProjectAutosave();const s=useEditorStore.getState();
       if(job==='running'||job==='preparing')await window.rescriptDesktop!.jobs.pause(s.projectId!);
-      else await window.rescriptDesktop!.jobs.start(s.projectId!,s.source,s.transcriptLanguage,!s.skipTranscription);
+      else {const previous=await window.rescriptDesktop!.jobs.read(s.projectId!);if(previous)await window.rescriptDesktop!.jobs.start(s.projectId!,previous.model,previous.language,previous.transcribe);}
     })}>{job==='running'||job==='preparing'?'Pause processing':'Resume processing'}</button>}
+    {job==='complete' && selectedWordIds.length>0 && <button disabled={busy} className="rounded border px-2 py-1" title="Replace transcription in the one-minute batches containing the selected words. Other batches and manual timeline cuts stay unchanged." onClick={()=>void act(async()=>{
+      await flushProjectAutosave();const s=useEditorStore.getState();const selected=new Set(s.selectedWordIds);
+      const batches=[...new Set(s.words.filter(word=>selected.has(word.id)).map(word=>Math.floor(((word.start+word.end)/2)/60)))];
+      await window.rescriptDesktop!.jobs.retryChunks(s.projectId!,batches);
+    })}>Retranscribe selected batches</button>}
     <button disabled={busy} onClick={()=>void act(flushProjectAutosave)} className="flex items-center gap-1 rounded border px-2 py-1"><Save size={13}/>Save</button>
     {typeof window!=='undefined' && window.rescriptDesktop && <>
       <button disabled={busy} onClick={()=>void act(saveProjectAs)} className="flex items-center gap-1 rounded border px-2 py-1"><Copy size={13}/>Save As…</button>

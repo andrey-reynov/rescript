@@ -328,6 +328,7 @@ if (!gotLock) {
     const win = BrowserWindow.getAllWindows().find(candidate => !candidate.webContents.getURL().includes("/processing")) ?? createWindow();
     if (win) {
       if (win.isMinimized()) win.restore();
+      win.show();
       win.focus();
     }
   });

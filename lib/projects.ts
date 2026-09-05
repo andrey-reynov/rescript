@@ -54,6 +54,7 @@ export interface ProjectRecord extends ProjectMeta {
   mediaName?: string;
   currentTime?: number;
   transcriptionComplete?: boolean;
+  transcriptionResultKey?: string;
 }
 
 export type ProjectWrite = Omit<ProjectRecord, "id" | "createdAt" | "updatedAt"> & {

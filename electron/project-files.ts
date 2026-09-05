@@ -25,6 +25,7 @@ export interface ProjectData {
   currentTime?: number;
   thumbnail?: string;
   transcriptionComplete?: boolean;
+  transcriptionResultKey?: string;
   [key: string]: unknown;
 }
 
@@ -201,9 +202,20 @@ export class ProjectFiles {
   }
 
   save(id: string, data: ProjectData): Promise<ProjectDocument> {
+    return this.update(id,old=>{
+      // An editor may have queued this save before the worker committed its result.
+      // Keep the authoritative transcript until that editor has acknowledged it.
+      if(old.transcriptionResultKey && data.transcriptionResultKey!==old.transcriptionResultKey && data.source!=='import')
+        return {...data,words:old.words,speakers:old.speakers,transcriptionComplete:old.transcriptionComplete,transcriptionResultKey:old.transcriptionResultKey};
+      return data;
+    });
+  }
+
+  update(id: string, change: (current:ProjectData)=>ProjectData): Promise<ProjectDocument> {
     return this.serial(async () => {
       const file = await this.fileFor(id);
       const old = await this.read(id);
+      const data=change(old.data);
       if (data.id !== id) throw new Error("Project identity mismatch.");
       const snapshots = `${file}.snapshots`;
       await fs.mkdir(snapshots, { recursive: true });

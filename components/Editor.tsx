@@ -220,7 +220,11 @@ export default function Editor() {
           await flushProjectAutosave();
           const current=useEditorStore.getState();
           if(current.videoFile!==videoFile)return;
-          await window.rescriptDesktop.jobs.start(current.projectId!,current.source,current.transcriptLanguage,!restoreOnly);
+          const previous=await window.rescriptDesktop.jobs.read(current.projectId!);
+          if(previous && current.source!=='import' && (previous.status==='paused'||previous.status==='error'))return;
+          if(previous && current.source!=='import' && previous.status!=='complete')
+            await window.rescriptDesktop.jobs.start(current.projectId!,previous.model,previous.language,previous.transcribe);
+          else await window.rescriptDesktop.jobs.start(current.projectId!,current.source,current.transcriptLanguage,!restoreOnly);
           return;
         }
         s.setProgress({ message: en["progress.loadingMediaEngine"], value: null });

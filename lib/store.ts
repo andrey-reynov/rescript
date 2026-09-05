@@ -90,6 +90,7 @@ interface EditorState {
   /** IndexedDB project id when this session is persisted; null for a fresh upload mid-pipeline. */
   projectId: string | null;
   projectName: string;
+  transcriptionResultKey: string | null;
   projectThumbnail: string | null;
   saveState: 'pending' | 'saving' | 'saved' | 'error';
   saveError: string | null;
@@ -341,6 +342,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   pendingTranscript: null,
   projectId: null,
   jobState: null,
+  transcriptionResultKey: null,
   projectName: '', projectThumbnail: null, saveState: 'saved', saveError: null, lastSavedAt: null,
   skipTranscription: false,
 
@@ -387,6 +389,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       mediaKind: kind,
       projectId: null,
       jobState: null,
+      transcriptionResultKey: null,
       projectName: file.name.replace(/\.[^.]+$/, ''), projectThumbnail: null, saveState: 'pending', saveError: null, lastSavedAt: null,
       skipTranscription: Boolean(imported),
       source: imported ? "import" : isModelId(current) ? current : "base",
@@ -445,6 +448,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         : DEFAULT_TRANSCRIPT_LANGUAGE,
       projectId: record.id,
       jobState: null,
+      transcriptionResultKey: record.transcriptionResultKey ?? null,
       projectName: record.name, projectThumbnail: record.thumbnail ?? null, saveState: "saved", saveError:null, lastSavedAt:record.updatedAt,
       skipTranscription: record.transcriptionComplete !== false,
       pendingTranscript: null,
@@ -991,7 +995,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       transcriptLanguage: loadTranscriptLanguagePreference(),
       pendingTranscript: null,
       projectId: null,
-      projectName: '', projectThumbnail: null, jobState: null,
+      projectName: '', projectThumbnail: null, jobState: null, transcriptionResultKey: null,
       saveState: 'saved', saveError: null, lastSavedAt: null,
       skipTranscription: false,
       status: "idle",

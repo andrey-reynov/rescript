@@ -1,6 +1,6 @@
 import { BrowserWindow, ipcMain, powerSaveBlocker, type IpcMainInvokeEvent } from 'electron';
 import { ProjectFiles } from './project-files';
-import { TranscriptionJobs, type JobState, type JobChunk, type StoredPeaks } from './transcription-jobs';
+import { mergeChunkReplacement, TranscriptionJobs, type JobState, type JobChunk, type StoredPeaks } from './transcription-jobs';
 import type { JobWord as Word } from './transcription-jobs';
 
 /** A separate hidden renderer owns inference; the editor can close or crash independently. */
@@ -14,9 +14,12 @@ export function installJobService(projects:ProjectFiles,devUrl:string|null,prelo
   const closeRunner=()=>{const old=runner;runner=null;activeId=null;if(old&&!old.isDestroyed())old.destroy();release();};
   const finish=async(id:string)=>{
     const job=await jobs.read(id);if(!job||job.status!=='complete')return;
-    const doc=await projects.read(id);
-    if(job.transcribe&&!doc.data.transcriptionComplete&&doc.data.source!=='import') {
-      await projects.save(id,{...doc.data,words:await jobs.words(id),transcriptionComplete:true,duration:doc.data.duration||job.sampleCount/16000});
+    if(job.transcribe) {
+      const words=await jobs.words(id);
+      await projects.update(id,data=>{
+        if(data.transcriptionResultKey===job.key || data.source==='import')return data;
+        return {...data,words:job.replacementChunks?mergeChunkReplacement(data.words as Word[],words,job.replacementChunks):words,transcriptionResultKey:job.key,transcriptionComplete:true,duration:data.duration||job.sampleCount/16000};
+      });
     }
     notify(id);closeRunner();
   };
@@ -48,13 +51,22 @@ export function installJobService(projects:ProjectFiles,devUrl:string|null,prelo
       notify(id);return job;
     }finally{starting=false;}
   });
+  ui('fork',async(_event,sourceId:string,destinationId:string)=>{
+    if(starting||activeId===sourceId||activeId===destinationId)throw Error('Pause processing before copying checkpoints.');
+    starting=true;try{return await jobs.fork(sourceId,destinationId);}finally{starting=false;}
+  });
+  ui('retry-chunks',async(_event,id:string,indices:number[])=>{
+    if(starting||runner)throw Error('Pause the active processing job before retrying selected batches.');
+    starting=true;
+    try{await jobs.retryChunks(id,indices);const previous=(await jobs.read(id))!;const job=await jobs.start(id,previous.model,previous.language,true);await launch(id);notify(id);return job;}finally{starting=false;}
+  });
   ui('read',async(_event,id:string)=>{const job=await jobs.read(id);return job?{...job,progress:progress.get(id)}:null;});
   ui('pause',async(_event,id:string)=>{if(activeId===id)closeRunner();const job=await jobs.setStatus(id,'paused','Paused — completed batches are saved');notify(id);return job;});
-  ui('result',async(_event,id:string)=>({words:await jobs.words(id),waveform:await jobs.waveform(id)}));
+  ui('result',async(_event,id:string)=>({words:await jobs.words(id),waveform:await jobs.waveform(id),project:await projects.read(id)}));
   worker('take',async id=>({job:await jobs.read(id),project:await projects.read(id)}));
   worker('begin-audio',id=>jobs.beginAudio(id));
   worker('append-audio',(id,bytes:Uint8Array)=>jobs.appendAudio(id,bytes));
-  worker('audio-ready',async(id,peaks:StoredPeaks)=>{const job=await jobs.audioReady(id,peaks);notify(id);if(job.status==='complete')await finish(id);return job;});
+  worker('audio-ready',async(id,peaks:StoredPeaks)=>{const job=await jobs.audioReady(id,peaks);if(job.status==='complete')await finish(id);else notify(id);return job;});
   worker('next',id=>jobs.next(id));
   worker('checkpoint',async(id,key:string,chunk:Omit<JobChunk,'audio'>,words:Word[])=>{const job=await jobs.checkpoint(id,key,chunk,words);notify(id);if(job.status==='complete')await finish(id);return job;});
   worker('progress',(id,message:string,value:number|null)=>{progress.set(id,{message,value});notify(id);});

@@ -16,6 +16,8 @@ contextBridge.exposeInMainWorld("rescriptDesktop", {
     start: (id:string,model:string,language:string,transcribe:boolean) => ipcRenderer.invoke('job:start',id,model,language,transcribe),
     read: (id:string) => ipcRenderer.invoke('job:read',id),
     pause: (id:string) => ipcRenderer.invoke('job:pause',id),
+    retryChunks: (id:string,indices:number[]) => ipcRenderer.invoke('job:retry-chunks',id,indices),
+    fork: (sourceId:string,destinationId:string) => ipcRenderer.invoke('job:fork',sourceId,destinationId),
     result: (id:string) => ipcRenderer.invoke('job:result',id),
     onChanged: (callback:(id:string)=>void) => {const listener=(_event:unknown,id:string)=>callback(id);ipcRenderer.on('job:changed',listener);return()=>{ipcRenderer.removeListener('job:changed',listener);};},
   },

@@ -53,6 +53,19 @@ async function main() {
     assert.ok((await repo.fileFor(next.id)).startsWith(newFolder));
     assert.equal((await repo.list()).length,14,"Changing defaults must retain earlier projects");
     assert.equal((await fs.readFile(moved)).length,1024*1024);
+    const raceId=randomUUID();const stale={...data,id:raceId,words:[],transcriptionComplete:false};
+    await repo.create(stale,await sourceReference(moved));
+    const generated=[{id:5,text:'durable result',start:1,end:2,speaker:0,deleted:false}];
+    await Promise.all([
+      repo.update(raceId,current=>({...current,words:generated,transcriptionComplete:true,transcriptionResultKey:'generation-one'})),
+      repo.save(raceId,{...stale,name:'Latest name',manualCuts:[{id:3,start:8,end:9}]})
+    ]);
+    const protectedResult=(await repo.read(raceId)).data;
+    assert.deepEqual(protectedResult.words,generated,'Late autosave replaced worker result');
+    assert.equal(protectedResult.name,'Latest name','Protecting result lost unrelated edit');
+    assert.deepEqual(protectedResult.manualCuts,[{id:3,start:8,end:9}]);
+    await repo.save(raceId,{...protectedResult,words:[{...generated[0],deleted:true}]});
+    assert.equal(((await repo.read(raceId)).data.words[0] as {deleted:boolean}).deleted,true,'Acknowledged transcript must remain editable');
     console.log("PROJECT FILE TESTS PASSED: empty saves, atomic revisions, restart, corruption recovery, relinking, Save As, no pruning, default folder");
   } finally {
     const resolved=path.resolve(root);
