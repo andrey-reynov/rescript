@@ -1,6 +1,6 @@
 # v0.1 — Reliability & Projects
 
-Status: planned; audit existing behavior before implementation.
+Status: in progress. See [validation evidence and remaining work](01-Validation.md).
 
 ## Deliver
 

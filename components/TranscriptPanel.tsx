@@ -20,6 +20,7 @@ import { FloatingPortal } from "@floating-ui/react";
 import { useEditorStore } from "@/lib/store";
 import { isDisfluencyPlaceholder } from "@/lib/disfluencies";
 import TranscriptToolsMenu from "./TranscriptToolsMenu";
+import TranscriptSearch from "./TranscriptSearch";
 import {
   isTranscriptFile,
   parseTranscriptFile,
@@ -181,8 +182,23 @@ export default function TranscriptPanel() {
   const virtualRows=virtualizer.getVirtualItems();
   const renderRevision=virtualRows.map(row=>row.index).join(',');
   const ensureWordVisible=useCallback((id:number)=>{const row=rowByWord.get(id);if(row!==undefined)virtualizer.scrollToIndex(row,{align:'center'});},[rowByWord,virtualizer]);
-  useEffect(()=>{const id=selectedWordIds[0];if(id!==undefined&&!containerRef.current?.querySelector('[data-wid="'+id+'"]'))ensureWordVisible(id);},[selectedWordIds,ensureWordVisible]);
-  useEffect(()=>{if(!playing&&activeWordId>=0&&!containerRef.current?.querySelector('[data-wid="'+activeWordId+'"]'))ensureWordVisible(activeWordId);},[activeWordId,playing,ensureWordVisible]);
+  const ensureWordVisibleRef=useRef(ensureWordVisible);
+  useEffect(()=>{ensureWordVisibleRef.current=ensureWordVisible;},[ensureWordVisible]);
+  useEffect(()=>{
+    const id=selectedWordIds[0];if(id===undefined)return;
+    ensureWordVisibleRef.current(id);
+    // Dynamic rows are measured after mounting. Align the actual word after that
+    // measurement rather than only the row's initial estimated position.
+    let frame=0,attempt=0;
+    const align=()=>{
+      const word=containerRef.current?.querySelector<HTMLElement>('[data-wid="'+id+'"]');
+      if(word)word.scrollIntoView({block:'center',inline:'nearest'});
+      if(++attempt<3)frame=requestAnimationFrame(align);
+    };
+    frame=requestAnimationFrame(align);return()=>cancelAnimationFrame(frame);
+  },[selectedWordIds]);
+  // Follow explicit navigation, not row-map changes caused by editing off screen.
+  useEffect(()=>{if(!playing&&activeWordId>=0&&!containerRef.current?.querySelector('[data-wid="'+activeWordId+'"]'))ensureWordVisibleRef.current(activeWordId);},[activeWordId,playing]);
   const [correcting, setCorrecting] = useState<{ ids: number[] } | null>(null);
   const [correctText, setCorrectText] = useState("");
   const [assigningSpeaker, setAssigningSpeaker] = useState<{
@@ -414,6 +430,7 @@ export default function TranscriptPanel() {
               </label>
             </>
           )}
+          {status === "ready" && <TranscriptSearch />}
           <button
             onClick={toggleShowDeleted}
             title={showDeleted ? t("transcript.hideDeleted") : t("transcript.showDeleted")}

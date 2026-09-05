@@ -4,11 +4,14 @@ import { putProject } from "./projects";
 
 let timer: ReturnType<typeof setTimeout> | null = null;
 let queue: Promise<void> = Promise.resolve();
+let editRevision = 0;
 
 export function scheduleProjectAutosave() {
   if (typeof window === "undefined") return;
+  editRevision++;
   useEditorStore.setState({ saveState: "pending" });
-  if (timer) clearTimeout(timer);
+  // Start a bounded window at the first edit; typing must not defer it forever.
+  if (timer) return;
   timer = setTimeout(() => {
     timer = null;
     void flushProjectAutosave().catch(() => { /* Error is visible in the project bar. */ });
@@ -33,11 +36,12 @@ export function flushProjectAutosave(): Promise<void> {
     const s=useEditorStore.getState();
     if(!s.videoFile || !s.mediaKind || s.status==='idle') return;
     const file=s.videoFile;
+    const savingRevision=editRevision;
     useEditorStore.setState({saveState:'saving',saveError:null});
     try {
       const id=await putProject(projectPayload());
       if(useEditorStore.getState().videoFile === file) {
-        useEditorStore.setState({projectId:id,saveState:'saved',lastSavedAt:Date.now(),saveError:null});
+        useEditorStore.setState({projectId:id,saveState:savingRevision===editRevision?'saved':'pending',lastSavedAt:Date.now(),saveError:null});
       }
     } catch(error) {
       if(useEditorStore.getState().videoFile===file) useEditorStore.setState({saveState:'error',saveError:error instanceof Error?error.message:'Could not save the project.'});

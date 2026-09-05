@@ -10,7 +10,9 @@ export type WindowMode = "compact" | "expanded" | "library";
  *  main process calls `window.rescriptOpenFilePicker` instead. */
 export type MenuCommand =
   | { type: "open-project"; id: string }
-  | { type: "clear-recents" }
+  | { type: "open-project-dialog" }
+  | { type: "save-project" }
+  | { type: "save-project-as" }
   /** Leave the editor for the upload screen (an intercepted window close). */
   | { type: "close-project" };
 

@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import { buildTranscriptSearchIndex, searchTranscript } from '../lib/transcript-search';
+const words=Array.from({length:22500},(_,id)=>({id,text:`word${id}`,start:id,end:id+.5,deleted:false,speaker:0}));
+words[79].text='Привет';words[80].text='мир';words[22499].text='Привет';
+const index=buildTranscriptSearchIndex(words);
+assert.deepEqual(searchTranscript(index,'ПРИВЕТ МИР'),[[79,80]],'Phrase crosses virtual-row boundary');
+assert.deepEqual(searchTranscript(index,'привет'),[[79],[22499]],'Matches include words outside mounted rows');
+assert.deepEqual(searchTranscript(index,'   '),[]);
+assert.deepEqual(searchTranscript(index,'missing'),[]);
+console.log('TRANSCRIPT SEARCH TESTS PASSED: phrases, Russian, full long transcript, empty query');

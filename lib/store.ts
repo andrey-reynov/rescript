@@ -991,6 +991,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       transcriptLanguage: loadTranscriptLanguagePreference(),
       pendingTranscript: null,
       projectId: null,
+      projectName: '', projectThumbnail: null, jobState: null,
+      saveState: 'saved', saveError: null, lastSavedAt: null,
       skipTranscription: false,
       status: "idle",
       progress: { message: "", value: null },

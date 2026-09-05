@@ -13,11 +13,13 @@ export interface RecentProject {
 export type MenuCommand =
   | { type: "open-file" }
   | { type: "open-project"; id: string }
-  | { type: "clear-recents" }
+  | { type: "open-project-dialog" }
+  | { type: "save-project" }
+  | { type: "save-project-as" }
   /** Leave the editor for the upload screen (a close request, intercepted). */
   | { type: "close-project" };
 
-/** The renderer owns the project list (it lives in IndexedDB); this is the last
+/** The project library publishes metadata; this is the last
  *  snapshot it pushed, kept so the menu can be rebuilt without asking again. */
 let recents: RecentProject[] = [];
 
@@ -40,8 +42,11 @@ function fileMenu(): MenuItemConstructorOptions {
       {
         label: t("openProject"),
         accelerator: "CmdOrCtrl+O",
-        click: () => send({ type: "open-file" }),
+        click: () => send({ type: "open-project-dialog" }),
       },
+      { label: "New project from media…", accelerator: "CmdOrCtrl+N", click: () => send({ type: "open-file" }) },
+      { label: "Save project", accelerator: "CmdOrCtrl+S", click: () => send({ type: "save-project" }) },
+      { label: "Save project as…", accelerator: "Shift+CmdOrCtrl+S", click: () => send({ type: "save-project-as" }) },
       {
         label: t("reopenLast"),
         accelerator: "Shift+CmdOrCtrl+O",
@@ -60,11 +65,6 @@ function fileMenu(): MenuItemConstructorOptions {
                   label: p.name,
                   click: () => send({ type: "open-project", id: p.id }),
                 })),
-                { type: "separator" as const },
-                {
-                  label: t("clearRecent"),
-                  click: () => send({ type: "clear-recents" }),
-                },
               ],
       },
       { type: "separator" },
@@ -160,7 +160,7 @@ export function buildAppMenu(
 }
 
 /** Replace the recent list and redraw the menu. Called whenever the renderer's
- *  IndexedDB project list changes (open, autosave, delete). */
+ *  project list changes (open, autosave, rename). */
 export function setRecentProjects(next: RecentProject[]): void {
   recents = next;
   buildAppMenu();

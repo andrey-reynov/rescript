@@ -1,10 +1,5 @@
-/**
- * IndexedDB persistence for Rescript projects.
- *
- * Stores the original media blob + transcript words so a refresh can restore
- * the editor without re-uploading or re-transcribing. Caps at MAX_PROJECTS
- * (oldest by updatedAt are pruned).
- */
+/** Desktop projects use durable files and external source references.
+ * Browser-only sessions retain IndexedDB storage. Projects are never pruned automatically. */
 
 import { isTranscriptSource, type TranscriptSource } from "./source";
 import type { TranscriptLanguage } from "./languages";
@@ -18,7 +13,6 @@ import type { ManualCut, SceneBoundary, SpeakerInfo, Word } from "./types";
 const DB_NAME = "rescript-projects";
 const DB_VERSION = 1;
 const STORE = "projects";
-export const MAX_PROJECTS = 10;
 
 export interface ProjectMeta {
   id: string;
@@ -182,7 +176,7 @@ export async function getProject(id: string): Promise<ProjectRecord | null> {
   return { ...row, source: projectSource(row) };
 }
 
-/** Insert or replace a project, then prune to MAX_PROJECTS. Returns the id. */
+/** Insert or replace a project without deleting older projects. Returns the id. */
 export async function putProject(input: ProjectWrite): Promise<string> {
   const desktop = typeof window !== "undefined" ? window.rescriptDesktop?.projects : undefined;
   if (desktop) {

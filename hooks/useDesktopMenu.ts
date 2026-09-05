@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useRef } from "react";
 import { isElectron } from "@/lib/platform";
-import { deleteProject, listProjects } from "@/lib/projects";
+import { listProjects } from "@/lib/projects";
 import { useEditorStore } from "@/lib/store";
 import type { MenuCommand } from "@/types/rescript-desktop";
 import { useI18n } from "@/components/I18nProvider";
@@ -11,9 +11,8 @@ import { localizeRuntimeMessage } from "@/lib/i18n";
 /**
  * Desktop-only bridge for the native File menu.
  *
- * The recent-project list lives in the renderer's IndexedDB, so the menu can't
- * read it directly: we push a snapshot up whenever it could have changed, and
- * handle the commands the menu sends back (open a file, open/clear recents,
+ * The renderer publishes project-library metadata whenever it changes and
+ * handle the commands the menu sends back (open a file, open recents,
  * leave the editor on an intercepted window close).
  *
  * @param openFilePicker Opens the media picker. Published on `window` because
@@ -51,23 +50,6 @@ export function useDesktopMenu(openFilePicker: () => void, ready: boolean): void
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [syncRecents, projectId, status]);
-
-  const clearRecents = useCallback(async () => {
-    if (!confirm(t("confirm.clearRecent"))) return;
-    try {
-      const projects = await listProjects();
-      const active = useEditorStore.getState().projectId;
-      await Promise.all(projects.map((p) => deleteProject(p.id)));
-      if (active && projects.some((p) => p.id === active)) {
-        useEditorStore.getState().reset();
-      }
-    } catch (err) {
-      console.error(err);
-      alert(t("error.clearRecent"));
-    } finally {
-      await syncRecents();
-    }
-  }, [syncRecents, t]);
 
   const closeProject = useCallback(async () => {
     // The window stays; only the project goes. Flush the debounced autosave
@@ -111,14 +93,20 @@ export function useDesktopMenu(openFilePicker: () => void, ready: boolean): void
               await syncRecents();
             });
           return;
-        case "clear-recents":
-          void clearRecents();
+        case "open-project-dialog":
+          void (async()=>{try{const id=await window.rescriptDesktop!.projects.open();if(id)await useEditorStore.getState().openProject(id);}catch(error){alert(error instanceof Error?error.message:'Could not open project.');}})();
+          return;
+        case "save-project":
+        case "save-project-as":
+          void import('@/lib/autosave').then(async api=>{
+            if(command.type==='save-project-as')await api.saveProjectAs();else await api.flushProjectAutosave();
+          }).catch(error=>alert(error instanceof Error?error.message:'Could not save project.'));
           return;
         case "close-project":
           void closeProject();
       }
     },
-    [clearRecents, closeProject, syncRecents, t]
+    [closeProject, syncRecents, t]
   );
 
   // Opening a project can't run before the page is cross-origin isolated; hold
@@ -145,7 +133,7 @@ export function useDesktopMenu(openFilePicker: () => void, ready: boolean): void
     const desktop = window.rescriptDesktop;
     if (!desktop) return;
     return desktop.onMenuCommand((command: MenuCommand) => {
-      if (command.type === "open-project" && !readyRef.current) {
+      if ((command.type === "open-project" || command.type === "open-project-dialog") && !readyRef.current) {
         deferred.current = command;
         return;
       }
