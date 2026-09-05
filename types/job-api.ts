@@ -1,0 +1,20 @@
+import type { ProjectDocument } from '../electron/project-files';
+import type { JobState, JobChunk, StoredPeaks } from '../electron/transcription-jobs';
+import type { Word } from '../lib/types';
+export interface DesktopJobs {
+  start(id:string,model:string,language:string,transcribe:boolean):Promise<JobState>;
+  read(id:string):Promise<(JobState&{progress?:{message:string;value:number|null}})|null>;
+  pause(id:string):Promise<JobState>;
+  result(id:string):Promise<{words:Word[];waveform:StoredPeaks|null}>;
+  onChanged(callback:(id:string)=>void):()=>void;
+}
+export interface ProcessingBridge {
+  take():Promise<{job:JobState;project:ProjectDocument}>;
+  beginAudio():Promise<void>;
+  appendAudio(bytes:Uint8Array):Promise<void>;
+  audioReady(peaks:StoredPeaks):Promise<JobState>;
+  next():Promise<JobChunk|null>;
+  checkpoint(key:string,chunk:Omit<JobChunk,'audio'>,words:Word[]):Promise<JobState>;
+  progress(message:string,value:number|null):Promise<void>;
+  fail(message:string):Promise<void>;
+}

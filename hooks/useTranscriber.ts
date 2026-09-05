@@ -12,6 +12,10 @@ let activeWorker: Worker | null = null;
 
 /** Stop an in-flight ASR job (e.g. after importing a transcript). */
 export function cancelTranscription() {
+  if(typeof window!=='undefined'&&window.rescriptDesktop?.jobs) {
+    const id=useEditorStore.getState().projectId;
+    if(id)void window.rescriptDesktop.jobs.pause(id).catch(()=>{});
+  }
   activeWorker?.terminate();
   activeWorker = null;
 }
@@ -22,7 +26,8 @@ export function useTranscriber() {
 
   useEffect(() => {
     return () => {
-      cancelTranscription();
+      activeWorker?.terminate();
+      activeWorker = null;
       workerRef.current = null;
     };
   }, []);

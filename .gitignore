@@ -48,3 +48,6 @@ next-env.d.ts
 
 # runtime assets copied from node_modules on postinstall
 /public/vendor/
+
+# Local user-provided test media; never publish recordings.
+/assets/example.mp4

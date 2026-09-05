@@ -1,7 +1,9 @@
+import type { DesktopJobs, ProcessingBridge } from "./job-api";
+import type { DesktopProjects } from "./project-api";
 import type { UiLocale } from "@/lib/i18n/locales";
 
 /** Resting sizes the Electron shell switches between. */
-export type WindowMode = "compact" | "expanded";
+export type WindowMode = "compact" | "expanded" | "library";
 
 /** Actions the native File menu delegates to the renderer over IPC. Opening the
  *  file picker isn't one of them — a file chooser needs user activation, so the
@@ -14,6 +16,10 @@ export type MenuCommand =
 
 /** Desktop bridge exposed by electron/preload.ts when running inside Electron. */
 export interface RescriptDesktop {
+  projects: DesktopProjects;
+  jobs: DesktopJobs;
+  processing: ProcessingBridge;
+  onSaveBeforeQuit(save: () => Promise<void>): () => void;
   platform: NodeJS.Platform;
   versions: {
     electron: string;

@@ -89,6 +89,12 @@ interface EditorState {
   pendingTranscript: PendingTranscript | null;
   /** IndexedDB project id when this session is persisted; null for a fresh upload mid-pipeline. */
   projectId: string | null;
+  projectName: string;
+  projectThumbnail: string | null;
+  saveState: 'pending' | 'saving' | 'saved' | 'error';
+  saveError: string | null;
+  lastSavedAt: number | null;
+  jobState: 'preparing'|'running'|'paused'|'error'|'complete'|null;
   /**
    * When true, Editor extracts audio for the waveform but skips ASR
    * (restored projects / imported transcripts already have words).
@@ -334,6 +340,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   transcriptLanguage: DEFAULT_TRANSCRIPT_LANGUAGE,
   pendingTranscript: null,
   projectId: null,
+  jobState: null,
+  projectName: '', projectThumbnail: null, saveState: 'saved', saveError: null, lastSavedAt: null,
   skipTranscription: false,
 
   status: "idle",
@@ -378,6 +386,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       mediaUrl: URL.createObjectURL(file),
       mediaKind: kind,
       projectId: null,
+      jobState: null,
+      projectName: file.name.replace(/\.[^.]+$/, ''), projectThumbnail: null, saveState: 'pending', saveError: null, lastSavedAt: null,
       skipTranscription: Boolean(imported),
       source: imported ? "import" : isModelId(current) ? current : "base",
       pendingTranscript: null,
@@ -408,12 +418,14 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       hasAudio: false,
       duration: 0,
     });
-    // Funnel step between opening the app and getting a transcript. `kind` and
-    // `source` are fixed vocabulary — nothing derived from the file itself.
-
+    bumpAutosave();
+    void import('./thumbnail').then(m=>m.projectThumbnail(file)).then(thumbnail=>{
+      if(get().videoFile===file && thumbnail){set({projectThumbnail:thumbnail});bumpAutosave();}
+    });
   },
 
   openProject: async (id) => {
+    await import('./autosave').then(m=>m.flushProjectAutosave());
     const record = await getProject(id);
     if (!record) throw new Error(en["error.projectMissing"]);
     const file = fileFromProject(record);
@@ -432,7 +444,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         ? record.transcriptLanguage
         : DEFAULT_TRANSCRIPT_LANGUAGE,
       projectId: record.id,
-      skipTranscription: true,
+      jobState: null,
+      projectName: record.name, projectThumbnail: record.thumbnail ?? null, saveState: "saved", saveError:null, lastSavedAt:record.updatedAt,
+      skipTranscription: record.transcriptionComplete !== false,
       pendingTranscript: null,
       status: "preparing",
       progress: { message: en["progress.loadingMediaEngine"], value: null },
@@ -450,7 +464,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       nextBoundaryId: maxId(sceneBoundaries, 1),
       partialText: "",
       error: null,
-      currentTime: 0,
+      currentTime: record.currentTime ?? 0,
       playing: false,
       exportUrl: null,
       exportOpen: false,
@@ -490,7 +504,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }),
   setStatus: (status) => {
     set({ status });
-    if (status === "ready") bumpAutosave();
+    bumpAutosave();
   },
   setProgress: (progress) => set({ progress }),
   setPartialText: (partialText) => set({ partialText }),

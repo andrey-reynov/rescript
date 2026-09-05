@@ -19,7 +19,7 @@ export default function TopBar({ children }: { children?: React.ReactNode }) {
   const { t } = useI18n();
   const { draggable, trafficLights } = useWindowChrome();
   const videoFile = useEditorStore((s) => s.videoFile);
-  const reset = useEditorStore((s) => s.reset);
+  const reset = () => { void import("@/lib/autosave").then(m=>m.closeCurrentProject()).catch(e=>alert(e.message)); };
 
   return (
     <header

@@ -13,8 +13,10 @@ import { reportError } from "@/lib/diagnostics";
 import { useMediaEngineSupport } from "@/hooks/useMediaEngineSupport";
 import { useDesktopMenu } from "@/hooks/useDesktopMenu";
 import { useIsDesktopLayout } from "@/hooks/useIsDesktopLayout";
+import { useDesktopJob } from "@/hooks/useDesktopJob";
 import { useTranscriber } from "@/hooks/useTranscriber";
 import { detectMediaKind, MEDIA_ACCEPT } from "@/lib/media";
+import ProjectControls from "./ProjectControls";
 import TopBar from "./TopBar";
 import DesktopAppBanner from "./DesktopAppBanner";
 import UploadScreen from "./UploadScreen";
@@ -204,6 +206,7 @@ export default function Editor() {
 
   // Processing pipeline: load ffmpeg -> extract audio -> (maybe) transcribe.
   // Restored projects already have words; they only need PCM for the waveform.
+  useDesktopJob();
   const startedFor = useRef<File | null>(null);
   useEffect(() => {
     if (!videoFile || startedFor.current === videoFile) return;
@@ -212,6 +215,14 @@ export default function Editor() {
     (async () => {
       const s = useEditorStore.getState();
       try {
+        if(window.rescriptDesktop?.jobs) {
+          const {flushProjectAutosave}=await import('@/lib/autosave');
+          await flushProjectAutosave();
+          const current=useEditorStore.getState();
+          if(current.videoFile!==videoFile)return;
+          await window.rescriptDesktop.jobs.start(current.projectId!,current.source,current.transcriptLanguage,!restoreOnly);
+          return;
+        }
         s.setProgress({ message: en["progress.loadingMediaEngine"], value: null });
         await getFFmpeg();
         s.setProgress({ message: en["progress.extractingAudio"], value: null });
@@ -324,10 +335,15 @@ export default function Editor() {
     return () => document.removeEventListener("keydown", handler, true);
   }, []);
 
+  useEffect(() => window.rescriptDesktop?.onSaveBeforeQuit(async () => {
+    const { flushProjectAutosave } = await import("@/lib/autosave");
+    await flushProjectAutosave();
+  }), []);
+
   // Flush pending autosave when the tab hides or unloads.
   useEffect(() => {
     const flush = () => {
-      void import("@/lib/autosave").then((m) => m.flushProjectAutosave());
+      void import("@/lib/autosave").then((m) => m.flushProjectAutosave()).catch(() => {});
     };
     const onVis = () => {
       if (document.visibilityState === "hidden") flush();
@@ -391,6 +407,7 @@ export default function Editor() {
             <div className="mx-1 h-5 w-px bg-zinc-200 dark:bg-zinc-700" />
             <SettingsMenu />
           </TopBar>
+          <ProjectControls />
           <EditorWorkspace />
           <Timeline />
         </>

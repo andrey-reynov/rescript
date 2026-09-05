@@ -106,11 +106,13 @@ export function useTranscriptSelection({
    * not clear the transcript selection — used by Correct / Speaker pickers.
    */
   freezeSelectionRef,
+  renderRevision,
 }: {
   containerRef: RefObject<HTMLElement | null>;
   scrollRef: RefObject<HTMLElement | null>;
   cutOutIds: Set<number>;
   freezeSelectionRef: RefObject<boolean>;
+  renderRevision?: string;
 }) {
   const selectedWordIds = useEditorStore((s) => s.selectedWordIds);
   const setSelectedWords = useEditorStore((s) => s.setSelectedWords);
@@ -228,7 +230,14 @@ export function useTranscriptSelection({
       clickSelectionRef.current = false;
       const els = wordElsInRange(container, range);
       applyMarks(els);
-      const info = selectionInfoFromWordEls(els, cutOutIdsRef.current);
+      let info = selectionInfoFromWordEls(els, cutOutIdsRef.current);
+      if(info && els.length>1) {
+        const state=useEditorStore.getState();
+        const first=state.words.findIndex(w=>w.id===Number(els[0].dataset.wid));
+        const last=state.words.findIndex(w=>w.id===Number(els[els.length-1].dataset.wid));
+        const ids=state.words.slice(first,last+1).filter(w=>state.showDeleted||!cutOutIdsRef.current.has(w.id)).map(w=>w.id);
+        info={ids,anyDeleted:ids.some(id=>cutOutIdsRef.current.has(id)),anyKept:ids.some(id=>!cutOutIdsRef.current.has(id))};
+      }
 
       if (mode === "paint") {
         // Hide a stale toolbar while dragging; marks stay imperative.
@@ -296,9 +305,8 @@ export function useTranscriptSelection({
     const shown = selection?.ids ?? [];
     if (sameIds(shown, selectedWordIds)) return;
 
-    const els = selectedWordIds
-      .map((id) => container.querySelector<HTMLElement>(`[data-wid="${id}"]`))
-      .filter((el): el is HTMLElement => el !== null);
+    const selectedSet=new Set(selectedWordIds);
+    const els=Array.from(container.querySelectorAll<HTMLElement>("[data-wid]")).filter(el=>selectedSet.has(Number(el.dataset.wid)));
     clearMarks();
     if (els.length === 0) {
       clickSelectionRef.current = false;
@@ -315,6 +323,7 @@ export function useTranscriptSelection({
     });
   }, [
     selectedWordIds,
+    renderRevision,
     selection,
     cutOutIds,
     clearMarks,

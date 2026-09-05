@@ -10,7 +10,6 @@ import {
   Music,
   Scissors,
   ShieldAlert,
-  Trash2,
   Type,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
@@ -25,7 +24,7 @@ import ImportTranscriptOption from "./ImportTranscriptOption";
 import { MODEL_ORDER } from "@/lib/models";
 import { useMediaEngineSupport } from "@/hooks/useMediaEngineSupport";
 import { detectMediaKind, MEDIA_ACCEPT } from "@/lib/media";
-import { formatTime } from "@/lib/edits";
+import ProjectLibrary from "./ProjectLibrary";
 import {
   listProjects,
   type ProjectMeta,
@@ -35,7 +34,6 @@ import { useEditorStore } from "@/lib/store";
 import type { SpeakerInfo, Word } from "@/lib/types";
 import { useI18n } from "./I18nProvider";
 import {
-  formatRelativeTime,
   localizeRuntimeMessage,
 } from "@/lib/i18n";
 
@@ -90,73 +88,6 @@ function MediaCards({ dragging }: { dragging: boolean }) {
   );
 }
 
-function RecentProjects({
-  projects,
-  busyId,
-  onOpen,
-  onRemove,
-}: {
-  projects: ProjectMeta[];
-  busyId: string | null;
-  onOpen: (id: string) => void;
-  onRemove: (id: string) => void;
-}) {
-  const { locale, t } = useI18n();
-  if (projects.length === 0) return null;
-  return (
-    <div className="mt-6">
-      <p className="mb-2 text-[11px] font-medium tracking-wide text-zinc-400 dark:text-zinc-500">
-        {t("upload.recentProjects")}
-      </p>
-      <ul className="divide-y divide-zinc-100 overflow-hidden rounded-xl border border-zinc-200 bg-white/80 dark:divide-zinc-800 dark:border-zinc-700 dark:bg-zinc-900/80">
-        {projects.map((p) => {
-          const KindIcon = p.mediaKind === "audio" ? AudioLines : Film;
-          const opening = busyId === p.id;
-          return (
-            <li key={p.id}>
-              <div className="flex items-center gap-1 pr-1">
-                <button
-                  type="button"
-                  disabled={busyId !== null}
-                  onClick={() => onOpen(p.id)}
-                  className="flex cursor-pointer min-w-0 flex-1 items-center gap-3 px-3 py-2.5 text-left transition hover:bg-zinc-50 disabled:opacity-60 dark:hover:bg-zinc-800/60"
-                >
-                  <KindIcon size={16} className="shrink-0 text-zinc-400 mx-2 dark:text-zinc-500" />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-medium text-zinc-800 dark:text-zinc-100">
-                      {p.name}
-                    </span>
-                    <span className="mt-0.5 block text-[11px] text-zinc-400 dark:text-zinc-500">
-                      {formatRelativeTime(locale, p.updatedAt)}
-                      {p.duration > 0 ? ` · ${formatTime(p.duration)}` : ""}
-                      {` · ${p.mediaKind === "audio" ? t("export.audio") : t("export.video")}`}
-                    </span>
-                  </span>
-                  {opening && (
-                    <Loader2 size={14} className="shrink-0 animate-spin text-zinc-400" />
-                  )}
-                </button>
-                <button
-                  type="button"
-                  title={t("upload.removeRecent")}
-                  disabled={busyId !== null}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    onRemove(p.id);
-                  }}
-                  className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 disabled:opacity-40 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            </li>
-          );
-        })}
-      </ul>
-    </div>
-  );
-}
-
 export default function UploadScreen({
   onFile,
 }: {
@@ -178,7 +109,7 @@ export default function UploadScreen({
   const source = useEditorStore((s) => s.source);
   const pendingTranscript = useEditorStore((s) => s.pendingTranscript);
   const openProject = useEditorStore((s) => s.openProject);
-  const removeProject = useEditorStore((s) => s.removeProject);
+
   const { t } = useI18n();
 
   const refreshProjects = useCallback(async () => {
@@ -250,25 +181,19 @@ export default function UploadScreen({
     [openProject, ready, refreshProjects, t]
   );
 
-  const handleRemove = useCallback(
-    async (id: string) => {
-      try {
-        await removeProject(id);
-        await refreshProjects();
-      } catch (err) {
-        console.error(err);
-        alert(t("error.removeProject"));
-      }
-    },
-    [removeProject, refreshProjects, t]
-  );
+  useEffect(() => {
+    const refresh=()=>{void refreshProjects();};
+    window.addEventListener('rescript:projects-changed',refresh);
+    return()=>window.removeEventListener('rescript:projects-changed',refresh);
+  },[refreshProjects]);
+  useEffect(()=>{window.rescriptDesktop?.setWindowMode(projects.length?'library':'compact');},[projects.length]);
 
   return (
     <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-gradient-to-b from-zinc-50 to-neutral-50/50 dark:from-zinc-950 dark:to-zinc-900/50">
       {/* min-h-full + items-center centers when content fits; the outer
           overflow-y-auto still lets short viewports (mobile) scroll the top. */}
       <div className="flex min-h-full items-center justify-center p-6">
-        <div className="w-full max-w-xl">
+        <div className={projects.length ? "w-full max-w-6xl" : "w-full max-w-xl"}>
           {!isElectron && (
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
               <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
@@ -301,6 +226,7 @@ export default function UploadScreen({
               </div>
             </div>
           )}
+          {isElectron && <div className="mb-4 flex justify-end"><button type="button" className="rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700" onClick={()=>void window.rescriptDesktop!.projects.open().then(id=>{if(id)void handleOpen(id);}).catch(e=>alert(e.message))}>Open project…</button></div>}
           {/*
             Native <label htmlFor> opens the file dialog without a synthetic
             input.click(). display:none inputs + .click() fail in some Chromium
@@ -330,7 +256,7 @@ export default function UploadScreen({
               setDragging(false);
               handleFiles(e.dataTransfer.files);
             }}
-            className={`group flex flex-col items-center justify-center rounded-2xl border-2 border-dashed bg-white/80 px-8 py-14 text-center transition dark:bg-zinc-900/40 ${!ready
+            className={`group flex flex-col items-center justify-center rounded-2xl border-2 border-dashed bg-white/80 px-8 ${projects.length ? "py-5" : "py-14"} text-center transition dark:bg-zinc-900/40 ${!ready
               ? "cursor-default border-zinc-200 dark:border-zinc-700"
               : dragging
                 ? "cursor-pointer border-neutral-500 bg-neutral-50/80 dark:border-neutral-600 dark:bg-zinc-900/60"
@@ -338,7 +264,7 @@ export default function UploadScreen({
               }`}
           >
             {ready ? (
-              <MediaCards dragging={dragging} />
+              projects.length ? <Film size={24} className="mb-2 text-zinc-400"/> : <MediaCards dragging={dragging} />
             ) : (
               <div
                 className={`mb-3 flex h-12 w-12 items-center justify-center rounded-full ${unsupported
@@ -409,15 +335,7 @@ export default function UploadScreen({
             />
           </label>
 
-          {/* On desktop the recent list lives in the native File menu instead. */}
-          {ready && !isElectron && (
-            <RecentProjects
-              projects={projects}
-              busyId={busyId}
-              onOpen={handleOpen}
-              onRemove={handleRemove}
-            />
-          )}
+          {ready && projects.length > 0 && <ProjectLibrary projects={projects} busyId={busyId} onOpen={handleOpen} />}
 
           {!isElectron && <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
             {[

@@ -1,170 +1,33 @@
 "use client";
+import { useEffect, useRef, useState } from 'react';
+import { Settings, X, FolderOpen } from 'lucide-react';
+import { useAppearance } from '@/hooks/useAppearance';
+import { useI18n } from './I18nProvider';
+import { UI_LOCALES, UI_LOCALE_META, isUiLocalePreference } from '@/lib/i18n';
+import { FORK_NOTICE, GITHUB_REPO_URL } from './SocialLinks';
 
-import { useId, useState } from "react";
-import { ExternalLink, Moon, Settings, Sun } from "lucide-react";
-import { GitHubIcon, GITHUB_REPO_URL, FORK_NOTICE } from "./SocialLinks";
-import { useAppearance } from "@/hooks/useAppearance";
-import Popover, { PopoverContent, PopoverTrigger } from "./Popover";
-import type { Appearance } from "@/lib/theme";
-import { useI18n } from "./I18nProvider";
-import {
-  UI_LOCALES,
-  UI_LOCALE_META,
-  isUiLocalePreference,
-} from "@/lib/i18n";
-
-const MENU_LINKS = [
-  { labelKey: "settings.github", href: GITHUB_REPO_URL, Icon: GitHubIcon },
-] as const;
-
-/**
- * Top-bar settings popover. Houses appearance, transcript source, and social
- * links for now — structure is section-based so more prefs can land here later.
- */
 export default function SettingsMenu() {
-  const [open, setOpen] = useState(false);
-  const panelId = useId();
-  const { appearance, setAppearance } = useAppearance();
-  const { t, preference, setPreference } = useI18n();
-
-  return (
-    <Popover
-      open={open}
-      onOpenChange={setOpen}
-      placement="bottom-end"
-      backdrop
-    >
-      <div className="relative z-30 shrink-0">
-        <PopoverTrigger>
-          <button
-            type="button"
-            aria-label={t("common.settings")}
-            aria-haspopup="dialog"
-            aria-expanded={open}
-            aria-controls={panelId}
-            title={t("common.settings")}
-            onClick={() => setOpen((v) => !v)}
-            className="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-zinc-500 transition hover:bg-zinc-100 hover:text-zinc-800 dark:text-zinc-400 dark:hover:bg-zinc-800 dark:hover:text-zinc-200"
-          >
-            <Settings size={16} />
-          </button>
-        </PopoverTrigger>
-
-        <PopoverContent
-          id={panelId}
-          role="dialog"
-          aria-label={t("common.settings")}
-          className="z-40 w-[15rem] overflow-hidden"
-        >
-          <section className="border-b border-zinc-100 px-3 py-2.5 dark:border-zinc-800">
-            <p className="mb-2 text-[11px] font-medium tracking-wide text-zinc-400 dark:text-zinc-500">
-              {t("settings.appearance")}
-            </p>
-            <div
-              className="grid grid-cols-2 gap-0.5 rounded-lg bg-zinc-100 p-0.5 dark:bg-zinc-800"
-              role="radiogroup"
-              aria-label={t("settings.appearance")}
-            >
-              <AppearanceOption
-                value="light"
-                label={t("settings.light")}
-                icon={Sun}
-                selected={appearance === "light"}
-                onSelect={setAppearance}
-              />
-              <AppearanceOption
-                value="dark"
-                label={t("settings.dark")}
-                icon={Moon}
-                selected={appearance === "dark"}
-                onSelect={setAppearance}
-              />
-            </div>
-          </section>
-
-          <section className="border-b border-zinc-100 px-3 py-2.5 dark:border-zinc-800">
-            <label className="block text-[11px] font-medium tracking-wide text-zinc-400 dark:text-zinc-500">
-              {t("settings.interfaceLanguage")}
-              <select
-                value={preference}
-                onChange={(event) => {
-                  const next = event.target.value;
-                  if (isUiLocalePreference(next)) setPreference(next);
-                }}
-                className="mt-2 block h-8 w-full rounded-lg border border-zinc-200 bg-white px-2 text-[12px] text-zinc-700 outline-none dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-200"
-              >
-                <option value="system">{t("common.system")}</option>
-                {UI_LOCALES.map((locale) => (
-                  <option key={locale} value={locale}>
-                    {UI_LOCALE_META[locale].nativeLabel}
-                  </option>
-                ))}
-              </select>
-            </label>
-          </section>
-
-          <section className="border-b border-zinc-100 px-1.5 py-1.5 dark:border-zinc-800">
-            {MENU_LINKS.map(({ labelKey, href, Icon }) => (
-              <a
-                key={labelKey}
-                href={href}
-                target="_blank"
-                rel="noopener noreferrer"
-                // Keep the click on the anchor — popover dismiss listeners must
-                // not treat this as an outside press or swallow navigation.
-                onPointerDown={(e) => e.stopPropagation()}
-                onClick={() => setOpen(false)}
-                className="flex items-center gap-2.5 px-3 py-2 text-[13px] text-zinc-700 transition hover:bg-zinc-50 dark:text-zinc-300 dark:hover:bg-zinc-800/80"
-              >
-                <span className="shrink-0 text-zinc-400 dark:text-zinc-500">
-                  <Icon size={14} />
-                </span>
-                <span className="flex-1">{t(labelKey)}</span>
-                <ExternalLink
-                  size={12}
-                  className="shrink-0 text-zinc-300 dark:text-zinc-600"
-                />
-              </a>
-            ))}
-          </section>
-
-          <section className="px-3 py-2.5">
-            <p className="text-[11px] leading-snug text-zinc-500 dark:text-zinc-400">{FORK_NOTICE}</p>
-          </section>
-
-        </PopoverContent>
+  const dialog=useRef<HTMLDialogElement>(null);
+  const [folder,setFolder]=useState('');
+  const [error,setError]=useState<string|null>(null);
+  const [tab,setTab]=useState<'projects'|'appearance'|'about'>('projects');
+  const {appearance,setAppearance}=useAppearance();
+  const {t,preference,setPreference}=useI18n();
+  useEffect(()=>{void window.rescriptDesktop?.projects.folder().then(setFolder).catch(e=>setError(String(e)));},[]);
+  return <>
+    <button type="button" aria-label={t('common.settings')} title={t('common.settings')} onClick={()=>dialog.current?.showModal()} className="flex h-8 w-8 items-center justify-center rounded-lg text-zinc-500 hover:bg-zinc-100 dark:hover:bg-zinc-800"><Settings size={16}/></button>
+    <dialog ref={dialog} aria-label="Settings" className="m-auto max-h-[85vh] w-[640px] max-w-[92vw] overflow-auto rounded-2xl border border-zinc-200 bg-white p-0 text-zinc-900 shadow-xl backdrop:bg-black/40 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-100">
+      <div className="flex items-center justify-between border-b border-zinc-200 px-5 py-3 dark:border-zinc-700"><h1 className="text-lg font-semibold">Settings</h1><button aria-label="Close settings" onClick={()=>dialog.current?.close()} className="rounded p-1"><X size={18}/></button></div>
+      <nav className="flex gap-2 border-b border-zinc-200 px-5 py-2 dark:border-zinc-700" aria-label="Settings sections">{(['projects','appearance','about'] as const).map(item=><button key={item} onClick={()=>setTab(item)} aria-pressed={tab===item} className={`rounded-lg px-3 py-1.5 text-sm capitalize ${tab===item?'bg-zinc-100 font-medium dark:bg-zinc-800':'text-zinc-500'}`}>{item}</button>)}</nav>
+      <div className="p-5">
+        {tab==='projects'&&<><h2 className="font-medium">Default project folder</h2><p className="mt-2 text-sm text-zinc-500">New projects save here automatically. Save As lets you save a separate version elsewhere. Changing this folder does not move your existing projects.</p>
+          <p className="my-3 break-all rounded-lg border border-zinc-200 p-3 text-sm dark:border-zinc-700">{folder||'Browser storage — install the desktop app to choose a folder.'}</p>
+          {folder&&<button className="flex items-center gap-2 rounded-lg bg-zinc-900 px-3 py-2 text-sm text-white dark:bg-zinc-100 dark:text-zinc-900" onClick={()=>void window.rescriptDesktop!.projects.chooseFolder().then(next=>{if(next){setFolder(next);window.dispatchEvent(new Event('rescript:projects-changed'));}}).catch(e=>setError(String(e)))}><FolderOpen size={16}/>Choose folder…</button>}
+          <p className="mt-4 text-xs text-zinc-500">Original media stays where it is. Projects keep source references and saved edits, plus up to 20 recovery snapshots.</p></>}
+        {tab==='appearance'&&<div className="space-y-4"><label className="block text-sm">{t('settings.appearance')}<select aria-label="Appearance" value={appearance} onChange={e=>setAppearance(e.target.value==='dark'?'dark':'light')} className="mt-2 block w-full rounded border bg-transparent p-2"><option value="light">{t('settings.light')}</option><option value="dark">{t('settings.dark')}</option></select></label><label className="block text-sm">{t('settings.interfaceLanguage')}<select aria-label="Interface language" value={preference} onChange={e=>{if(isUiLocalePreference(e.target.value))setPreference(e.target.value);}} className="mt-2 block w-full rounded border bg-transparent p-2"><option value="system">{t('common.system')}</option>{UI_LOCALES.map(locale=><option key={locale} value={locale}>{UI_LOCALE_META[locale].nativeLabel}</option>)}</select></label></div>}
+        {tab==='about'&&<><h2 className="font-semibold">Rescript by Reynov</h2><p className="my-3 text-sm text-zinc-500">{FORK_NOTICE}</p><a className="text-sm underline" href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">Fork on GitHub</a></>}
+        {error&&<p role="alert" className="mt-3 text-sm text-red-600">{error}</p>}
       </div>
-    </Popover>
-  );
-}
-
-function AppearanceOption({
-  value,
-  label,
-  icon: Icon,
-  selected,
-  onSelect,
-}: {
-  value: Appearance;
-  label: string;
-  icon: typeof Sun;
-  selected: boolean;
-  onSelect: (value: Appearance) => void;
-}) {
-  return (
-    <button
-      type="button"
-      role="radio"
-      aria-checked={selected}
-      onClick={() => onSelect(value)}
-      className={`flex cursor-pointer items-center justify-center gap-1 rounded-md px-1.5 py-1 text-[13px] font-medium transition ${
-        selected
-          ? "bg-white text-zinc-900 shadow-sm dark:bg-zinc-700 dark:text-zinc-50"
-          : "text-zinc-500 hover:text-zinc-800 dark:text-zinc-400 dark:hover:text-zinc-200"
-      }`}
-    >
-      <Icon size={14} />
-      {label}
-    </button>
-  );
+    </dialog>
+  </>;
 }

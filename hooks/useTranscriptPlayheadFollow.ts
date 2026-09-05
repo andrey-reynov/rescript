@@ -33,11 +33,13 @@ export function useTranscriptPlayheadFollow({
   containerRef,
   playing,
   activeWordId,
+  ensureWordVisible,
 }: {
   scrollRef: RefObject<HTMLDivElement | null>;
   containerRef: RefObject<HTMLDivElement | null>;
   playing: boolean;
   activeWordId: number;
+  ensureWordVisible?: (id:number)=>void;
 }) {
   const followPlayheadRef = useRef(true);
   /** Set by wheel/touch/rail before the matching scroll event. */
@@ -139,7 +141,8 @@ export function useTranscriptPlayheadFollow({
     const el = containerRef.current?.querySelector(
       `[data-wid="${activeWordId}"]`
     );
-    if (!scroller || !el) return;
+    if (!scroller) return;
+    if (!el) { ensureWordVisible?.(activeWordId); return; }
     const wordRect = el.getBoundingClientRect();
     const scrollerRect = scroller.getBoundingClientRect();
     const viewTop = scrollerRect.top + HEADER_H;
@@ -152,7 +155,7 @@ export function useTranscriptPlayheadFollow({
       top: scroller.scrollTop + wordCentre - paneCentre,
       behavior: "smooth",
     });
-  }, [activeWordId, playing, followPlayhead, scrollRef, containerRef]);
+  }, [activeWordId, playing, followPlayhead, scrollRef, containerRef, ensureWordVisible]);
 
   // While unfollowed, track where the playhead sits so the control points the
   // right way, and hand following back once playback catches up to the reader.

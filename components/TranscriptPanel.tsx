@@ -1,5 +1,6 @@
 "use client";
 
+import { useVirtualizer, defaultRangeExtractor } from "@tanstack/react-virtual";
 import React, { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   ArrowDown,
@@ -49,12 +50,14 @@ const WordSpan = memo(function WordSpan({
   word,
   cutOut,
   active,
+  selected,
   onClick,
 }: {
   word: Word;
   /** True when the word is removed from the edited media (deleted or covered by a cut). */
   cutOut: boolean;
   active: boolean;
+  selected: boolean;
   onClick: (word: Word, el: HTMLElement) => void;
 }) {
   const { t } = useI18n();
@@ -64,10 +67,19 @@ const WordSpan = memo(function WordSpan({
   return (
     <span
       data-wid={word.id}
+      data-sel={selected ? "" : undefined}
       data-cut={cutOut ? "" : undefined}
       data-placeholder={placeholder ? "" : undefined}
       title={placeholder ? t("transcript.hesitation") : undefined}
-      onClick={(e) => onClick(word, e.currentTarget)}
+      onClick={(e) => {
+        if(e.shiftKey) {
+          const state=useEditorStore.getState();const anchor=state.selectedWordIds[0]??word.id;
+          const a=state.words.findIndex(w=>w.id===anchor),b=state.words.findIndex(w=>w.id===word.id);
+          state.setSelectedWords(state.words.slice(Math.min(a,b),Math.max(a,b)+1).map(w=>w.id));
+          window.getSelection()?.removeAllRanges();return;
+        }
+        onClick(word,e.currentTarget);
+      }}
       className={`py-0.5 cursor-pointer transition-colors duration-75 ${cutOut
         ? "word-deleted bg-red-50 text-red-600 line-through decoration-red-300 dark:bg-red-950/40 dark:text-red-400 dark:decoration-red-800"
         : active
@@ -155,6 +167,22 @@ export default function TranscriptPanel() {
   const containerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
+  // Bound even a single-speaker monologue to small rendering rows; source data is unchanged.
+  const turns=useMemo(()=>groupWordsBySpeaker(words).flatMap(turn=>{
+    const rows:typeof turn[]=[];for(let i=0;i<turn.words.length;i+=80)rows.push({...turn,words:turn.words.slice(i,i+80)});return rows;
+  }),[words]);
+  const rowByWord=useMemo(()=>{const index=new Map<number,number>();turns.forEach((turn,row)=>turn.words.forEach(word=>index.set(word.id,row)));return index;},[turns]);
+  const selectedIds=useMemo(()=>new Set(selectedWordIds),[selectedWordIds]);
+  const pinnedRows=useMemo(()=>[selectedWordIds[0],selectedWordIds[selectedWordIds.length-1]].map(id=>rowByWord.get(id)).filter((row):row is number=>row!==undefined),[selectedWordIds,rowByWord]);
+  const virtualizer=useVirtualizer({count:turns.length,getScrollElement:()=>scrollRef.current,estimateSize:()=>180,overscan:3,scrollMargin:72,
+    getItemKey:useCallback((index:number)=>turns[index].words[0].id,[turns]),
+    rangeExtractor:useCallback((range: Parameters<typeof defaultRangeExtractor>[0])=>Array.from(new Set([...defaultRangeExtractor(range),...pinnedRows])).sort((a,b)=>a-b),[pinnedRows]),
+  });
+  const virtualRows=virtualizer.getVirtualItems();
+  const renderRevision=virtualRows.map(row=>row.index).join(',');
+  const ensureWordVisible=useCallback((id:number)=>{const row=rowByWord.get(id);if(row!==undefined)virtualizer.scrollToIndex(row,{align:'center'});},[rowByWord,virtualizer]);
+  useEffect(()=>{const id=selectedWordIds[0];if(id!==undefined&&!containerRef.current?.querySelector('[data-wid="'+id+'"]'))ensureWordVisible(id);},[selectedWordIds,ensureWordVisible]);
+  useEffect(()=>{if(!playing&&activeWordId>=0&&!containerRef.current?.querySelector('[data-wid="'+activeWordId+'"]'))ensureWordVisible(activeWordId);},[activeWordId,playing,ensureWordVisible]);
   const [correcting, setCorrecting] = useState<{ ids: number[] } | null>(null);
   const [correctText, setCorrectText] = useState("");
   const [assigningSpeaker, setAssigningSpeaker] = useState<{
@@ -174,6 +202,7 @@ export default function TranscriptPanel() {
     scrollRef,
     cutOutIds,
     freezeSelectionRef,
+    renderRevision,
   });
 
   const {
@@ -186,6 +215,7 @@ export default function TranscriptPanel() {
     containerRef,
     playing,
     activeWordId,
+    ensureWordVisible,
   });
 
   // Clicking a word seeks — resume following so playback stays in view.
@@ -216,7 +246,7 @@ export default function TranscriptPanel() {
       offsetMain: 12,
     });
 
-  const turns = useMemo(() => groupWordsBySpeaker(words), [words]);
+
 
   const deletedCount = useMemo(() => cutOutIds.size, [cutOutIds]);
   const handleImportTranscript = useCallback(
@@ -442,8 +472,9 @@ export default function TranscriptPanel() {
           )}
 
           {status === "ready" && (
-            <div className="transcript-words selection:bg-transparent">
-              {turns.map((turn) => {
+            <div className="transcript-words selection:bg-transparent" style={{height:virtualizer.getTotalSize(),position:"relative"}}>
+              {virtualRows.map((virtualRow) => {
+                const turn=turns[virtualRow.index];
                 const visible = showDeleted
                   ? turn.words
                   : turn.words.filter((w) => !cutOutIds.has(w.id));
@@ -451,7 +482,7 @@ export default function TranscriptPanel() {
                 // First turn in the full word list has no previous speaker to borrow from.
                 const canMove = turn.words[0].id !== words[0]?.id;
                 return (
-                  <div key={`${turn.speaker}-${turn.words[0].id}`} className="mb-7">
+                  <div key={virtualRow.key} ref={virtualizer.measureElement} data-index={virtualRow.index} className="pb-7" style={{position:"absolute",top:0,left:0,width:"100%",transform:`translateY(${virtualRow.start-72}px)`}}>
                     <SpeakerLabel
                       speakerId={turn.speaker}
                       turnWordIds={turn.words.map((w) => w.id)}
@@ -470,6 +501,7 @@ export default function TranscriptPanel() {
                               word={w}
                               cutOut={cutOutIds.has(w.id)}
                               active={w.id === activeWordId}
+                              selected={selectedIds.has(w.id)}
                               onClick={onWordClick}
                             />
                           </React.Fragment>

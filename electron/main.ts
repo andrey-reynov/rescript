@@ -6,10 +6,15 @@ import {
   screen,
   shell,
   net,
+  dialog,
   type WebContents,
 } from "electron";
 import { join, normalize, extname } from "node:path";
 import { pathToFileURL } from "node:url";
+import { installSafeClose } from "./safe-close";
+import { installJobService } from "./job-service";
+import { installProjectIpc } from "./project-ipc";
+import type { ProjectFiles } from "./project-files";
 import { existsSync, statSync } from "node:fs";
 import {
   buildAppMenu,
@@ -23,17 +28,20 @@ import {
   setDesktopLocale,
 } from "./locale";
 
+let projectFiles: ProjectFiles;
+
 const isDev = !app.isPackaged;
 const DEV_SERVER_URL = process.env.ELECTRON_START_URL ?? "http://localhost:3000";
 const isMac = process.platform === "darwin";
 
-type WindowMode = "compact" | "expanded";
+type WindowMode = "compact" | "expanded" | "library";
 
 /** The shell has two resting sizes: a small window for the upload screen, and a
  *  roomy one once the editor (transcript + preview + timeline) takes over. */
 const WINDOW_SIZES: Record<WindowMode, { width: number; height: number }> = {
   compact: { width: 560, height: 400 },
   expanded: { width: 1080, height: 740 },
+  library: { width: 1080, height: 740 },
 };
 const MIN_SIZE = { width: 560, height: 400 };
 
@@ -102,6 +110,13 @@ function resolveStaticPath(urlPath: string): string | null {
 function registerAppProtocol(): void {
   protocol.handle("app", async (request) => {
     const { pathname } = new URL(request.url);
+    if (pathname.startsWith("/__media/")) {
+      try {
+        const id = decodeURIComponent(pathname.slice("/__media/".length));
+        const file = await projectFiles.mediaPath(id);
+        const response = await net.fetch(pathToFileURL(file).toString(), { headers: request.headers }); const headers = new Headers(response.headers); headers.set("Access-Control-Allow-Origin", isDev ? new URL(DEV_SERVER_URL).origin : "app://localhost"); headers.set("Cross-Origin-Resource-Policy", "cross-origin"); return new Response(response.body, {status:response.status, headers});
+      } catch { return new Response("Original media needs relinking", { status: 404 }); }
+    }
     const filePath = resolveStaticPath(pathname);
     if (!filePath) {
       return new Response("Not found", { status: 404, statusText: "Not Found" });
@@ -234,12 +249,17 @@ function createWindow(): BrowserWindow {
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      backgroundThrottling: false,
     },
   });
   // Keep the fork title when the renderer updates its localized page title.
   win.on("page-title-updated", (event) => event.preventDefault());
   windowModes.set(win, "compact");
 
+  win.webContents.on("render-process-gone", (_event, details) => {
+    console.error("Editor renderer exited", details);
+    void dialog.showMessageBox(win, {type:"error",message:"The editor stopped responding.",detail:"Saved projects remain on disk. Reload to recover your last save or choose a snapshot from the library.",buttons:["Reload", "Close"]}).then(({response}) => { if(response===0) win.reload(); else win.destroy(); });
+  });
   win.once("ready-to-show", () => win.show());
 
   // A reload tears down the listener the renderer registered; make it re-announce.
@@ -305,7 +325,7 @@ if (!gotLock) {
   app.quit();
 } else {
   app.on("second-instance", () => {
-    const [win] = BrowserWindow.getAllWindows();
+    const win = BrowserWindow.getAllWindows().find(candidate => !candidate.webContents.getURL().includes("/processing")) ?? createWindow();
     if (win) {
       if (win.isMinimized()) win.restore();
       win.focus();
@@ -313,7 +333,7 @@ if (!gotLock) {
   });
 
   ipcMain.on("window:set-mode", (event, mode: unknown) => {
-    if (mode !== "compact" && mode !== "expanded") return;
+    if (mode !== "compact" && mode !== "expanded" && mode !== "library") return;
     const win = BrowserWindow.fromWebContents(event.sender);
     if (win) applyWindowMode(win, mode);
   });
@@ -346,19 +366,27 @@ if (!gotLock) {
     flushPendingCommands(event.sender);
   });
 
-  app.on("before-quit", () => {
-    quitting = true;
-  });
+  installSafeClose(() => BrowserWindow.getAllWindows().filter(win => readyRenderers.has(win.webContents)), value => { quitting = value; });
 
   app.whenReady().then(() => {
+    projectFiles = installProjectIpc(event => {
+      const owner = BrowserWindow.fromWebContents(event.sender);
+      const url = event.senderFrame?.url ?? "";
+      const trusted = isDev ? url.startsWith(DEV_SERVER_URL + "/") : url.startsWith("app://localhost/");
+      return owner && trusted ? owner : null;
+    });
+    installJobService(projectFiles, isDev ? DEV_SERVER_URL : null, join(__dirname,"preload.js"), event => {
+      const url=event.senderFrame?.url??"";
+      return Boolean(BrowserWindow.fromWebContents(event.sender)) && (isDev ? url.startsWith(DEV_SERVER_URL+"/") : url.startsWith("app://localhost/"));
+    });
     setDesktopLocale(resolveDesktopLocale(app.getLocale()));
-    if (!isDev) registerAppProtocol();
+    registerAppProtocol();
     buildAppMenu(dispatchMenuCommand);
     createWindow();
     // Local fork: updates are installed manually; never initialize an updater.
 
     app.on("activate", () => {
-      if (BrowserWindow.getAllWindows().length === 0) createWindow();
+      if (!BrowserWindow.getAllWindows().some(candidate => !candidate.webContents.getURL().includes("/processing"))) createWindow();
     });
   });
 

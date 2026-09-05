@@ -77,6 +77,8 @@ export function useDesktopMenu(openFilePicker: () => void, ready: boolean): void
       await flushProjectAutosave();
     } catch (err) {
       console.warn("Failed to save before closing the project.", err);
+      alert("The project could not be saved. Retry saving before closing.");
+      return;
     }
     useEditorStore.getState().reset();
     await syncRecents();

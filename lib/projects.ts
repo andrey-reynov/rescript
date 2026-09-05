@@ -29,6 +29,10 @@ export interface ProjectMeta {
   transcriptLanguage: TranscriptLanguage;
   updatedAt: number;
   createdAt: number;
+  thumbnail?: string;
+  filePath?: string;
+  missing?: boolean;
+  recoveryAvailable?: boolean;
 }
 
 /** Read source from a stored row; older saves used `model`. */
@@ -53,6 +57,9 @@ export interface ProjectRecord extends ProjectMeta {
   media: Blob;
   /** MIME type used when reconstructing a File. */
   mediaType: string;
+  mediaName?: string;
+  currentTime?: number;
+  transcriptionComplete?: boolean;
 }
 
 export type ProjectWrite = Omit<ProjectRecord, "id" | "createdAt" | "updatedAt"> & {
@@ -125,6 +132,7 @@ function txDone(tx: IDBTransaction): Promise<void> {
 
 /** List projects newest-first (metadata only — no media/words payloads). */
 export async function listProjects(): Promise<ProjectMeta[]> {
+  if (typeof window !== "undefined" && window.rescriptDesktop?.projects) return window.rescriptDesktop.projects.list() as Promise<ProjectMeta[]>;
   const db = await openDb();
   const tx = db.transaction(STORE, "readonly");
   const store = tx.objectStore(STORE);
@@ -147,6 +155,21 @@ export async function listProjects(): Promise<ProjectMeta[]> {
 }
 
 export async function getProject(id: string): Promise<ProjectRecord | null> {
+  const desktop = typeof window !== "undefined" ? window.rescriptDesktop?.projects : undefined;
+  if (desktop) {
+    const doc = await desktop.read(id);
+    let mediaUrl: string;
+    try { mediaUrl = await desktop.media(id); }
+    catch {
+      if (!await desktop.relink(id)) throw new Error("Source media is missing. Relink it to continue editing.");
+      mediaUrl = await desktop.media(id);
+    }
+    const response = await fetch(mediaUrl);
+    if (!response.ok) throw new Error("Could not load the original media.");
+    const media = await response.blob();
+    return {...doc.data, id:doc.id, createdAt:doc.createdAt, updatedAt:doc.updatedAt,
+      filePath:doc.filePath, media, mediaName:doc.media.name,mediaType:media.type} as ProjectRecord;
+  }
   const db = await openDb();
   const tx = db.transaction(STORE, "readonly");
   const row = await idbReq(
@@ -161,6 +184,17 @@ export async function getProject(id: string): Promise<ProjectRecord | null> {
 
 /** Insert or replace a project, then prune to MAX_PROJECTS. Returns the id. */
 export async function putProject(input: ProjectWrite): Promise<string> {
+  const desktop = typeof window !== "undefined" ? window.rescriptDesktop?.projects : undefined;
+  if (desktop) {
+    const {media, mediaType: _type, ...fields} = input;
+    void _type;
+    const id = input.id ?? crypto.randomUUID();
+    const payload = {...fields, id} as import("../electron/project-files").ProjectData;
+    if (input.id) await desktop.save(id,payload);
+    else await desktop.create(payload,media as File);
+    window.dispatchEvent(new Event("rescript:projects-changed"));
+    return id;
+  }
   const now = Date.now();
   const id = input.id ?? crypto.randomUUID();
   const db = await openDb();
@@ -197,20 +231,6 @@ export async function putProject(input: ProjectWrite): Promise<string> {
 
   store.put(record);
 
-  // Prune oldest beyond the cap (never delete the record we just wrote). The
-  // updatedAt index yields primary keys oldest-first, so pruning doesn't have to
-  // deserialize every stored media blob the way getAll() would.
-  const keys = await idbReq(
-    store.index("updatedAt").getAllKeys() as IDBRequest<IDBValidKey[]>
-  );
-  let excess = keys.length - MAX_PROJECTS;
-  for (const key of keys) {
-    if (excess <= 0) break;
-    if (key === id) continue;
-    store.delete(key);
-    excess--;
-  }
-
   await txDone(tx);
   return id;
 }
@@ -224,7 +244,7 @@ export async function deleteProject(id: string): Promise<void> {
 
 /** Reconstruct a File from a stored project for preview/export. */
 export function fileFromProject(project: ProjectRecord): File {
-  return new File([project.media], project.name, {
+  return new File([project.media], project.mediaName ?? project.name, {
     type: project.mediaType || project.media.type || undefined,
     lastModified: project.updatedAt,
   });
