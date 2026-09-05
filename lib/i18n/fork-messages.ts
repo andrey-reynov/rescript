@@ -3,6 +3,7 @@ import {ru} from './messages/ru';
 import type {UiLocale} from './locales';
 /** Copy added by the fork. Other locales retain English until translated. */
 export const forkRussian={
+ 'Experimental':'Экспериментальная','English only':'Только английский','Multilingual':'Несколько языков','English only. Use a multilingual model for Russian.':'Только английский. Для русского выберите многоязычную модель.','This model supports English only. Choose a multilingual model for Russian.':'Эта модель поддерживает только английский. Для русского выберите многоязычную модель.',
  'The latest project changes could not be saved.':'Не удалось сохранить последние изменения проекта.','The editor did not acknowledge its last save.':'Редактор не подтвердил последнее сохранение.','Keep working':'Продолжить работу','Quit without saving':'Выйти без сохранения',
 "Independent fork based on the original ReScript app by Wassim Gharbi and contributors. Not affiliated with or endorsed by the original project.":"Независимый форк оригинального приложения ReScript, созданного Wassim Gharbi и участниками проекта. Не связан с оригинальным проектом и не одобрен его авторами.",
 "Open project":"Открыть проект",

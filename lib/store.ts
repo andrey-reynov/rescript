@@ -28,7 +28,7 @@ import {
   shrinkManualCuts,
   trimEdgeResult,
 } from "./edits";
-import { isModelId, loadModelPreference, saveModelPreference } from "./models";
+import { MODELS, isModelId, loadModelPreference, saveModelPreference } from "./models";
 import { isTranscriptSource, type TranscriptSource } from "./source";
 
 import {
@@ -492,7 +492,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setSource: (source) => {
     if (isModelId(source)) {
       saveModelPreference(source);
-      set({ source, pendingTranscript: null });
+      if(MODELS[source].englishOnly)saveTranscriptLanguagePreference("en");
+      set({ source, pendingTranscript: null, ...(MODELS[source].englishOnly?{transcriptLanguage:"en" as const}:{}) });
     } else {
       set({ source });
     }

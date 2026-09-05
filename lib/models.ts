@@ -2,19 +2,31 @@
 export type WhisperModel =
   | "base"
   | "small"
-  // | "medium"
+  | "tiny"
+  | "tinyEn"
+  | "medium"
+  | "largeV2"
+  | "largeV3"
+  | "turbo"
+  | "distilSmall"
+  | "distilLargeV3"
+  | "distilLargeV35"
   /** CrisperWhisper 2.0 Small, exported by tools/crisperwhisper-onnx. */
   // | "crisperSmall"
   /** CrisperWhisper 2.0 Turbo, published ONNX export. */
   // | "crisperTurbo";
-/** NVIDIA Parakeet TDT 0.6B v3 via parakeet.js (ONNX / WebGPU). */
-export type ParakeetModel = "parakeet";
+/** NVIDIA Parakeet TDT 0.6B v2/v3 via parakeet.js (ONNX / WebGPU). */
+export type ParakeetModel = "parakeet" | "parakeetV2";
 export type ModelId = WhisperModel | ParakeetModel;
 
 type DType = "fp32" | "fp16" | "q8" | "int8" | "uint8" | "q4" | "q4f16" | "bnb4";
 
 /** Shared UI fields for every local speech backend. */
 type ModelDisplay = {
+  /** English-trained models cannot recognize Russian even if tokenizer is multilingual. */
+  englishOnly?: boolean;
+  /** Offered for opt-in testing; not yet covered by real-audio acceptance. */
+  experimental?: boolean;
   label: string;
   description: string;
   /** Approximate download size shown in the UI. */
@@ -23,6 +35,8 @@ type ModelDisplay = {
 
 export type WhisperModelInfo = ModelDisplay & {
   backend: "whisper";
+  /** Some older q8 exports only have a practical CPU configuration. */
+  cpuOnly?: boolean;
   /** Hugging Face model id (ONNX export compatible with transformers.js). */
   id: string;
   /** dtype configuration per device. */
@@ -66,14 +80,21 @@ export type ModelInfo = WhisperModelInfo | ParakeetModelInfo;
 
 /** Display order for model rows in the source dropdown. */
 export const MODEL_ORDER: ModelId[] = [
+  "tiny", "tinyEn",
   "base",
   "small",
-  // "medium",
+  "medium", "largeV2", "largeV3", "turbo",
+  "distilSmall", "distilLargeV3", "distilLargeV35", "parakeetV2",
   "parakeet",
   // "crisperSmall",
   // "crisperTurbo",
 ];
 
+const MEDIUM_DTYPE = {webgpu:{encoder_model:"int8",decoder_model_merged:"q4"},wasm:{encoder_model:"int8",decoder_model_merged:"q4"}} satisfies WhisperModelInfo["dtype"];
+const LARGE_DTYPE = {webgpu:{encoder_model:"q4",decoder_model_merged:"q4"},wasm:{encoder_model:"q4",decoder_model_merged:"q4"}} satisfies WhisperModelInfo["dtype"];
+const TURBO_DTYPE = {webgpu:{encoder_model:"q4",decoder_model_merged:"fp16"},wasm:{encoder_model:"q4",decoder_model_merged:"fp16"}} satisfies WhisperModelInfo["dtype"];
+const DISTIL_DTYPE = {webgpu:{encoder_model:"q4",decoder_model_merged:"fp16"},wasm:{encoder_model:"q4",decoder_model_merged:"fp16"}} satisfies WhisperModelInfo["dtype"];
+const CPU_DTYPE = {webgpu:{encoder_model:"q8",decoder_model_merged:"q8"},wasm:{encoder_model:"q8",decoder_model_merged:"q8"}} satisfies WhisperModelInfo["dtype"];
 const WHISPER_DTYPE = {
   // q4 decoder: q8 fails session creation on onnxruntime-web 1.26
   // (Missing required scale … MatMulNBits).
@@ -81,16 +102,7 @@ const WHISPER_DTYPE = {
   wasm: { encoder_model: "fp32", decoder_model_merged: "q4" },
 } satisfies WhisperModelInfo["dtype"];
 
-/**
- * Medium cannot share {@link WHISPER_DTYPE}: its fp32 encoder export is 1.2 GB,
- * which no browser tab survives instantiating. Splits per device the same way
- * {@link MODELS.parakeet} already does — fp16 encoder on WebGPU, int8 on WASM —
- * and keeps the q4 merged decoder that Base and Small are proven on.
- */
-// const WHISPER_MEDIUM_DTYPE = {
-//   webgpu: { encoder_model: "fp16", decoder_model_merged: "q4" },
-//   wasm: { encoder_model: "int8", decoder_model_merged: "q4" },
-// } satisfies WhisperModelInfo["dtype"];
+/** Medium uses CPU/int8: WebGPU/fp16 dropped speech in the bilingual acceptance test. */
 
 /**
  * The local Small export ships only q4 for the merged decoder: int8 cannot
@@ -176,14 +188,17 @@ const WHISPER_DTYPE = {
  * Shared display fields live on every entry; backend-specific knobs
  * (`dtype` / `crisper` vs `repoId`) are gated by `backend`.
  */
-export const MODELS: {
-  base: WhisperModelInfo;
-  small: WhisperModelInfo;
-  // medium: WhisperModelInfo;
-  parakeet: ParakeetModelInfo;
-  // crisperSmall: WhisperModelInfo;
-  // crisperTurbo: WhisperModelInfo;
-} = {
+export const MODELS: {[K in ModelId]: K extends ParakeetModel ? ParakeetModelInfo : WhisperModelInfo} = {
+tiny: {backend:"whisper",id:"onnx-community/whisper-tiny_timestamped",label:"Whisper Tiny",size:"~120 MB",description:"Multilingual. Downloaded when transcription starts.",dtype:WHISPER_DTYPE,englishOnly:false,cpuOnly:false,experimental:true},
+tinyEn: {backend:"whisper",id:"onnx-community/whisper-tiny.en_timestamped",label:"Whisper Tiny (English)",size:"~120 MB",description:"English only. Downloaded when transcription starts.",dtype:WHISPER_DTYPE,englishOnly:true,cpuOnly:false,experimental:false},
+medium: {backend:"whisper",id:"onnx-community/whisper-medium_timestamped",label:"Whisper Medium",size:"~800 MB",description:"Multilingual. Downloaded when transcription starts.",dtype:MEDIUM_DTYPE,englishOnly:false,cpuOnly:true,experimental:false},
+largeV2: {backend:"whisper",id:"onnx-community/whisper-large-v2-ONNX",label:"Whisper Large v2",size:"~1.2 GB",description:"Multilingual. Downloaded when transcription starts.",dtype:LARGE_DTYPE,englishOnly:false,cpuOnly:false,experimental:true},
+largeV3: {backend:"whisper",id:"Xenova/whisper-large-v3",label:"Whisper Large v3",size:"~1.6 GB",description:"Multilingual. Downloaded when transcription starts.",dtype:CPU_DTYPE,englishOnly:false,cpuOnly:true,experimental:true},
+turbo: {backend:"whisper",id:"onnx-community/whisper-large-v3-turbo_timestamped",label:"Whisper Large v3 Turbo",size:"~770 MB",description:"Multilingual. Downloaded when transcription starts.",dtype:TURBO_DTYPE,englishOnly:false,cpuOnly:false,experimental:false},
+distilSmall: {backend:"whisper",id:"onnx-community/distil-small.en",label:"Distil-Whisper Small (English)",size:"~540 MB",description:"English only. Downloaded when transcription starts.",dtype:WHISPER_DTYPE,englishOnly:true,cpuOnly:false,experimental:true},
+distilLargeV3: {backend:"whisper",id:"distil-whisper/distil-large-v3",label:"Distil-Whisper Large v3 (English)",size:"~770 MB",description:"English only. Downloaded when transcription starts.",dtype:CPU_DTYPE,englishOnly:true,cpuOnly:true,experimental:true},
+distilLargeV35: {backend:"whisper",id:"onnx-community/distil-large-v3.5-ONNX",label:"Distil-Whisper Large v3.5 (English)",size:"~660 MB",description:"English only. Downloaded when transcription starts.",dtype:DISTIL_DTYPE,englishOnly:true,cpuOnly:false,experimental:true},
+  parakeetV2: {backend:"parakeet",id:"parakeet-tdt-0.6b-v2",repoId:"ysdede/parakeet-tdt-0.6b-v2-onnx",label:"Parakeet v2 (English)",size:"~0.7–1.3 GB",description:"English only. Use v3 for Russian or bilingual recordings.",englishOnly:true,experimental:true},
   base: {
     backend: "whisper",
     id: "onnx-community/whisper-base_timestamped",
@@ -200,16 +215,6 @@ export const MODELS: {
     size: "~600 MB",
     dtype: WHISPER_DTYPE,
   },
-  // medium: {
-  //   backend: "whisper",
-  //   id: "onnx-community/whisper-medium_timestamped",
-  //   label: "Whisper Medium",
-  //   description:
-  //     "Best accuracy on accents, crosstalk and poor recordings. Slow, and a big download.",
-  //   // WASM int8 encoder + q4 decoder ~780 MB; WebGPU fp16 encoder ~1.1 GB.
-  //   size: "~1.1 GB",
-  //   dtype: WHISPER_MEDIUM_DTYPE,
-  // },
   parakeet: {
     backend: "parakeet",
     id: "parakeet-tdt-0.6b-v3",
@@ -263,19 +268,15 @@ export function isLocalModel(model: ModelId): boolean {
 }
 
 export function isWhisperModel(value: unknown): value is WhisperModel {
-  return (
-    value === "base" ||
-    value === "small" ||
-    value === "medium" ||
-    value === "crisperSmall" ||
-    value === "crisperTurbo"
-  );
+ return isModelId(value)&&MODELS[value].backend==='whisper';
 }
-
 export function isParakeetModel(value: unknown): value is ParakeetModel {
-  return value === "parakeet";
+ return isModelId(value)&&MODELS[value].backend==='parakeet';
 }
-
+/** Reject incompatible explicit languages before downloading any weights. */
+export function modelSupportsLanguage(model:ModelId,language:string):boolean {
+ return !MODELS[model].englishOnly||language==='en'||language==='auto';
+}
 /** Whether `value` is a key of {@link MODELS}. */
 export function isModelId(value: unknown): value is ModelId {
   return typeof value === "string" && Object.prototype.hasOwnProperty.call(MODELS, value);

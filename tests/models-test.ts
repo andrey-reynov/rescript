@@ -3,6 +3,7 @@
  */
 import {
   MODEL_ORDER,
+  modelSupportsLanguage,
   MODELS,
   // isCrisperModel,
   // isLocalModel,
@@ -26,7 +27,7 @@ assert(isModelId("base"), "base is a model id");
 assert(!isModelId("import"), "import is not a model id");
 assert(isTranscriptSource("import"), "import is a transcript source");
 assert(isTranscriptSource("parakeet"), "parakeet is a transcript source");
-assert(!isTranscriptSource("tiny"), "tiny is not a transcript source");
+assert(isTranscriptSource("tiny"), "tiny is a transcript source");
 
 assert(MODELS.parakeet.backend === "parakeet", "parakeet backend");
 assert(MODELS.parakeet.id === "parakeet-tdt-0.6b-v3", "parakeet hub id");
@@ -98,4 +99,17 @@ for (const id of MODEL_ORDER) {
 //   "crisperTurbo Hub id"
 // );
 
+assert(new Set(MODEL_ORDER).size===MODEL_ORDER.length,'no duplicate models');
+assert(MODEL_ORDER.length===Object.keys(MODELS).length,'all registered models selectable');
+for(const id of MODEL_ORDER){
+ assert(isWhisperModel(id)!==isParakeetModel(id),'exactly one backend: '+id);
+ assert(modelSupportsLanguage(id,'auto'),'Automatic supported: '+id);
+ assert(modelSupportsLanguage(id,'ru')===!MODELS[id].englishOnly,'Russian capability: '+id);
+}
+for(const id of ['medium','largeV2','largeV3','turbo','distilSmall','distilLargeV3','distilLargeV35','tinyEn','parakeetV2'])assert(isModelId(id),'new model registered: '+id);
+for(const id of ['crisperSmall','crisperTurbo','missing',null,{},'toString'])assert(!isWhisperModel(id)&&!isParakeetModel(id),'unknown model rejected');
+assert(MODELS.parakeetV2.repoId!==MODELS.parakeet.repoId,'Parakeet caches separate');
+assert(MODELS.largeV3.cpuOnly===true,'q8-only large model uses CPU');
+assert(MODELS.medium.cpuOnly===true,'medium uses the validated CPU path');
+assert(MODELS.medium.dtype.wasm.encoder_model==='int8','medium CPU avoids fp32 encoder');
 console.log("models-test: ok");

@@ -217,9 +217,9 @@ export default function UploadScreen({
                 <SettingsMenu />
                 <div className="h-5 w-px bg-zinc-200 dark:bg-zinc-700 mr-1" />
                 <ModelSelector groupLabel={t("model.transcriptSource")}>
-                  {MODEL_ORDER.map((id) => (
+                  <div className="max-h-[45vh] overflow-y-auto">{MODEL_ORDER.map((id) => (
                     <ModelOption key={id} id={id} />
-                  ))}
+                  ))}</div>
                   <ModelOptionSeparator />
                   <LanguageSection />
                   <ModelOptionSeparator />

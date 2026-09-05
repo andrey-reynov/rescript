@@ -33,6 +33,7 @@ import {
 import {
   MODEL_ORDER,
   MODELS,
+  modelSupportsLanguage,
   isModelId,
   isWhisperModel,
 } from "@/lib/models";
@@ -218,9 +219,9 @@ export default function ModelSelector({
   // Always mount options (hidden when closed) so custom triggers stay registered.
   const options = children ?? (
     <>
-      {MODEL_ORDER.map((id) => (
+      <div className="max-h-[45vh] overflow-y-auto">{MODEL_ORDER.map((id) => (
         <ModelOption key={id} id={id} />
-      ))}
+      ))}</div>
     </>
   );
 
@@ -301,7 +302,7 @@ export default function ModelSelector({
             id={listId}
             role="listbox"
             aria-label={groupLabel}
-            className="z-40 w-[18rem] overflow-visible"
+            className="z-40 w-[24rem] max-w-[90vw] overflow-visible"
           >
             <p className="px-3 pb-1 pt-2.5 text-[11px] font-medium tracking-wide text-zinc-400 dark:text-zinc-500">
               {groupLabel}
@@ -321,7 +322,7 @@ export default function ModelSelector({
  * value as JSX, and react-hooks/static-components reads any call result used as
  * a component type as a component created during render.
  */
-const SOURCE_ICONS: Record<TranscriptSource, IconComponent> = {
+const SOURCE_ICONS: Partial<Record<TranscriptSource, IconComponent>> = {
   base: SignalBarsLow,
   small: SignalBarsMedium,
   parakeet: SignalBarsHigh,
@@ -347,11 +348,13 @@ export function ModelOption({
   onSelect?: (ctx: ModelOptionContextValue) => void;
   autoTrigger?: boolean;
 }) {
+  const f=useForkI18n();
   const selector = useSelectorCtx();
   const selected = selector.value === id;
 
-  const Icon = icon ?? SOURCE_ICONS[id];
-  const resolvedLabel = label ?? (isModelId(id) ? MODELS[id].label : id);
+  const Icon = icon ?? SOURCE_ICONS[id] ?? SignalBarsHigh;
+  const model = isModelId(id) ? MODELS[id] : undefined;
+  const resolvedLabel = label ?? model?.label ?? id;
   const resolvedMeta = meta ?? (isModelId(id) ? MODELS[id].size : undefined);
 
   const optionCtx = useMemo<ModelOptionContextValue>(
@@ -382,6 +385,11 @@ export function ModelOption({
         type="button"
         role="option"
         aria-selected={selected}
+        title={model ? [
+          f(model.englishOnly ? "English only" : "Multilingual"),
+          model.experimental ? f("Experimental") : "",
+          model.backend === "whisper" && model.cpuOnly ? "CPU" : "",
+        ].filter(Boolean).join(" · ") : undefined}
         onClick={handleClick}
         className={`flex w-full flex-col gap-0.5 rounded-lg px-2.5 py-2 text-left transition cursor-pointer ${selected
             ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50"
@@ -394,7 +402,7 @@ export function ModelOption({
             className={selected ? "text-zinc-700 dark:text-zinc-200" : "text-zinc-400 dark:text-zinc-500"}
           />
           <span className="min-w-0 flex-1 text-[13px] font-medium leading-tight">
-            {resolvedLabel}
+            {resolvedLabel}{isModelId(id)&&MODELS[id].experimental&&<span className="ml-1 text-[10px] text-zinc-400">{f("Experimental")}</span>}
           </span>
           {resolvedMeta && (
             <span className="shrink-0 text-[11px] text-zinc-400 dark:text-zinc-500">{resolvedMeta}</span>
@@ -424,6 +432,7 @@ export function LanguageSection() {
   const active = TRANSCRIPT_LANGUAGES[language];
 
   const select = (next: TranscriptLanguage) => {
+    if(isModelId(source)&&!modelSupportsLanguage(source,next))return;
     setLanguage(next);
     setSubmenuOpen(false);
     selector.closeMenu();
@@ -431,6 +440,7 @@ export function LanguageSection() {
 
   return (
     <div>
+      {isModelId(source)&&MODELS[source].englishOnly&&<p className="px-2.5 py-1 text-xs text-zinc-500">{f('English only. Use a multilingual model for Russian.')}</p>}
       {source==='parakeet'&&<p className="px-2.5 py-1 text-xs text-zinc-500">{f('Parakeet detects language automatically. Use Whisper to force a specific language.')}</p>}
       <p className="px-2.5 pb-1 pt-1.5 text-[11px] font-medium tracking-wide text-zinc-400 dark:text-zinc-500">
         {t("model.language")}
@@ -490,6 +500,7 @@ export function LanguageSection() {
                   type="button"
                   role="menuitemradio"
                   aria-checked={selected}
+                  disabled={isModelId(source)&&!modelSupportsLanguage(source,id)}
                   onClick={() => select(id)}
                   className={`flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition ${selected
                       ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50"

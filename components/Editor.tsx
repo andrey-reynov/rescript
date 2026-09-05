@@ -369,9 +369,9 @@ export default function Editor() {
         <>
           {isElectron && <TopBar>
             <ModelSelector groupLabel={t("model.transcriptSource")}>
-              {MODEL_ORDER.map((id) => (
+              <div className="max-h-[45vh] overflow-y-auto">{MODEL_ORDER.map((id) => (
                 <ModelOption key={id} id={id} />
-              ))}
+              ))}</div>
               <ModelOptionSeparator />
               <LanguageSection />
               <ModelOptionSeparator />

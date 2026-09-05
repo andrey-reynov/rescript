@@ -37,3 +37,5 @@ Inspect lib/languages.ts, model capabilities, transcription task selection, and 
 - Automated checks cover Russian locale matching, explicit UI preference overrides, catalog/placeholder completeness, branding preservation, progress localization, and Russian checkpoint restart/settings invalidation. Renderer and Electron type checks pass.
 
 Fixtures: Russian sample from [bond005 model documentation](https://huggingface.co/bond005/wav2vec2-large-ru-golos-with-lm/blob/main/README.md), plus the repository example audio. Fixtures and isolated test projects are not shipped. Parakeet capabilities are documented in the [NVIDIA model card](https://huggingface.co/nvidia/parakeet-tdt-0.6b-v3); the real-audio acceptance run used Whisper Base.
+
+Expanded local model choices, MacWhisper comparison, and runtime acceptance results are documented in [Transcription Models](../Transcription-Models.md).
