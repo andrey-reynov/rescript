@@ -1,4 +1,6 @@
 "use client";
+import { isReferencedMedia, readReferencedMedia, type MediaInput } from './media-input';
+
 
 import type { FFmpeg } from "@ffmpeg/ffmpeg";
 import { en } from "@/lib/i18n/messages/en";
@@ -36,7 +38,7 @@ const COPY_INPUT_MAX_BYTES = 256 * 1024 * 1024;
 const EXEC_STALL_TIMEOUT_MS = 120_000;
 
 let ffmpegPromise: Promise<FFmpeg> | null = null;
-let writtenFor: File | null = null;
+let writtenFor: MediaInput | null = null;
 /** Path `writtenFor`'s media is readable at, and whether it came from a mount. */
 let inputPath = INPUT_NAME;
 let inputMounted = false;
@@ -219,14 +221,15 @@ async function clearInput(ffmpeg: FFmpeg): Promise<void> {
   }
 }
 
-async function ensureInput(ffmpeg: FFmpeg, file: File): Promise<string> {
-  if (writtenFor === file) return inputPath;
+async function ensureInput(ffmpeg: FFmpeg, source: MediaInput): Promise<string> {
+  if (writtenFor === source) return inputPath;
+  const file = isReferencedMedia(source)?await readReferencedMedia(source):source;
   await clearInput(ffmpeg);
 
   if (file.size > COPY_INPUT_MAX_BYTES) {
     try {
       inputPath = await mountInput(ffmpeg, file);
-      writtenFor = file;
+      writtenFor = source;
       return inputPath;
     } catch (err) {
       // No WORKERFS in this core, or the mount was rejected. Copying will
@@ -239,7 +242,7 @@ async function ensureInput(ffmpeg: FFmpeg, file: File): Promise<string> {
 
   const { fetchFile } = await import("@ffmpeg/util");
   await ffmpeg.writeFile(INPUT_NAME, await fetchFile(file));
-  writtenFor = file;
+  writtenFor = source;
   inputPath = INPUT_NAME;
   return inputPath;
 }
@@ -250,7 +253,7 @@ async function ensureInput(ffmpeg: FFmpeg, file: File): Promise<string> {
  * Works for both video and audio-only files. Resolves to null when the file
  * has no audio track — those still open for editing with an empty transcript.
  */
-export async function extractAudio(file: File, interval?: {start:number;duration:number}): Promise<Float32Array | null> {
+export async function extractAudio(file: MediaInput, interval?: {start:number;duration:number}): Promise<Float32Array | null> {
   const ffmpeg = await getFFmpeg();
   const input = await ensureInput(ffmpeg, file);
   const out = "audio.pcm";
@@ -331,7 +334,7 @@ function scaleFilter(resolution: VideoExportResolution): string | null {
  * missing [0:a] would otherwise fail the whole filtergraph.
  */
 export async function exportVideo(
-  file: File,
+  file: MediaInput,
   keepRanges: TimeRange[],
   editedDuration: number,
   onProgress: (ratio: number) => void,
@@ -421,7 +424,7 @@ export async function exportVideo(
  * them. Works for both audio projects and the audio track of a video file.
  */
 export async function exportAudio(
-  file: File,
+  file: MediaInput,
   keepRanges: TimeRange[],
   editedDuration: number,
   onProgress: (ratio: number) => void,

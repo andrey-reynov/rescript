@@ -1,5 +1,6 @@
 "use client";
 import { useEffect } from 'react';
+import { readReferencedMedia } from '@/lib/media-input';
 import { extractAudio, releaseFFmpeg } from '@/lib/ffmpeg';
 import type { WorkerResponse, WorkerRequest, Word } from '@/lib/types';
 import type { ModelId } from '@/lib/models';
@@ -11,14 +12,12 @@ async function processProject() {
   let {job}=await bridge.take();
   if(job.status==='preparing') {
     const {project}=await bridge.take();
-    const response=await fetch(`app://localhost/__media/${encodeURIComponent(job.projectId)}`);
-    if(!response.ok)throw Error('Original source is unavailable. Relink it from the project library.');
-    const blob=await response.blob();
-    const file=new File([blob],project.media.name,{type:blob.type});
+    await bridge.progress('Reading media',0);
+    const file=await readReferencedMedia({url: 'app://localhost/__media/'+encodeURIComponent(job.projectId),name:project.media.name,size:project.media.size,type:'',lastModified:project.media.modifiedAt},value=>{void bridge.progress('Reading media',value).catch(()=>{});});
     let preparation=await bridge.preparation();
     try {
       while(!preparation.finished){
-        await bridge.progress('Preparing audio · '+preparation.index+' minutes saved',project.data.duration>0?Math.min(1,preparation.sampleCount/16000/project.data.duration):null);
+        await bridge.progress('Preparing audio',project.data.duration>0?Math.min(1,preparation.sampleCount/16000/project.data.duration):null);
         // Repeated FFmpeg exec calls retain arena memory in this WASM build.
         // Recreate it periodically; the mounted File and committed audio survive.
         if(preparation.index>0&&preparation.index%16===0)await releaseFFmpeg();
@@ -27,7 +26,7 @@ async function processProject() {
         try {pcm=await extractAudio(file,interval)??new Float32Array(0);}
         catch {
           await releaseFFmpeg();
-          await bridge.progress('Restarting audio decoder at saved minute '+preparation.index,null);
+          await bridge.progress('Restarting decoder',null);
           pcm=await extractAudio(file,interval)??new Float32Array(0);
         }
         preparation=await bridge.prepareChunk(preparation.index,new Uint8Array(pcm.buffer,pcm.byteOffset,pcm.byteLength),pcm.length<16000*60);

@@ -118,7 +118,7 @@ export class TranscriptionJobs {
   });}
   async audioFile(id:string){return path.join(await this.cache(id),'audio.f32');}
   preparation(id:string){return this.serial(async()=>{const doc=await this.projects.read(id);const state=await beginPreparation(await this.cache(id),doc.media.fingerprint,doc.data.duration);return {index:state.index,sampleCount:state.sampleCount,finished:state.finished};});}
-  prepareChunk(id:string,index:number,bytes:Uint8Array,finished:boolean){return this.serial(async()=>{const state=await commitPreparation(await this.cache(id),index,bytes,finished);return {index:state.index,sampleCount:state.sampleCount,finished:state.finished};});}
+  prepareChunk(id:string,index:number,bytes:Uint8Array,finished:boolean){return this.serial(async()=>{const state=await commitPreparation(await this.cache(id),index,bytes,finished);const job=await this.read(id);if(job){job.sampleCount=state.sampleCount;await this.write(job);}return {index:state.index,sampleCount:state.sampleCount,finished:state.finished};});}
   completePreparedAudio(id:string):Promise<JobState>{return this.serial(async()=>{const state=await readPreparation(await this.cache(id));if(!state.finished)throw Error('Audio preparation is incomplete');return this.finishAudio(id,state);});}
   beginAudio(id:string):Promise<void>{return this.serial(async()=>{
     const cache=await this.cache(id);await fs.mkdir(cache,{recursive:true});
@@ -141,7 +141,7 @@ export class TranscriptionJobs {
     job.completed=await this.completed(job);job.status=job.completed.length===job.total?'complete':'running';
     job.message=job.status==='complete'?'Ready':'Transcribing in saved batches';return this.write(job);
   }
-  async waveform(id:string):Promise<StoredPeaks|null>{try{return JSON.parse(await fs.readFile(path.join(await this.cache(id),'waveform.json'),'utf8'));}catch{return null;}}
+  async waveform(id:string):Promise<StoredPeaks|null>{const cache=await this.cache(id);try{return JSON.parse(await fs.readFile(path.join(cache,'waveform.json'),'utf8'));}catch{try{return await readPreparation(cache);}catch{return null;}}}
   async next(id:string):Promise<JobChunk|null>{
     const job=await this.read(id);if(!job||job.status!=='running')return null;
     const index=Array.from({length:job.total},(_,i)=>i).find(i=>!job.completed.includes(i));

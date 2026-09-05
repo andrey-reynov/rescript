@@ -47,7 +47,7 @@ export function installJobService(projects:ProjectFiles,devUrl:string|null,prelo
     if(typeof model!=='string'||typeof language!=='string'||typeof transcribe!=='boolean')throw Error('Invalid job settings');
     starting=true;
     try{
-      const job=await jobs.start(id,model,language,transcribe);
+      progress.delete(id);const job=await jobs.start(id,model,language,transcribe);
       if(job.status==='complete')await finish(id);else {await publish(id);await launch(id);}
       notify(id);return job;
     }finally{starting=false;}
@@ -66,7 +66,7 @@ export function installJobService(projects:ProjectFiles,devUrl:string|null,prelo
   ui('result',async(_event,id:string)=>({words:await jobs.words(id),waveform:await jobs.waveform(id),project:await projects.read(id)}));
   worker('take',async id=>({job:await jobs.read(id),project:await projects.read(id)}));
   worker('preparation',id=>jobs.preparation(id));
-  worker('prepare-chunk',(id,index:number,bytes:Uint8Array,finished:boolean)=>jobs.prepareChunk(id,index,bytes,finished));
+  worker('prepare-chunk',async(id,index:number,bytes:Uint8Array,finished:boolean)=>{const result=await jobs.prepareChunk(id,index,bytes,finished);notify(id);return result;});
   worker('complete-prepared-audio',async id=>{const job=await jobs.completePreparedAudio(id);if(job.status==='complete')await finish(id);else notify(id);return job;});
   worker('begin-audio',id=>jobs.beginAudio(id));
   worker('append-audio',(id,bytes:Uint8Array)=>jobs.appendAudio(id,bytes));

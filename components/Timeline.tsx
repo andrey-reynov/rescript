@@ -192,7 +192,25 @@ export default function Timeline() {
     return () => ro.disconnect();
   }, []);
 
-  // Draw ruler + waveform + cut overlay + clip tint for the visible window.
+  const waveformBitmap=useMemo(()=>{
+    if(!waveform||!width||!height||!duration)return null;
+    const bitmap=document.createElement('canvas');const dpr=window.devicePixelRatio||1;
+    bitmap.width=Math.round(width*dpr);bitmap.height=Math.round(height*dpr);
+    const ctx=bitmap.getContext('2d');if(!ctx)return null;ctx.scale(dpr,dpr);
+    const trackTop=RULER_H+WORDBAR_H,trackH=height-trackTop,midY=trackTop+trackH/2;
+    const samplesPerPx=VAD_SAMPLE_RATE/pps;let cutIndex=0;
+    for(let x=0;x<width;x++){
+      const t=(scrollLeft+x)/pps;if(t>duration)break;
+      const i0=Math.floor(t*VAD_SAMPLE_RATE);if(i0>=waveform.sampleCount)break;
+      const peak=peakBetween(waveform,i0,Math.floor(i0+samplesPerPx)+1);
+      while(cutIndex<cuts.length&&cuts[cutIndex].end<=t)cutIndex++;
+      const cut=cuts[cutIndex];ctx.fillStyle=cut&&t>=cut.start?'#fca5a5':'#818cf8';
+      const h=Math.max(1,peak*trackH*WAVE_LANE_FILL);ctx.fillRect(x,midY-h/2,1,h);
+    }
+    return bitmap;
+  },[waveform,width,height,duration,pps,scrollLeft,cuts]);
+
+  // Composite the cached waveform with interaction overlays.
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas || width === 0 || height === 0) return;
@@ -206,7 +224,6 @@ export default function Timeline() {
 
     const trackTop = RULER_H + WORDBAR_H;
     const trackH = height - trackTop;
-    const midY = trackTop + trackH / 2;
 
     // Soft track wash
     ctx.fillStyle = dark ? "#09090b" : "#fafafa";
@@ -322,23 +339,9 @@ export default function Timeline() {
       ctx.restore();
     });
 
-    // Waveform. Drawn from the precomputed min/max envelope rather than the
-    // decoded PCM — see lib/waveform.ts. peakBetween already clamps the
-    // overshoot hot sources produce, so the bar cannot spill into the wordbar.
-    if (!waveform) return;
-    const samplesPerPx = VAD_SAMPLE_RATE / pps;
-    for (let x = 0; x < width; x++) {
-      const t = (scrollLeft + x) / pps;
-      if (t > duration) break;
-      const i0 = Math.floor(t * VAD_SAMPLE_RATE);
-      const peak = peakBetween(waveform, i0, Math.floor(i0 + samplesPerPx) + 1);
-      const inCut = cuts.some((c) => t >= c.start && t < c.end);
-      ctx.fillStyle = inCut ? "#fca5a5" : "#818cf8";
-      const h = Math.max(1, peak * trackH * WAVE_LANE_FILL);
-      ctx.fillRect(x, midY - h / 2, 1, h);
-    }
+    if (waveformBitmap) ctx.drawImage(waveformBitmap,0,0,width,height);
   }, [
-    waveform,
+    waveformBitmap,
     cuts,
     clips,
     duration,

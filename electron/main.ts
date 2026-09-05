@@ -103,7 +103,12 @@ function resolveStaticPath(urlPath: string): string | null {
   if (existsSync(filePath) && statSync(filePath).isDirectory()) {
     filePath = join(filePath, "index.html");
   }
-  if (!existsSync(filePath) || !statSync(filePath).isFile()) return null;
+  // Next static export emits /processing.html, while /processing/ can contain only RSC payloads.
+  if (!existsSync(filePath) || !statSync(filePath).isFile()) {
+    const html = join(root, rel.replace(/[\\/]+$/, "") + ".html");
+    if (!existsSync(html) || !statSync(html).isFile()) return null;
+    filePath = html;
+  }
   return filePath;
 }
 

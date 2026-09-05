@@ -13,6 +13,14 @@ export default function ProjectControls() {
   const error=useEditorStore(s=>s.saveError);
   const progress=useEditorStore(s=>s.progress);
   const processingError=useEditorStore(s=>s.error);
+  const progressKey=JSON.stringify([job,progress.message,progress.value]);
+  const [activity,setActivity]=useState({key:'',seconds:0});
+  const quietSeconds=activity.key===progressKey?activity.seconds:0;
+  useEffect(()=>{
+    if(job!=='preparing'&&job!=='running')return;
+    const since=Date.now();const timer=setInterval(()=>setActivity({key:progressKey,seconds:Math.floor((Date.now()-since)/1000)}),1000);
+    return()=>clearInterval(timer);
+  },[job,progressKey]);
   const [busy,setBusy]=useState(false);
   const [actionError,setActionError]=useState<string|null>(null);
   const act=async(action:()=>Promise<void>)=>{setBusy(true);setActionError(null);try{await action();}catch(e){setActionError(e instanceof Error?e.message:'Project action failed.');}finally{setBusy(false);}};
@@ -38,7 +46,7 @@ export default function ProjectControls() {
       const batches=[...new Set(s.words.filter(word=>selected.has(word.id)).map(word=>Math.floor(((word.start+word.end)/2)/60)))];
       await window.rescriptDesktop!.jobs.retryChunks(s.projectId!,batches);
     })}>Retranscribe selected batches</button>}
-    {job&&job!=='complete'&&<span role="status" className="max-w-xs truncate text-zinc-500">{job==='error'||job==='paused'?processingError:progress.message}</span>}
+    {job&&job!=='complete'&&<span role="status" className="text-zinc-500">{job==='error'||job==='paused'?processingError:<>{progress.message}{progress.value!==null?` · ${Math.min(100,Math.max(0,Math.floor(progress.value*100)))}%`:' · Working…'}{quietSeconds>=10?` · Idle ${quietSeconds}s`:''}</>}</span>}
     <button disabled={busy} onClick={()=>void act(flushProjectAutosave)} className="flex items-center gap-1 rounded border px-2 py-1"><Save size={13}/>Save</button>
     {typeof window!=='undefined' && window.rescriptDesktop && <>
       <button disabled={busy} onClick={()=>void act(saveProjectAs)} className="flex items-center gap-1 rounded border px-2 py-1"><Copy size={13}/>Save As…</button>

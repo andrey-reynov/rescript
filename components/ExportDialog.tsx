@@ -1,4 +1,5 @@
 "use client";
+import { isReferencedMedia, readReferencedMedia } from "@/lib/media-input";
 
 import { useCallback, useMemo, useState } from "react";
 import {
@@ -86,6 +87,7 @@ export default function ExportDialog() {
   const setExportUrl = useEditorStore((s) => s.setExportUrl);
 
   const isAudioProject = mediaKind === "audio";
+  const [readingSource,setReadingSource]=useState(false);
   const [tab, setTab] = useState<ExportTab>("video");
   const [videoFormat, setVideoFormat] = useState<VideoExportFormat>("mp4");
   const [resolution, setResolution] = useState<VideoExportResolution>("original");
@@ -205,13 +207,16 @@ export default function ExportDialog() {
     setProgress(0);
     setStatus("exporting");
     try {
+      setReadingSource(isReferencedMedia(videoFile));
+      const input=isReferencedMedia(videoFile)?await readReferencedMedia(videoFile,setProgress):videoFile;
+      setReadingSource(false);setProgress(0);
       const keeps = getKeepRanges(cuts, duration);
       const blob =
         activeTab === "audio"
-          ? await exportAudio(videoFile, keeps, editedDuration, setProgress, {
+          ? await exportAudio(input, keeps, editedDuration, setProgress, {
               format: audioFormat,
             })
-          : await exportVideo(videoFile, keeps, editedDuration, setProgress, {
+          : await exportVideo(input, keeps, editedDuration, setProgress, {
               withAudio: hasAudioTrack,
               format: videoFormat,
               resolution,
@@ -570,7 +575,7 @@ export default function ExportDialog() {
             <div>
               <div className="mb-2 flex items-center justify-between text-sm">
                 <span className="font-medium text-zinc-700 dark:text-zinc-200">
-                  {t("export.rendering")}
+                  {readingSource?"Reading source media":t("export.rendering")}
                 </span>
                 <span className="tabular-nums text-zinc-400 dark:text-zinc-500">
                   {Math.round(progress * 100)}%

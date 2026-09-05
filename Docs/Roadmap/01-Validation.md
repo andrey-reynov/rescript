@@ -59,3 +59,16 @@ Both fixtures repeat the supplied short recording as 16 kHz mono PCM WAV. They e
 - Progressive-result regression tests pass for live edits, stale autosaves, selected retry scope, and preservation of undo history as new batches arrive.
 - Actual mouse drag across virtualized transcript rows selected 10,725 words. Hiding the first 160 deleted words placed word 160 first; undo restored test changes.
 - Both TypeScript checks, seven relevant regression suites, and the Electron bundle build pass. Native-dialog migration, installed-release behavior, and the remaining acceptance criteria above are still open.
+## Migrated-project preparation and opening fix (2026-09-05)
+
+- Reproduced the installed-build preparation stall: the hidden processor requested `/processing/`, while Next static export emitted `processing.html`. The desktop protocol now resolves exported HTML routes even when a same-named RSC payload directory exists.
+- Replaced the blocking whole-source read during project opening with a source reference used directly by playback. Decoding/export resolves media separately in bounded 32 MiB reads with byte progress.
+- Preparation displays per-stage percentages and time since the last progress update. Completed audio minutes publish partial waveforms; unfinished portions remain blank. Progress for stages with unknown totals stays indeterminate rather than inventing a percentage.
+- Waveform rendering caches a viewport bitmap, invalidated by zoom, scroll, size, cuts, or new peaks. Hover and selection composite that bitmap rather than recalculate every amplitude. This retains zoom resolution without a fixed JPEG/PNG file.
+- Production-mode isolated copy of the user's migrated project: 6,424,373,228-byte MP4, approximately 53m52s, 4,865 saved transcript words. Opening to video metadata readiness took 925 ms and 795 ms in two local runs (warm filesystem caches; not a universal guarantee).
+- Actual source preparation completed in approximately 51 seconds after resume, producing 51,706,880 samples and 99,821 waveform buckets. UI showed source-read progress, then waveform progress (including 76% at 41 minutes), then Ready. This performed no new transcription. Original transcript, cuts, speaker metadata and scene boundaries matched the isolated result exactly.
+- Canvas runtime check confirmed visible waveform pixels; twenty hover movements caused nineteen bitmap composites and zero waveform bitmap rebuilds. This verifies avoided redraw work, not a complete FPS benchmark.
+- Bounded media-input tests verify exact reconstructed content, range limits, progress, metadata and rejection of incorrect range responses. Audio preparation, project storage, autosave, progressive transcript, transcription checkpoint and waveform regression suites passed; modified UI lint and TypeScript checks passed.
+- The installed user project was read only for diagnosis. All runtime preparation and interaction testing used a separate project copy and profile.
+
+- Follow-up check: the real native File > Close Project command returned the isolated production editor to the project library; the menu item has no accelerator. Preparation-stage labels were shortened to two words. Type checks, autosave regression tests, and the Windows installer build passed.

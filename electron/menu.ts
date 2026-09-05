@@ -47,6 +47,7 @@ function fileMenu(): MenuItemConstructorOptions {
       { label: "New project from media…", accelerator: "CmdOrCtrl+N", click: () => send({ type: "open-file" }) },
       { label: "Save project", accelerator: "CmdOrCtrl+S", click: () => send({ type: "save-project" }) },
       { label: "Save project as…", accelerator: "Shift+CmdOrCtrl+S", click: () => send({ type: "save-project-as" }) },
+      { label: "Close Project", click: () => send({ type: "close-project" }) },
       {
         label: t("reopenLast"),
         accelerator: "Shift+CmdOrCtrl+O",

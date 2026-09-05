@@ -1,4 +1,5 @@
 "use client";
+import type { MediaInput } from "@/lib/media-input";
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Group, Panel, Separator, useDefaultLayout } from "react-resizable-panels";
@@ -208,7 +209,7 @@ export default function Editor() {
   // Processing pipeline: load ffmpeg -> extract audio -> (maybe) transcribe.
   // Restored projects already have words; they only need PCM for the waveform.
   useDesktopJob();
-  const startedFor = useRef<File | null>(null);
+  const startedFor = useRef<MediaInput | null>(null);
   useEffect(() => {
     if (!videoFile || startedFor.current === videoFile) return;
     startedFor.current = videoFile;

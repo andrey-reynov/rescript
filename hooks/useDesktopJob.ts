@@ -18,8 +18,8 @@ export function useDesktopJob() {
       try {
         const job=await api.read(projectId);if(!current()||!job)return;
         useEditorStore.setState({jobState:job.status});
-        const signature=job.key+':'+job.completed.join(',')+':'+(job.status==='complete');
-        if((job.completed.length>0||job.status==='complete')&&lastApplied!==signature){
+        const signature=job.key+':'+job.completed.join(',')+':'+(job.status==='complete')+':'+job.sampleCount;
+        if((job.sampleCount>0||job.completed.length>0||job.status==='complete')&&lastApplied!==signature){
           const before=useEditorStore.getState();
           await flushProjectAutosave();if(!current())return;
           const result=await api.result(projectId);if(!current())return;

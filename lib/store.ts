@@ -1,3 +1,4 @@
+import { isReferencedMedia, type MediaInput } from './media-input';
 "use client";
 
 import { create } from "zustand";
@@ -63,7 +64,7 @@ interface PendingTranscript {
 
 interface EditorState {
   // Media
-  videoFile: File | null;
+  videoFile: MediaInput | null;
   mediaUrl: string | null;
   /** Whether the loaded file is video or audio-only. */
   mediaKind: MediaKind | null;
@@ -440,7 +441,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const speakers = speakersFromWords(record.words, record.speakers ?? []);
     set({
       videoFile: file,
-      mediaUrl: URL.createObjectURL(file),
+      mediaUrl: isReferencedMedia(file)?file.url:URL.createObjectURL(file),
       mediaKind: record.mediaKind,
       duration: record.duration,
       source: isTranscriptSource(record.source) ? record.source : "base",

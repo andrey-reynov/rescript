@@ -1,6 +1,7 @@
 /** Desktop projects use durable files and external source references.
  * Browser-only sessions retain IndexedDB storage. Projects are never pruned automatically. */
 
+import { isReferencedMedia, type ReferencedMedia, type MediaInput } from './media-input';
 import { isTranscriptSource, type TranscriptSource } from "./source";
 import type { TranscriptLanguage } from "./languages";
 import {
@@ -49,7 +50,7 @@ export interface ProjectRecord extends ProjectMeta {
   /** Named speakers (optional for older saves — derived from words when missing). */
   speakers?: SpeakerInfo[];
   /** Original media bytes. */
-  media: Blob;
+  media: Blob | ReferencedMedia;
   /** MIME type used when reconstructing a File. */
   mediaType: string;
   mediaName?: string;
@@ -166,6 +167,7 @@ export async function getProject(id: string): Promise<ProjectRecord | null> {
     if(!(await desktop.list()).some(project=>project.id===id)){
       const legacy=await getBrowserProject(id);if(!legacy)return null;
       const {media,mediaType: _type,...fields}=legacy;void _type;
+      if(isReferencedMedia(media))throw Error('Older project media is unavailable.');
       const {fingerprintMediaBlob}=await import('./source-fingerprint');
       const migrated=await desktop.migrate({...fields,id,transcriptionComplete:legacy.transcriptionComplete??true},
         {name:legacy.mediaName??legacy.name,size:media.size,fingerprint:await fingerprintMediaBlob(media)});
@@ -178,9 +180,7 @@ export async function getProject(id: string): Promise<ProjectRecord | null> {
       if (!await desktop.relink(id)) throw new Error("Source media is missing. Relink it to continue editing.");
       mediaUrl = await desktop.media(id);
     }
-    const response = await fetch(mediaUrl);
-    if (!response.ok) throw new Error("Could not load the original media.");
-    const media = await response.blob();
+    const media:ReferencedMedia={url:mediaUrl,name:doc.media.name,size:doc.media.size,type:'',lastModified:doc.media.modifiedAt};
     return {...doc.data, id:doc.id, createdAt:doc.createdAt, updatedAt:doc.updatedAt,
       filePath:doc.filePath, media, mediaName:doc.media.name,mediaType:media.type} as ProjectRecord;
   }
@@ -261,7 +261,8 @@ export async function deleteProject(id: string): Promise<void> {
 }
 
 /** Reconstruct a File from a stored project for preview/export. */
-export function fileFromProject(project: ProjectRecord): File {
+export function fileFromProject(project: ProjectRecord): MediaInput {
+  if(isReferencedMedia(project.media))return project.media;
   return new File([project.media], project.mediaName ?? project.name, {
     type: project.mediaType || project.media.type || undefined,
     lastModified: project.updatedAt,
