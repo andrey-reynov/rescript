@@ -1,3 +1,5 @@
+import { planAudioExport, defaultAudioExportMode, type AudioExportMode, type SourceAudioLayout } from './audio-export';
+import { writeMappedXmeml } from './xmeml-audio';
 /**
  * Build NLE timeline interchange files from the editor's keep ranges.
  *
@@ -61,6 +63,8 @@ export interface TimelineExportOptions {
   width?: number;
   height?: number;
   audioRate?: number;
+  sourceAudio?: SourceAudioLayout;
+  audioExportMode?: AudioExportMode;
 }
 
 function frameRateRational(frameRate: TimelineFrameRate) {
@@ -95,7 +99,7 @@ export function buildNleTimeline(options: TimelineExportOptions): Timeline {
     withAudio,
     width = 1920,
     height = 1080,
-    audioRate = 48000,
+    audioRate = options.sourceAudio?.streams[0]?.sampleRate ?? 48000,
   } = options;
 
   if (keepRanges.length === 0) {
@@ -130,7 +134,7 @@ export function buildNleTimeline(options: TimelineExportOptions): Timeline {
           height,
           frameRate: fr,
           audioRate,
-          audioChannels: withAudio ? 2 : 0,
+          audioChannels: withAudio ? (options.sourceAudio?.streams.reduce((n,s)=>n+s.channels,0)??2) : 0,
         },
       },
       sourceRange: { startTime, duration: clipDur },
@@ -163,7 +167,7 @@ export function buildNleTimeline(options: TimelineExportOptions): Timeline {
       height,
       frameRate: fr,
       audioRate,
-      audioChannels: withAudio ? 2 : 0,
+      audioChannels: withAudio ? (options.sourceAudio?.streams.reduce((n,s)=>n+s.channels,0)??2) : 0,
       audioLayout: "stereo",
       colorSpace: "1-1-1 (Rec. 709)",
     },
@@ -171,7 +175,8 @@ export function buildNleTimeline(options: TimelineExportOptions): Timeline {
   };
 }
 
-export function timelineExtension(format: TimelineExportFormat): string {
+export function timelineExtension(format: TimelineExportFormat, options?:TimelineExportOptions): string {
+  if(format==='resolve'&&options?.sourceAudio&&options.withAudio){const plan=planAudioExport(options.sourceAudio,options.audioExportMode??defaultAudioExportMode(options.sourceAudio));if(plan.tracks.length===1&&plan.tracks[0].channels.length>1)return "fcpxml";}
   return TIMELINE_FORMATS.find((f) => f.value === format)?.ext ?? format;
 }
 
@@ -197,6 +202,21 @@ export function serializeTimelineXml(
   format: Exclude<TimelineExportFormat, "aaf">
 ): string {
   const timeline = buildNleTimeline(options);
+  if(options.sourceAudio&&options.withAudio){
+    const plan=planAudioExport(options.sourceAudio,options.audioExportMode??defaultAudioExportMode(options.sourceAudio));
+    const multichannel=plan.tracks.length===1&&plan.tracks[0].channels.length>1;
+    if(format==='premiere'||(format==='resolve'&&!multichannel)){
+      if(plan.tracks.some(track=>track.channels.length>2))throw Error('Premiere XML supports Stereo or Discrete Channels in this exporter. Choose Discrete Channels for this source.');
+      return writeMappedXmeml(options,plan,mediaFileUrl(options.mediaFileName,format==='resolve'));
+    }
+    if(timeline.tracks.length>1)timeline.tracks=timeline.tracks.filter(track=>track.kind==='video');
+    const xml=stripFcpxmlModDate(writeFCPXML(timeline));
+    // FCPXML carries a linked video/audio asset for each cut. Explicit components
+    // map original source channels, without creating or remixing source files.
+    const components=plan.tracks.map((track,index)=>'<audio-channel-source srcCh="'+track.channels.join(',')+'" role="dialogue.track'+(index+1)+'"/>').join('');
+    return xml.replace(/(<asset-clip\b[^>]*?)\/>/g,'$1>'+components+'</asset-clip>');
+  }
+  if (options.audioExportMode&&options.withAudio&&!options.sourceAudio)throw Error('Inspect source audio before choosing an audio export mode.');
   if (format === "resolve") {
     for (const track of timeline.tracks) {
       for (const item of track.items) {
@@ -224,6 +244,7 @@ export function serializeTimelineXml(
 export async function serializeTimelineAaf(
   options: TimelineExportOptions
 ): Promise<Blob> {
+  if(options.sourceAudio&&options.withAudio){const plan=planAudioExport(options.sourceAudio,options.audioExportMode??defaultAudioExportMode(options.sourceAudio));if(plan.channelCount!==2||plan.tracks.some(track=>track.channels.length!==1))throw Error('This AAF exporter supports two discrete channels only. Use Resolve XML for other layouts.');}
   return writeAafComposition({
     keepRanges: options.keepRanges,
     duration: options.duration,
@@ -260,7 +281,7 @@ export async function downloadTimelineExport(
     /\.[^.]+$/,
     ""
   );
-  const ext = timelineExtension(format);
+  const ext = timelineExtension(format,options);
   const filename = `${base}.edited.${ext}`;
 
   if (format === "aaf") {

@@ -519,13 +519,13 @@ export default function Timeline() {
     setHoveredSplitId(null);
   }, []);
 
-  // Capture before trim/join controls so Alt-click always places the playhead.
+  // Ruler clicks place the playhead before any edit-selection handling.
   // Ruler seeking also leaves the current edit selection intact.
   const onSeekPointerDown = useCallback((e:ReactPointerEvent)=>{
     if(e.button!==0)return;
     const top=e.currentTarget.getBoundingClientRect().top;
     const y=e.clientY-top;
-    if(y>=RULER_H&&!(e.altKey&&y>=RULER_H+WORDBAR_H))return;
+    if(y>=RULER_H)return;
     e.preventDefault();e.stopPropagation();
     dragRef.current={type:'seek'};setDragging(true);
     e.currentTarget.setPointerCapture(e.pointerId);
@@ -834,7 +834,6 @@ export default function Timeline() {
             setScrollLeft(next);
           }}
           onPointerDownCapture={onSeekPointerDown}
-          onClickCapture={e=>{if(e.altKey)e.stopPropagation();}}
           onPointerDown={onBackgroundPointerDown}
           onPointerMove={onPointerMove}
           onPointerLeave={onPointerLeave}

@@ -1,6 +1,6 @@
 # v0.1.5 — NLE Export & Audio Mapping
 
-Status: planned. Dedicated milestone after v0.1 Reliability & Projects and before v0.2 Language & Transcript Model. Document 02; later roadmap documents are renumbered to retain reading order. Milestone version labels remain unchanged.
+Status: implemented with explicit format limitations; see [validation and supported layouts](02-Validation.md). Dedicated milestone after v0.1 Reliability & Projects and before v0.2 Language & Transcript Model. Document 02; later roadmap documents are renumbered to retain reading order. Milestone version labels remain unchanged.
 
 ## Purpose
 

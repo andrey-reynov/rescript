@@ -1,7 +1,7 @@
 "use client";
 import { isReferencedMedia, readReferencedMedia } from "@/lib/media-input";
 
-import { useCallback, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   Captions,
   Clapperboard,
@@ -16,6 +16,7 @@ import { reportError } from "@/lib/diagnostics";
 
 import { formatTime, getEditedDuration, getKeepRanges } from "@/lib/edits";
 import {
+  inspectSourceAudio,
   exportAudio,
   exportVideo,
   type AudioExportFormat,
@@ -39,6 +40,9 @@ import { useCutRanges } from "@/hooks/useCutRanges";
 import { useI18n } from "./I18nProvider";
 import { localizeRuntimeMessage } from "@/lib/i18n";
 import { en } from "@/lib/i18n/messages/en";
+
+import { AUDIO_EXPORT_MODES, defaultAudioExportMode, planAudioExport, type AudioExportMode } from '@/lib/audio-export';
+import { scheduleProjectAutosave } from '@/lib/autosave';
 
 type ExportTab = "video" | "audio" | "transcript" | "subtitles" | "timeline";
 
@@ -86,6 +90,21 @@ export default function ExportDialog() {
   const exportUrl = useEditorStore((s) => s.exportUrl);
   const setExportUrl = useEditorStore((s) => s.setExportUrl);
 
+  const [timelineFormat, setTimelineFormat] =
+    useState<TimelineExportFormat>("resolve");
+  const sourceAudio = useEditorStore(s=>s.sourceAudio);
+  const [audioModeOverride,setAudioModeOverride]=useState<{file:typeof videoFile;mode:AudioExportMode}|null>(null);
+  const [audioInspection,setAudioInspection]=useState<{file:typeof videoFile;progress:number|null;error:string|null}>({file:null,progress:null,error:null});
+  const audioMode=(audioModeOverride?.file===videoFile?audioModeOverride.mode:null) ?? (sourceAudio?defaultAudioExportMode(sourceAudio):'preserve');
+  const audioPlan=useMemo(()=>{
+    if(!sourceAudio?.streams.length)return {plan:null,error:null};
+    try {
+      const plan=planAudioExport(sourceAudio,audioMode);
+      if(timelineFormat==='aaf'&&(plan.channelCount!==2||plan.tracks.some(t=>t.channels.length!==1)))throw Error('AAF requires two discrete channels. Choose Discrete Channels or another editor.');
+      if(timelineFormat==='premiere'&&plan.tracks.some(t=>t.channels.length>2))throw Error('Choose Discrete Channels to preserve every channel in Premiere XML.');
+      return {plan,error:null};
+    }catch(e){return {plan:null,error:e instanceof Error?e.message:'Invalid audio layout.'};}
+  },[sourceAudio,audioMode,timelineFormat]);
   const isAudioProject = mediaKind === "audio";
   const [readingSource,setReadingSource]=useState(false);
   const [tab, setTab] = useState<ExportTab>("video");
@@ -95,8 +114,6 @@ export default function ExportDialog() {
   const [transcriptFormat, setTranscriptFormat] =
     useState<TranscriptDocFormat>("txt");
   const [subtitleFormat, setSubtitleFormat] = useState<SubtitleFormat>("srt");
-  const [timelineFormat, setTimelineFormat] =
-    useState<TimelineExportFormat>("resolve");
   const [timelineFrameRate, setTimelineFrameRate] =
     useState<TimelineFrameRate>("30");
   const [timelineBusy, setTimelineBusy] = useState(false);
@@ -133,6 +150,16 @@ export default function ExportDialog() {
               : "timeline"
             : "video"
           : tab;
+
+  useEffect(()=>{
+    if(!open||activeTab!=='timeline'||!videoFile||sourceAudio)return;
+    let cancelled=false;
+    void inspectSourceAudio(videoFile,value=>{if(!cancelled)setAudioInspection({file:videoFile,progress:value,error:null});}).then(layout=>{
+      if(useEditorStore.getState().videoFile===videoFile){useEditorStore.setState({sourceAudio:layout});scheduleProjectAutosave();}
+    }).catch(e=>{if(!cancelled)setAudioInspection({file:videoFile,progress:null,error:e instanceof Error?e.message:'Audio inspection failed.'});});
+    return ()=>{cancelled=true;};
+  },[open,activeTab,videoFile,sourceAudio]);
+  const nleExtension=timelineFormat==='resolve'&&audioPlan.plan?.tracks.length===1&&audioPlan.plan.tracks[0].channels.length>1?'fcpxml':TIMELINE_FORMATS.find(f=>f.value===timelineFormat)?.ext??'xml';
 
   const baseName = videoFile
     ? videoFile.name.replace(/\.[^.]+$/, "")
@@ -279,7 +306,7 @@ export default function ExportDialog() {
   );
 
   const exportTimeline = useCallback(async () => {
-    if (!videoFile) return;
+    if (!videoFile || !sourceAudio || audioPlan.error) return;
     setTimelineBusy(true);
     setError(null);
     try {
@@ -300,7 +327,9 @@ export default function ExportDialog() {
         projectName: baseName,
         frameRate: timelineFrameRate,
         withVideo: !isAudioProject,
-        withAudio: hasAudioTrack,
+        withAudio: sourceAudio.streams.length>0,
+        sourceAudio,
+        audioExportMode:audioMode,
         width,
         height,
       });
@@ -318,7 +347,7 @@ export default function ExportDialog() {
     timelineFrameRate,
     baseName,
     isAudioProject,
-    hasAudioTrack,
+    sourceAudio, audioMode, audioPlan.error,
   ]);
 
   if (!open) return null;
@@ -510,6 +539,10 @@ export default function ExportDialog() {
               disabled={timelineBusy}
               onChange={setTimelineFormat}
             />
+            <OptionGroup label="Audio Export Mode" value={audioMode} options={AUDIO_EXPORT_MODES} onChange={mode=>setAudioModeOverride({file:videoFile,mode})} disabled={timelineBusy||!sourceAudio?.streams.length}/>
+            {!sourceAudio && <p role="status" className="text-xs text-zinc-500">{audioInspection.file===videoFile&&audioInspection.error?audioInspection.error:'Inspecting audio'+(audioInspection.progress===null?'':' '+Math.round(audioInspection.progress*100)+'%')}</p>}
+            {sourceAudio && <p className="text-xs text-zinc-500">{sourceAudio.streams.length?sourceAudio.streams.map(s=>s.layout+' · '+s.channels+' channels').join('; '):'Video only'}</p>}
+            {(audioPlan.error||audioPlan.plan?.warning)&&<p role="status" className="text-xs text-amber-600">{audioPlan.error||audioPlan.plan?.warning}</p>}
             <div>
               <p className="mb-2 text-[11px] font-medium tracking-wide text-zinc-400 dark:text-zinc-500">
                 {t("export.frameRate")}
@@ -543,7 +576,7 @@ export default function ExportDialog() {
             </div>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               {t("export.timelineHelp")}{" "}
-              {t(
+              {timelineFormat==='resolve'&&nleExtension==='fcpxml'?'Imports into Resolve as linked source audio and video (FCPXML).':t(
                 timelineFormat === "aaf"
                   ? "export.timelineHelpAaf"
                   : timelineFormat === "fcpx"
@@ -648,7 +681,7 @@ export default function ExportDialog() {
         {activeTab === "timeline" && (
           <button
             onClick={exportTimeline}
-            disabled={timelineBusy || !videoFile || aafOverCap}
+            disabled={timelineBusy || !videoFile || !sourceAudio || !!audioPlan.error || aafOverCap}
             className="flex h-10 w-full items-center justify-center gap-2 rounded-xl bg-zinc-900 text-sm font-medium text-white transition hover:bg-zinc-700 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
           >
             <Download size={15} />
@@ -656,8 +689,7 @@ export default function ExportDialog() {
               ? t("export.preparing")
               : t("export.downloadFormat", {
                   format:
-                    TIMELINE_FORMATS.find((f) => f.value === timelineFormat)
-                      ?.ext ?? "xml",
+                    nleExtension,
                 })}
           </button>
         )}

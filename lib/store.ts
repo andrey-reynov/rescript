@@ -1,3 +1,4 @@
+import type { SourceAudioLayout } from './audio-export';
 import { isReferencedMedia, type MediaInput } from './media-input';
 "use client";
 
@@ -93,6 +94,7 @@ interface EditorState {
   projectName: string;
   transcriptionResultKey: string | null;
   transcriptionChunks: number[];
+  sourceAudio: SourceAudioLayout | null;
   projectThumbnail: string | null;
   saveState: 'pending' | 'saving' | 'saved' | 'error';
   saveError: string | null;
@@ -344,7 +346,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   pendingTranscript: null,
   projectId: null,
   jobState: null,
-  transcriptionResultKey: null, transcriptionChunks: [],
+  transcriptionResultKey: null, transcriptionChunks: [], sourceAudio: null,
   projectName: '', projectThumbnail: null, saveState: 'saved', saveError: null, lastSavedAt: null,
   skipTranscription: false,
 
@@ -386,6 +388,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       ? speakersFromWords(imported, options?.speakers ?? [])
       : [];
     set({
+      sourceAudio: null,
       videoFile: file,
       mediaUrl: URL.createObjectURL(file),
       mediaKind: kind,
@@ -450,7 +453,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         : DEFAULT_TRANSCRIPT_LANGUAGE,
       projectId: record.id,
       jobState: null,
-      transcriptionResultKey: record.transcriptionResultKey ?? null, transcriptionChunks: record.transcriptionChunks ?? [],
+      transcriptionResultKey: record.transcriptionResultKey ?? null, transcriptionChunks: record.transcriptionChunks ?? [], sourceAudio: record.sourceAudio ?? null,
       projectName: record.name, projectThumbnail: record.thumbnail ?? null, saveState: "saved", saveError:null, lastSavedAt:record.updatedAt,
       skipTranscription: record.transcriptionComplete !== false,
       pendingTranscript: null,
@@ -988,6 +991,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (exportUrl) URL.revokeObjectURL(exportUrl);
     set({
       videoFile: null,
+      sourceAudio: null,
       mediaUrl: null,
       mediaKind: null,
       duration: 0,

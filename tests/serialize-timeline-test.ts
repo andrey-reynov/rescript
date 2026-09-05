@@ -1,3 +1,5 @@
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 /**
  * Unit tests for NLE timeline export (XML / FCPXML / AAF).
  * Run: npx tsx tests/serialize-timeline-test.ts
@@ -238,7 +240,7 @@ async function main() {
     buf.includes(Buffer.from("file:///interview.mp4", "utf16le")),
     "aaf has encoded-safe url"
   );
-  writeFileSync("/tmp/rescript-test.aaf", buf);
+  writeFileSync(join(tmpdir(), "rescript-test.aaf"), buf);
   console.log("aaf write: ok");
 }
 
@@ -284,8 +286,9 @@ async function main() {
 // Validate with pyaaf2 when available (optional — skip if not installed).
 {
   const { spawnSync } = await import("child_process");
+  const python=process.env.PYTHON ?? "python3";
   const probe = spawnSync(
-    "python3",
+    python,
     ["-c", "import aaf2"],
     { encoding: "utf8" }
   );
@@ -293,12 +296,12 @@ async function main() {
     console.warn("SKIP: pyaaf2 not installed; AAF round-trip check skipped");
   } else {
     const py = spawnSync(
-      "python3",
+      python,
       [
         "-c",
         `
 import aaf2, sys
-with aaf2.open("/tmp/rescript-test.aaf", "r") as f:
+with aaf2.open(sys.argv[1], "r") as f:
     tops = list(f.content.toplevel())
     assert len(tops) == 1, tops
     comp = tops[0]
@@ -312,6 +315,7 @@ with aaf2.open("/tmp/rescript-test.aaf", "r") as f:
         assert comps[1].length == 45, comps[1].length
 print("pyaaf2: ok")
 `,
+        join(tmpdir(), "rescript-test.aaf"),
       ],
       { encoding: "utf8" }
     );

@@ -58,6 +58,7 @@ export interface ProjectRecord extends ProjectMeta {
   transcriptionComplete?: boolean;
   transcriptionResultKey?: string;
   transcriptionChunks?: number[];
+  sourceAudio?: import("./audio-export").SourceAudioLayout;
 }
 
 export type ProjectWrite = Omit<ProjectRecord, "id" | "createdAt" | "updatedAt"> & {
