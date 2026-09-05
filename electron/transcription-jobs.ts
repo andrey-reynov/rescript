@@ -3,7 +3,7 @@ import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
 import { beginPreparation, commitPreparation, readPreparation } from './audio-preparation';
 import { atomicJson, ProjectFiles } from './project-files';
-export interface JobWord { id:number; text:string; start:number; end:number; speaker:number; deleted:boolean; }
+export interface JobWord { language?:string; id:number; text:string; start:number; end:number; speaker:number; deleted:boolean; }
 type Word = JobWord;
 
 export const JOB_CHUNK_SECONDS=60;
@@ -66,7 +66,7 @@ export class TranscriptionJobs {
   }
   start(id:string,model:string,language:string,transcribe:boolean):Promise<JobState>{return this.serial(async()=>{
     const doc=await this.projects.read(id);await this.projects.mediaPath(id);
-    const key=createHash('sha256').update(JSON.stringify({fingerprint:doc.media.fingerprint,model,language,version:1,chunk:JOB_CHUNK_SECONDS,transcribe})).digest('hex').slice(0,24);
+    const key=createHash('sha256').update(JSON.stringify({fingerprint:doc.media.fingerprint,model,language,task:"transcribe",version:2,chunk:JOB_CHUNK_SECONDS,transcribe})).digest('hex').slice(0,24);
     const old=await this.read(id);
     const job:JobState=old&&(old.baseKey??old.key)===key?{...old,status:'running',message:'Resuming completed checkpoints'}:{projectId:id,key,model,language,transcribe,status:'preparing',message:'Preparing audio',completed:[],total:0,sampleCount:0,sourceFingerprint:doc.media.fingerprint,updatedAt:Date.now()};
     try{

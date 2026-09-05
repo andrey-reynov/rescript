@@ -42,7 +42,7 @@ export default function TopBar({ children }: { children?: React.ReactNode }) {
         />
       </button>
       <span className="text-sm font-semibold tracking-tight text-zinc-800 dark:text-zinc-100">
-        Rescript
+        Rescript by Reynov
       </span>
 
       {videoFile && (

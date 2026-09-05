@@ -37,7 +37,7 @@ import {
 } from "@/lib/serializeTimeline";
 import { AAF_MAX_CLIPS } from "@/lib/aaf/patchAaf";
 import { useCutRanges } from "@/hooks/useCutRanges";
-import { useI18n } from "./I18nProvider";
+import { useI18n, useForkI18n } from "./I18nProvider";
 import { localizeRuntimeMessage } from "@/lib/i18n";
 import { en } from "@/lib/i18n/messages/en";
 
@@ -77,6 +77,7 @@ const SUBTITLE_FORMATS: { value: SubtitleFormat; label: string }[] = [
 
 export default function ExportDialog() {
   const { t } = useI18n();
+  const f=useForkI18n();
   const open = useEditorStore((s) => s.exportOpen);
   const setOpen = useEditorStore((s) => s.setExportOpen);
   const videoFile = useEditorStore((s) => s.videoFile);
@@ -539,10 +540,10 @@ export default function ExportDialog() {
               disabled={timelineBusy}
               onChange={setTimelineFormat}
             />
-            <OptionGroup label="Audio Export Mode" value={audioMode} options={AUDIO_EXPORT_MODES} onChange={mode=>setAudioModeOverride({file:videoFile,mode})} disabled={timelineBusy||!sourceAudio?.streams.length}/>
-            {!sourceAudio && <p role="status" className="text-xs text-zinc-500">{audioInspection.file===videoFile&&audioInspection.error?audioInspection.error:'Inspecting audio'+(audioInspection.progress===null?'':' '+Math.round(audioInspection.progress*100)+'%')}</p>}
-            {sourceAudio && <p className="text-xs text-zinc-500">{sourceAudio.streams.length?sourceAudio.streams.map(s=>s.layout+' · '+s.channels+' channels').join('; '):'Video only'}</p>}
-            {(audioPlan.error||audioPlan.plan?.warning)&&<p role="status" className="text-xs text-amber-600">{audioPlan.error||audioPlan.plan?.warning}</p>}
+            <OptionGroup label={f("Audio Export Mode")} value={audioMode} options={AUDIO_EXPORT_MODES.map(o=>({...o,label:f(o.label)}))} onChange={mode=>setAudioModeOverride({file:videoFile,mode})} disabled={timelineBusy||!sourceAudio?.streams.length}/>
+            {!sourceAudio && <p role="status" className="text-xs text-zinc-500">{audioInspection.file===videoFile&&audioInspection.error?f(audioInspection.error):f('Inspecting audio')+(audioInspection.progress===null?'':' '+Math.round(audioInspection.progress*100)+'%')}</p>}
+            {sourceAudio && <p className="text-xs text-zinc-500">{sourceAudio.streams.length?sourceAudio.streams.map(s=>f('{layout} · {count} channels',{layout:s.layout,count:s.channels})).join('; '):f('Video only')}</p>}
+            {(audioPlan.error||audioPlan.plan?.warning)&&<p role="status" className="text-xs text-amber-600">{f(audioPlan.error||audioPlan.plan?.warning||'')}</p>}
             <div>
               <p className="mb-2 text-[11px] font-medium tracking-wide text-zinc-400 dark:text-zinc-500">
                 {t("export.frameRate")}
@@ -576,7 +577,7 @@ export default function ExportDialog() {
             </div>
             <p className="text-xs text-zinc-500 dark:text-zinc-400">
               {t("export.timelineHelp")}{" "}
-              {timelineFormat==='resolve'&&nleExtension==='fcpxml'?'Imports into Resolve as linked source audio and video (FCPXML).':t(
+              {timelineFormat==='resolve'&&nleExtension==='fcpxml'?f('Imports into Resolve as linked source audio and video (FCPXML).'):t(
                 timelineFormat === "aaf"
                   ? "export.timelineHelpAaf"
                   : timelineFormat === "fcpx"
@@ -599,7 +600,7 @@ export default function ExportDialog() {
 
         {error && (
           <p className="mb-4 rounded-lg bg-red-50 px-3 py-2 text-sm text-red-600 dark:border-red-900/30 dark:bg-red-950/30 dark:text-red-900">
-            {localizeRuntimeMessage(error, t)}
+            {f(localizeRuntimeMessage(error, t))}
           </p>
         )}
 
@@ -608,7 +609,7 @@ export default function ExportDialog() {
             <div>
               <div className="mb-2 flex items-center justify-between text-sm">
                 <span className="font-medium text-zinc-700 dark:text-zinc-200">
-                  {readingSource?"Reading source media":t("export.rendering")}
+                  {readingSource?f("Reading media"):t("export.rendering")}
                 </span>
                 <span className="tabular-nums text-zinc-400 dark:text-zinc-500">
                   {Math.round(progress * 100)}%

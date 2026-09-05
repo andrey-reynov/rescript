@@ -43,7 +43,7 @@ import {
   useEditorStore,
 } from "@/lib/store";
 import Popover, { PopoverContent, PopoverTrigger } from "./Popover";
-import { useI18n } from "./I18nProvider";
+import { useI18n, useForkI18n } from "./I18nProvider";
 
 export type ModelOptionContextValue = {
   /** Currently selected source id. */
@@ -413,12 +413,14 @@ export function ModelOptionSeparator() {
 
 /** Language hint as a flyout submenu inside the model / transcript-source menu. */
 export function LanguageSection() {
+  const f=useForkI18n();
+  const source=useEditorStore(s=>s.source);
   const language = useEditorStore((s) => s.transcriptLanguage);
   const setLanguage = useEditorStore((s) => s.setTranscriptLanguage);
   const selector = useSelectorCtx();
   const [submenuOpen, setSubmenuOpen] = useState(false);
   const submenuId = useId();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const active = TRANSCRIPT_LANGUAGES[language];
 
   const select = (next: TranscriptLanguage) => {
@@ -429,6 +431,7 @@ export function LanguageSection() {
 
   return (
     <div>
+      {source==='parakeet'&&<p className="px-2.5 py-1 text-xs text-zinc-500">{f('Parakeet detects language automatically. Use Whisper to force a specific language.')}</p>}
       <p className="px-2.5 pb-1 pt-1.5 text-[11px] font-medium tracking-wide text-zinc-400 dark:text-zinc-500">
         {t("model.language")}
       </p>
@@ -462,7 +465,7 @@ export function LanguageSection() {
                 {active.flag}
               </span>
               <span className="min-w-0 flex-1 text-[13px] font-medium leading-tight">
-                {active.nativeLabel}
+                {language==='auto'&&locale==='ru'?'Автоматически':active.nativeLabel}
               </span>
               <ChevronRight
                 size={14}
@@ -497,7 +500,7 @@ export function LanguageSection() {
                     {option.flag}
                   </span>
                   <span className="min-w-0 flex-1 text-[13px] font-medium leading-tight">
-                    {option.nativeLabel}
+                    {id==='auto'&&locale==='ru'?'Автоматически':option.nativeLabel}
                   </span>
                   {selected && (
                     <Check

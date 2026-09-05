@@ -1,5 +1,7 @@
 /** A single transcribed word, timed against the original media. */
 export interface Word {
+  /** Spoken language detected or requested for this speech region, when available. */
+  language?: string;
   id: number;
   /** The word text (no surrounding whitespace). */
   text: string;

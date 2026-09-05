@@ -41,7 +41,7 @@ import { VAD_SAMPLE_RATE } from "@/lib/vad";
 import { peakBetween } from "@/lib/waveform";
 import { useCutRanges } from "@/hooks/useCutRanges";
 import { useIsDark } from "@/hooks/useIsDark";
-import { useI18n } from "./I18nProvider";
+import { useI18n, useForkI18n } from "./I18nProvider";
 
 const RULER_H = 18;
 const WORDBAR_H = 28;
@@ -97,6 +97,7 @@ type DragKind =
 
 export default function Timeline() {
   const { t } = useI18n();
+  const f=useForkI18n();
   const waveform = useEditorStore((s) => s.waveform);
   const words = useEditorStore((s) => s.words);
   const sceneBoundaries = useEditorStore((s) => s.sceneBoundaries);
@@ -631,7 +632,7 @@ export default function Timeline() {
   const showHandles = pps >= HANDLE_VIS_PPS;
 
   return (
-    <footer ref={timelineRef} aria-label="Timeline" className="flex h-48 shrink-0 flex-col border-t border-zinc-200 bg-white sm:h-52 dark:border-zinc-800 dark:bg-zinc-900">
+    <footer ref={timelineRef} aria-label={f("Timeline")} className="flex h-48 shrink-0 flex-col border-t border-zinc-200 bg-white sm:h-52 dark:border-zinc-800 dark:bg-zinc-900">
       {/* Mobile wraps the transport onto its own row; from `sm` up it is
           absolutely centred so it stays put as the side groups change width. */}
       <div className="relative flex shrink-0 flex-wrap items-center gap-x-2 border-b border-zinc-100 px-2.5 sm:h-10 sm:flex-nowrap dark:border-zinc-800">
@@ -1081,7 +1082,7 @@ export default function Timeline() {
 
         {pps < SMALL_PPS && ready && (
           <div className="pointer-events-none absolute bottom-2 left-1/2 z-10 -translate-x-1/2 rounded-full bg-zinc-900/70 px-2.5 py-1 text-[10px] text-white/90 backdrop-blur-sm transition-opacity dark:bg-zinc-100/80 dark:text-zinc-900">
-            {t("timeline.scrollZoom")} · Shift + scroll to pan
+            {t("timeline.scrollZoom")}
           </div>
         )}
       </div>

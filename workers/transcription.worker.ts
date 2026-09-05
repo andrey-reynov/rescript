@@ -1,3 +1,4 @@
+import {detectWhisperLanguage} from '@/lib/whisper-language';
 /**
  * Transcription worker: runs entirely in the browser.
  *
@@ -1295,7 +1296,7 @@ async function runWhisper(
     // short VAD segments on every model here, whether with Whisper's
     // <|startofprev|> filler prompt or CrisperWhisper's mode tags. See the note
     // above MODELS in lib/models.ts; vad-regression-test.ts guards it.
-    language: transcriptLanguage,
+    task: "transcribe" as const,
   };
 
   const rawWords: Word[] = [];
@@ -1315,7 +1316,9 @@ async function runWhisper(
     const partialBefore = partial;
     const progressBefore = { transcribed, chunkFloor, chunkTokens };
 
+    let detectedLanguage:string=transcriptLanguage;
     const runSlice = async () => {
+      if(transcriptLanguage==='auto'){postLive({type:'progress',message:'Detecting language',value:null});detectedLanguage=await detectWhisperLanguage(transcriber,slice);}
       // Each generate() window consumes `chunkLength - 2 * stride` seconds of
       // new audio, and the streamer's timestamps rewind to ~0 when the next
       // window starts. A timestamp lower than the last one seen marks that
@@ -1343,7 +1346,7 @@ async function runWhisper(
           interpolateProgress();
         },
       });
-      const output = await transcriber(slice, { ...asrOptions, streamer });
+      const output = await transcriber(slice, { ...asrOptions, language:detectedLanguage, streamer });
       const result = Array.isArray(output) ? output[0] : output;
       return (result.chunks ?? []) as AsrChunk[];
     };
@@ -1369,7 +1372,7 @@ async function runWhisper(
       chunks = await runSlice();
     }
 
-    const words = wordsFromChunks(chunks, offsetS, sliceDuration, duration);
+    const words = wordsFromChunks(chunks, offsetS, sliceDuration, duration).map(word=>({...word,language:detectedLanguage}));
     // A segment that decodes to nothing is the signature of a model or prompt
     // that has collapsed on this slice — the timeline fills with "..." VAD
     // placeholders and the transcript silently loses a stretch of speech. It is
@@ -1411,7 +1414,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
   if(preferWasm)fallbackDevicePolicy.preferWasm();
   try {
     const choice: ModelId = model ?? "base";
-    const transcriptLanguage: TranscriptLanguage = language ?? "en";
+    const transcriptLanguage: TranscriptLanguage = language ?? "auto";
 
     let words: Word[];
     if (isParakeetModel(choice)) {

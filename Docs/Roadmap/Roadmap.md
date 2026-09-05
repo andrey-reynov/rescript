@@ -18,7 +18,7 @@ Repository inspection found existing IndexedDB project storage, debounced autosa
 | --- | --- | --- |
 | [v0.1 — Reliability & Projects](01-Reliability-and-Projects.md) | Durable projects, recovery, resumable transcription, background processing, performance | First implementation priority |
 | [v0.1.5 — NLE Export & Audio Mapping](02-NLE-Export-and-Audio-Mapping.md) | Stereo/discrete/source-layout export, linked audio/video, Resolve validation | Implemented; [validation and limits](02-Validation.md) |
-| [v0.2 — Language & Transcript Model](03-Language-and-Transcript-Model.md) | Source-language transcription, speech blocks, repairable speaker metadata | Planned |
+| [v0.2 — Language & Transcript Model](03-Language-and-Transcript-Model.md) | Source-language transcription, speech blocks, repairable speaker metadata | Language selection + Russian UI delivered; transcript model work remains |
 | [v0.3 — Silence & Alignment](04-Silence-and-Alignment.md) | Independent detectors, reviewable autocut, timing correction, source handles | Planned |
 | [Multi-track Audio](05-Multi-track-Audio.md) | Transcribe the mic; cut linked tracks synchronously | Later |
 | [Manual KEEP Markers](06-Manual-KEEP-Markers.md) | Protect gameplay and non-speech moments | Later |

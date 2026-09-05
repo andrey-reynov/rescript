@@ -1,3 +1,4 @@
+import { desktopLiteral } from './locale';
 import { app, dialog, ipcMain, shell, type BrowserWindow, type IpcMainInvokeEvent } from "electron";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
@@ -17,7 +18,7 @@ export function installProjectIpc(getWindow: (event: IpcMainInvokeEvent) => Brow
   };
   handle('folder',()=>projects.folder());
   handle('choose-folder',async event=>{
-    const result=await dialog.showOpenDialog(getWindow(event)!,{title:'Default project folder',defaultPath:await projects.folder(),properties:['openDirectory','createDirectory']});
+    const result=await dialog.showOpenDialog(getWindow(event)!,{title:desktopLiteral('Default project folder'),defaultPath:await projects.folder(),properties:['openDirectory','createDirectory']});
     if(result.canceled) return null;
     await projects.setFolder(result.filePaths[0]);
     return projects.folder();
@@ -30,7 +31,7 @@ export function installProjectIpc(getWindow: (event: IpcMainInvokeEvent) => Brow
   handle('migrate',async(event,input:ProjectData,expected:{name:string;size:number;fingerprint:string})=>{
     data(input);
     if(!expected||!Number.isFinite(expected.size)||typeof expected.fingerprint!=='string')throw Error('Missing source identity for migration.');
-    const result=await dialog.showOpenDialog(getWindow(event)!,{title:'Locate original media for browser project: '+input.name,properties:['openFile']});
+    const result=await dialog.showOpenDialog(getWindow(event)!,{title:desktopLiteral('Locate original media for browser project: ')+input.name,properties:['openFile']});
     if(result.canceled)return null;
     const source=await sourceReference(result.filePaths[0]);
     if(source.size!==expected.size||source.fingerprint!==expected.fingerprint)throw Error('This file does not match the media saved in the browser project. Select the original source.');
@@ -40,19 +41,19 @@ export function installProjectIpc(getWindow: (event: IpcMainInvokeEvent) => Brow
   handle('read',async (_event,id:string)=>({...(await projects.read(id)),filePath:await projects.fileFor(id)}));
   handle('media',async (_event,id:string)=>{await projects.mediaPath(id);return `app://localhost/__media/${encodeURIComponent(id)}`;});
   handle('open',async event=>{
-    const result=await dialog.showOpenDialog(getWindow(event)!,{title:'Open project',defaultPath:await projects.folder(),filters:[{name:'Rescript project',extensions:['rescript']}],properties:['openFile']});
+    const result=await dialog.showOpenDialog(getWindow(event)!,{title:desktopLiteral('Open project'),defaultPath:await projects.folder(),filters:[{name:desktopLiteral('Rescript project'),extensions:['rescript']}],properties:['openFile']});
     if(result.canceled) return null;
     return (await projects.register(result.filePaths[0])).id;
   });
   handle('save-as',async (event,id:string,input:ProjectData)=>{
     const old=await projects.read(id);
-    const result=await dialog.showSaveDialog(getWindow(event)!,{title:'Save Project As',defaultPath:path.join(await projects.folder(),`${input.name.replace(/[<>:"/\\|?*]/g,'_')}-copy.rescript`),filters:[{name:'Rescript project',extensions:['rescript']}]});
+    const result=await dialog.showSaveDialog(getWindow(event)!,{title:desktopLiteral('Save Project As'),defaultPath:path.join(await projects.folder(),`${input.name.replace(/[<>:"/\\|?*]/g,'_')}-copy.rescript`),filters:[{name:desktopLiteral('Rescript project'),extensions:['rescript']}]});
     if(result.canceled || !result.filePath) return null;
     return projects.create({...data(input),id:randomUUID()},old.media,result.filePath);
   });
   handle('relink',async (event,id:string)=>{
     const old=await projects.read(id);
-    const result=await dialog.showOpenDialog(getWindow(event)!,{title:`Locate original source: ${old.media.name}`,properties:['openFile']});
+    const result=await dialog.showOpenDialog(getWindow(event)!,{title:desktopLiteral('Locate original source: ')+old.media.name,properties:['openFile']});
     if(result.canceled) return null;
     return projects.relink(id,result.filePaths[0]);
   });

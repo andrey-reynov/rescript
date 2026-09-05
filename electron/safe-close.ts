@@ -1,3 +1,4 @@
+import { desktopLiteral } from './locale';
 import { app, BrowserWindow, dialog, ipcMain } from 'electron';
 
 /** Wait for acknowledged durable saves before allowing the app to quit. */
@@ -21,7 +22,7 @@ export function installSafeClose(windows:()=>BrowserWindow[], setQuitting:(value
       win.webContents.send('project:flush-request');
     }))).then(()=>{approved=true;app.quit();}).catch(async error=>{
       waiting=false;setQuitting(false);
-      const {response}=await dialog.showMessageBox({type:'warning',message:'The latest project changes could not be saved.',detail:String(error),buttons:['Retry','Keep working','Quit without saving'],defaultId:1,cancelId:1});
+      const {response}=await dialog.showMessageBox({type:'warning',message:desktopLiteral('The latest project changes could not be saved.'),detail:desktopLiteral(error instanceof Error?error.message:String(error)),buttons:['Retry','Keep working','Quit without saving'].map(desktopLiteral),defaultId:1,cancelId:1});
       if(response===0)app.quit();
       if(response===2){approved=true;app.quit();}
     });

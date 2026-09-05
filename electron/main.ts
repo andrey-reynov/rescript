@@ -24,6 +24,7 @@ import {
   type RecentProject,
 } from "./menu";
 import {
+  desktopLiteral,
   isDesktopLocale,
   resolveDesktopLocale,
   setDesktopLocale,
@@ -274,7 +275,7 @@ function createWindow(): BrowserWindow {
 
   win.webContents.on("render-process-gone", (_event, details) => {
     console.error("Editor renderer exited", details);
-    void dialog.showMessageBox(win, {type:"error",message:"The editor stopped responding.",detail:"Saved projects remain on disk. Reload to recover your last save or choose a snapshot from the library.",buttons:["Reload", "Close"]}).then(({response}) => { if(response===0) win.reload(); else win.destroy(); });
+    void dialog.showMessageBox(win, {type:"error",message:desktopLiteral("The editor stopped responding."),detail:desktopLiteral("Saved projects remain on disk. Reload to recover your last save or choose a snapshot from the library."),buttons:[desktopLiteral("Reload"), desktopLiteral("Close")]}).then(({response}) => { if(response===0) win.reload(); else win.destroy(); });
   });
   win.once("ready-to-show", () => win.show());
 

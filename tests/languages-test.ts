@@ -6,10 +6,10 @@ import {
 } from "../lib/languages";
 
 {
-  if (DEFAULT_TRANSCRIPT_LANGUAGE !== "en") {
-    throw new Error("expected default language to be en");
+  if (DEFAULT_TRANSCRIPT_LANGUAGE !== "auto") {
+    throw new Error("expected default language to be automatic");
   }
-  if (isTranscriptLanguage("auto")) throw new Error("did not expect auto to be valid");
+  if (!isTranscriptLanguage("auto") || !isTranscriptLanguage("ru")) throw new Error("expected automatic and Russian");
   if (!isTranscriptLanguage("en")) throw new Error("expected en to be valid");
   if (!isTranscriptLanguage("es")) throw new Error("expected es to be valid");
   if (!isTranscriptLanguage("fr")) throw new Error("expected fr to be valid");
@@ -22,7 +22,7 @@ import {
   const labels = TRANSCRIPT_LANGUAGE_ORDER.map(
     (id) => TRANSCRIPT_LANGUAGES[id].nativeLabel
   );
-  if (labels.join(",") !== "English,Español,Français,Deutsch,Português,中文") {
+  if (labels.join(",") !== "Automatic,Русский,English,Español,Français,Deutsch,Português,中文") {
     throw new Error(`unexpected language order: ${labels.join(",")}`);
   }
 }
