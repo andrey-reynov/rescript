@@ -11,8 +11,8 @@ import {
   X,
 } from "lucide-react";
 import { useEditorStore } from "@/lib/store";
-import { reportError } from "@/lib/sentry";
-import { trackEvent } from "@/lib/telemetry";
+import { reportError } from "@/lib/diagnostics";
+
 import { formatTime, getEditedDuration, getKeepRanges } from "@/lib/edits";
 import {
   exportAudio,
@@ -219,11 +219,7 @@ export default function ExportDialog() {
       const prev = useEditorStore.getState().exportUrl;
       if (prev) URL.revokeObjectURL(prev);
       setExportUrl(URL.createObjectURL(blob));
-      trackEvent("export_completed", {
-        kind: activeTab,
-        format: activeTab === "audio" ? audioFormat : videoFormat,
-        ...(activeTab === "audio" ? {} : { resolution }),
-      });
+
     } catch (err) {
       // The message we show is friendly and lossy — "Export failed while
       // rendering the video" says nothing about which of ffmpeg's failure modes
@@ -260,7 +256,7 @@ export default function ExportDialog() {
           speakers,
         });
         setError(null);
-        trackEvent("export_completed", { kind, format });
+
       } catch (err) {
         setError(err instanceof Error ? err.message : en["error.export"]);
       }
@@ -303,7 +299,7 @@ export default function ExportDialog() {
         width,
         height,
       });
-      trackEvent("export_completed", { kind: "timeline", format: timelineFormat });
+
     } catch (err) {
       setError(err instanceof Error ? err.message : en["error.timelineExport"]);
     } finally {

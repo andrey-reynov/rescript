@@ -2,7 +2,7 @@ import type { MessageKey } from "./en";
 
 /** Japanese UI catalog. Every key in {@link en} must be present. */
 export const ja: Record<MessageKey, string> = {
-  "app.title": "Rescript — テキストを編集するように動画を編集",
+  "app.title": "Rescript by Reynov",
   "common.cancel": "キャンセル",
   "common.close": "閉じる",
   "common.delete": "削除",
@@ -20,14 +20,7 @@ export const ja: Record<MessageKey, string> = {
   "settings.light": "ライト",
   "settings.dark": "ダーク",
   "settings.interfaceLanguage": "表示言語",
-  "settings.privacy": "プライバシー",
-  "settings.helpImprove": "アプリの改善に協力",
-  "settings.telemetryHelp": "匿名の機能利用統計とクラッシュレポートを送信します。",
-  "settings.support": "サポート / フィードバック",
-  "settings.reportIssue": "問題を報告",
-  "settings.homepage": "ホームページ",
-  "settings.github": "GitHub",
-  "settings.followX": "X でフォロー",
+  "settings.github": "Fork on GitHub",
   "model.transcriptSource": "文字起こしソース",
   "model.language": "言語",
   "model.transcriptLanguage": "文字起こし言語",
@@ -172,8 +165,6 @@ export const ja: Record<MessageKey, string> = {
   "banner.downloadFor": "{platform} 版をダウンロード",
   "banner.dismiss": "閉じる",
   "social.githubRepo": "GitHub リポジトリ",
-  "social.discordServer": "Discord サーバー",
-  "social.xProfile": "X プロフィール",
   "globalError.title": "Rescript — 問題が発生しました",
   "globalError.heading": "問題が発生しました",
   "globalError.body":

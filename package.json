@@ -11,7 +11,7 @@
   "license": "PolyForm-Noncommercial-1.0.0",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/wassgha/rescript.git"
+    "url": "git+https://github.com/andrey-reynov/rescript.git"
   },
   "main": "./electron-dist/main.js",
   "scripts": {
@@ -42,10 +42,6 @@
     "@ffmpeg/util": "^0.12.2",
     "@floating-ui/react": "^0.27.20",
     "@huggingface/transformers": "4.2.0",
-    "@next/third-parties": "^16.2.12",
-    "@sentry/electron": "^7.16.0",
-    "@sentry/react": "^10.69.0",
-    "@vercel/analytics": "^2.0.1",
     "cfb": "^1.2.2",
     "lucide-react": "^1.27.0",
     "next": "16.2.12",
@@ -68,8 +64,6 @@
     "dotenv": "^17.4.2",
     "electron": "^42.3.0",
     "electron-builder": "^26.8.1",
-    "electron-log": "^5.4.3",
-    "electron-updater": "^6.6.2",
     "esbuild": "^0.28.1",
     "eslint": "^9",
     "eslint-config-next": "16.2.12",
@@ -85,13 +79,7 @@
       "output": "dist",
       "buildResources": "build"
     },
-    "publish": [
-      {
-        "provider": "github",
-        "owner": "wassgha",
-        "repo": "rescript"
-      }
-    ],
+    "publish": null,
     "files": [
       "electron-dist/**/*",
       "out/**/*",

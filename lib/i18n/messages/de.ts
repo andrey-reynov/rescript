@@ -2,7 +2,7 @@ import type { MessageKey } from "./en";
 
 /** German UI catalog. Every key in {@link en} must be present. */
 export const de: Record<MessageKey, string> = {
-  "app.title": "Rescript — Videos bearbeiten wie Text",
+  "app.title": "Rescript by Reynov",
   "common.cancel": "Abbrechen",
   "common.close": "Schließen",
   "common.delete": "Löschen",
@@ -20,14 +20,7 @@ export const de: Record<MessageKey, string> = {
   "settings.light": "Hell",
   "settings.dark": "Dunkel",
   "settings.interfaceLanguage": "Sprache der Oberfläche",
-  "settings.privacy": "Datenschutz",
-  "settings.helpImprove": "Hilf mit, die App zu verbessern",
-  "settings.telemetryHelp": "Anonyme Statistiken zur Funktionsnutzung und Absturzberichte senden.",
-  "settings.support": "Support / Feedback",
-  "settings.reportIssue": "Problem melden",
-  "settings.homepage": "Homepage",
-  "settings.github": "GitHub",
-  "settings.followX": "Auf X folgen",
+  "settings.github": "Fork on GitHub",
   "model.transcriptSource": "Transkriptquelle",
   "model.language": "Sprache",
   "model.transcriptLanguage": "Transkriptsprache",
@@ -172,8 +165,6 @@ export const de: Record<MessageKey, string> = {
   "banner.downloadFor": "Für {platform} herunterladen",
   "banner.dismiss": "Ausblenden",
   "social.githubRepo": "GitHub-Repository",
-  "social.discordServer": "Discord-Server",
-  "social.xProfile": "X-Profil",
   "globalError.title": "Rescript — etwas ist schiefgelaufen",
   "globalError.heading": "Etwas ist schiefgelaufen",
   "globalError.body":

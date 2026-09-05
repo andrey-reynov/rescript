@@ -8,8 +8,8 @@ import { extractAudio, getFFmpeg, releaseFFmpeg } from "@/lib/ffmpeg";
 import { VAD_SAMPLE_RATE } from "@/lib/vad";
 import { isNetworkError } from "@/lib/network";
 import { isElectron } from "@/lib/platform";
-import { reportError } from "@/lib/sentry";
-import { startSessionReporting } from "@/lib/telemetry";
+import { reportError } from "@/lib/diagnostics";
+
 import { useMediaEngineSupport } from "@/hooks/useMediaEngineSupport";
 import { useDesktopMenu } from "@/hooks/useDesktopMenu";
 import { useIsDesktopLayout } from "@/hooks/useIsDesktopLayout";
@@ -201,10 +201,6 @@ export default function Editor() {
     },
     [engineReady, startMenuFile, t]
   );
-
-  // Daily-active signal: reports the launch, then again on each day rollover so
-  // a long-running window doesn't look churned.
-  useEffect(() => startSessionReporting(), []);
 
   // Processing pipeline: load ffmpeg -> extract audio -> (maybe) transcribe.
   // Restored projects already have words; they only need PCM for the waveform.

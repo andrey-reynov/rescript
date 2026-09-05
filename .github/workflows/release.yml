@@ -11,13 +11,6 @@ permissions:
 jobs:
   release:
     runs-on: ${{ matrix.os }}
-    # Job-level so every build step bakes the DSN into both bundles, and so the
-    # `if:` below can test whether the upload is configured at all.
-    env:
-      NEXT_PUBLIC_SENTRY_DSN: ${{ secrets.SENTRY_DSN }}
-      SENTRY_AUTH_TOKEN: ${{ secrets.SENTRY_AUTH_TOKEN }}
-      SENTRY_ORG: ${{ secrets.SENTRY_ORG }}
-      SENTRY_PROJECT: ${{ secrets.SENTRY_PROJECT }}
     strategy:
       fail-fast: false
       matrix:
@@ -69,32 +62,6 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
-      # Desktop stack traces are otherwise unreadable: the renderer is served
-      # from app:// and the main process is a single esbuild bundle, so Sentry
-      # can't fetch either map the way it can for the web build. Uploaded from
-      # one OS only — the bundles are byte-identical across the matrix, and the
-      # Sentry release is keyed on version, not platform.
-      # Never block a release on this: the installers are already published by the
-      # step above, and Sentry being unreachable shouldn't hold back a shipped
-      # build. --strict still makes a misconfigured upload loud in the log rather
-      # than silently uploading nothing.
-      - name: Upload source maps to Sentry
-        if: matrix.os == 'ubuntu-latest' && env.SENTRY_AUTH_TOKEN != ''
-        continue-on-error: true
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          # Pinned to the v3 line: `releases files ... upload-sourcemaps` was
-          # removed in v3 in favour of `sourcemaps upload`, and an unpinned npx
-          # silently follows the next major into the same kind of breakage.
-          CLI="npx --yes @sentry/cli@3"
-          $CLI releases new "$VERSION"
-          # Rewriting is the default in v3 (there is only --no-rewrite now).
-          $CLI sourcemaps upload --release "$VERSION" \
-            --url-prefix "app:///_next" --strict out/_next
-          $CLI sourcemaps upload --release "$VERSION" \
-            --url-prefix "app:///electron-dist" --strict electron-dist
-          $CLI releases finalize "$VERSION"
-
   # Flip the draft to published only after every OS build succeeds, so a release
   # never goes live (or reaches auto-update) with partial artifacts.
   publish:
@@ -136,7 +103,7 @@ jobs:
           fi
           npx tsx scripts/generate-release-notes.ts "${ARGS[@]}" --out release-notes.md
           gh release edit "${{ github.ref_name }}" \
-            --repo wassgha/rescript \
+            --repo andrey-reynov/rescript \
             --notes-file release-notes.md
 
       - name: Publish the draft release
@@ -144,5 +111,5 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release edit "${{ github.ref_name }}" \
-            --repo wassgha/rescript \
+            --repo andrey-reynov/rescript \
             --draft=false --latest

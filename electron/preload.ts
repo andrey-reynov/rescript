@@ -17,13 +17,6 @@ contextBridge.exposeInMainWorld("rescriptDesktop", {
   setWindowMode: (mode: "compact" | "expanded") => {
     ipcRenderer.send("window:set-mode", mode);
   },
-  /**
-   * Mirror the renderer's telemetry opt-out into the main process, which can't
-   * read localStorage but needs the preference to gate its own crash reporting.
-   */
-  setTelemetryEnabled: (enabled: boolean) => {
-    ipcRenderer.send("telemetry:set-enabled", enabled);
-  },
   /** Keep native menus and dialogs in sync with the renderer preference. */
   setUiLocale: (locale: string) => {
     ipcRenderer.send("ui:set-locale", locale);

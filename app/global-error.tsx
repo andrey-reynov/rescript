@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
-import { reportError } from "@/lib/sentry";
+import { reportError } from "@/lib/diagnostics";
 import {
   loadUiLocalePreference,
   resolveUiLocale,

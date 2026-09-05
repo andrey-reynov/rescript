@@ -2,7 +2,7 @@ import type { MessageKey } from "./en";
 
 /** Simplified Chinese UI catalog. Every key in {@link en} must be present. */
 export const zhCN: Record<MessageKey, string> = {
-  "app.title": "Rescript — 像编辑文字一样编辑视频",
+  "app.title": "Rescript by Reynov",
   "common.cancel": "取消",
   "common.close": "关闭",
   "common.delete": "删除",
@@ -20,14 +20,7 @@ export const zhCN: Record<MessageKey, string> = {
   "settings.light": "浅色",
   "settings.dark": "深色",
   "settings.interfaceLanguage": "界面语言",
-  "settings.privacy": "隐私",
-  "settings.helpImprove": "帮助改进应用",
-  "settings.telemetryHelp": "发送匿名功能使用统计和崩溃报告。",
-  "settings.support": "支持与反馈",
-  "settings.reportIssue": "报告问题",
-  "settings.homepage": "主页",
-  "settings.github": "GitHub",
-  "settings.followX": "在 X 上关注",
+  "settings.github": "Fork on GitHub",
   "model.transcriptSource": "转录来源",
   "model.language": "语言",
   "model.transcriptLanguage": "转录语言",
@@ -173,8 +166,6 @@ export const zhCN: Record<MessageKey, string> = {
   "banner.downloadFor": "下载 {platform} 版",
   "banner.dismiss": "关闭",
   "social.githubRepo": "GitHub 仓库",
-  "social.discordServer": "Discord 服务器",
-  "social.xProfile": "X 个人主页",
   "globalError.title": "Rescript — 出现错误",
   "globalError.heading": "出现错误",
   "globalError.body":

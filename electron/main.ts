@@ -11,8 +11,6 @@ import {
 import { join, normalize, extname } from "node:path";
 import { pathToFileURL } from "node:url";
 import { existsSync, statSync } from "node:fs";
-import { initMainSentry, setMainTelemetryEnabled } from "./sentry";
-import { initAutoUpdater } from "./updater";
 import {
   buildAppMenu,
   setRecentProjects,
@@ -64,19 +62,6 @@ const MIME: Record<string, string> = {
   ".map": "application/json",
   ".txt": "text/plain; charset=utf-8",
 };
-
-// At module scope, before `app.whenReady()`: a crash while registering the
-// protocol or resolving the static root happens before any window exists, and
-// those are precisely the failures nothing else can report.
-//
-// This must also come *before* our own registerSchemesAsPrivileged call below.
-// Electron's registerSchemesAsPrivileged replaces the scheme list rather than
-// appending to it, and Sentry registers its own `sentry-ipc` scheme during
-// init, then proxies the function so *later* calls merge its scheme back in.
-// Registering `app` first therefore gets it silently overwritten, and the
-// renderer's fetch() of app:// URLs fails with `URL scheme "app" is not
-// supported` — which is how ffmpeg.wasm's core fails to load.
-initMainSentry();
 
 // Register before app ready so the scheme can be privileged (fetch, workers,
 // SharedArrayBuffer via COOP/COEP headers we attach below).
@@ -230,7 +215,7 @@ function createWindow(): BrowserWindow {
     minHeight: MIN_SIZE.height,
     // Light by default — appearance is a user preference in the renderer.
     backgroundColor: "#fafafa",
-    title: "Rescript",
+    title: "Rescript by Reynov",
     show: false,
     // macOS: drop the native title bar and let the page's top bar / upload drag
     // strip move the window instead. Windows and Linux keep their native frame
@@ -251,6 +236,8 @@ function createWindow(): BrowserWindow {
       sandbox: false,
     },
   });
+  // Keep the fork title when the renderer updates its localized page title.
+  win.on("page-title-updated", (event) => event.preventDefault());
   windowModes.set(win, "compact");
 
   win.once("ready-to-show", () => win.show());
@@ -334,11 +321,6 @@ if (!gotLock) {
     "window:is-full-screen",
     (event) => BrowserWindow.fromWebContents(event.sender)?.isFullScreen() ?? false
   );
-  // The renderer owns the preference; this mirrors it so the next launch can gate
-  // reporting before any window exists.
-  ipcMain.on("telemetry:set-enabled", (_event, value: unknown) => {
-    setMainTelemetryEnabled(value === true);
-  });
   ipcMain.on("ui:set-locale", (_event, value: unknown) => {
     if (!isDesktopLocale(value)) return;
     setDesktopLocale(value);
@@ -373,7 +355,7 @@ if (!gotLock) {
     if (!isDev) registerAppProtocol();
     buildAppMenu(dispatchMenuCommand);
     createWindow();
-    initAutoUpdater();
+    // Local fork: updates are installed manually; never initialize an updater.
 
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();

@@ -22,8 +22,6 @@ export interface RescriptDesktop {
   };
   /** Resize the shell: "compact" for the upload screen, "expanded" for the editor. */
   setWindowMode: (mode: WindowMode) => void;
-  /** Mirror the telemetry opt-out to the main process, which gates its own reporting. */
-  setTelemetryEnabled: (enabled: boolean) => void;
   /** Keep native menus and dialogs aligned with the resolved UI locale. */
   setUiLocale: (locale: UiLocale) => void;
   /** Publish the saved-project list (newest first) for File › Recent Projects. */

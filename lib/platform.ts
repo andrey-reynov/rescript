@@ -1,13 +1,7 @@
 export const isElectron =
   typeof navigator !== "undefined" && /electron/i.test(navigator.userAgent);
 
-/**
- * Desktop platforms the app ships builds for. Ported from the marketing site
- * (getrescript.com `src/lib/platform.ts`) so the two agree on what `/download`
- * expects in its `platform` query param. "mobile" is local to this app: the
- * site never needs it, but the in-app banner must not pitch a desktop build to
- * a phone.
- */
+/** Desktop platforms supported by the editor. */
 export type Platform =
   | "mac-arm"
   | "mac-intel"
@@ -43,12 +37,12 @@ export function detectPlatform(): Platform {
   return "unknown";
 }
 
-export const DOWNLOAD_PAGE_URL = "https://www.getrescript.com/#download";
+export const DOWNLOAD_PAGE_URL = "https://github.com/andrey-reynov/rescript/releases";
 
-/** The site's `/download` route reads this param (see its parsePlatformParam). */
+/** Fork releases list the available manual downloads. */
 export function downloadUrlFor(platform: Platform): string {
-  if (platform === "mobile" || platform === "unknown") return DOWNLOAD_PAGE_URL;
-  return `https://www.getrescript.com/download?platform=${platform}`;
+  void platform;
+  return DOWNLOAD_PAGE_URL;
 }
 
 export const PLATFORM_LABEL: Record<Platform, string> = {

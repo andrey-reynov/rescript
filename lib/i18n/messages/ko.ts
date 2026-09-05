@@ -2,7 +2,7 @@ import type { MessageKey } from "./en";
 
 /** Korean UI catalog. Every key in {@link en} must be present. */
 export const ko: Record<MessageKey, string> = {
-  "app.title": "Rescript — 텍스트를 편집하듯 동영상 편집",
+  "app.title": "Rescript by Reynov",
   "common.cancel": "취소",
   "common.close": "닫기",
   "common.delete": "삭제",
@@ -20,14 +20,7 @@ export const ko: Record<MessageKey, string> = {
   "settings.light": "라이트",
   "settings.dark": "다크",
   "settings.interfaceLanguage": "인터페이스 언어",
-  "settings.privacy": "개인정보",
-  "settings.helpImprove": "앱 개선에 참여",
-  "settings.telemetryHelp": "익명의 기능 사용 통계와 충돌 보고서를 보냅니다.",
-  "settings.support": "지원 / 피드백",
-  "settings.reportIssue": "문제 신고",
-  "settings.homepage": "홈페이지",
-  "settings.github": "GitHub",
-  "settings.followX": "X에서 팔로우",
+  "settings.github": "Fork on GitHub",
   "model.transcriptSource": "자막 원본",
   "model.language": "언어",
   "model.transcriptLanguage": "자막 언어",
@@ -172,8 +165,6 @@ export const ko: Record<MessageKey, string> = {
   "banner.downloadFor": "{platform}용 다운로드",
   "banner.dismiss": "닫기",
   "social.githubRepo": "GitHub 저장소",
-  "social.discordServer": "Discord 서버",
-  "social.xProfile": "X 프로필",
   "globalError.title": "Rescript — 문제가 발생했습니다",
   "globalError.heading": "문제가 발생했습니다",
   "globalError.body":

@@ -2,7 +2,7 @@ import type { MessageKey } from "./en";
 
 /** French UI catalog. Every key in {@link en} must be present. */
 export const fr: Record<MessageKey, string> = {
-  "app.title": "Rescript — montez vos vidéos comme du texte",
+  "app.title": "Rescript by Reynov",
   "common.cancel": "Annuler",
   "common.close": "Fermer",
   "common.delete": "Supprimer",
@@ -20,14 +20,7 @@ export const fr: Record<MessageKey, string> = {
   "settings.light": "Clair",
   "settings.dark": "Sombre",
   "settings.interfaceLanguage": "Langue de l’interface",
-  "settings.privacy": "Confidentialité",
-  "settings.helpImprove": "Aider à améliorer l’app",
-  "settings.telemetryHelp": "Envoyer des statistiques anonymes d’utilisation des fonctionnalités et des rapports de plantage.",
-  "settings.support": "Assistance / retours",
-  "settings.reportIssue": "Signaler un problème",
-  "settings.homepage": "Page d’accueil",
-  "settings.github": "GitHub",
-  "settings.followX": "Suivre sur X",
+  "settings.github": "Fork on GitHub",
   "model.transcriptSource": "Source de transcription",
   "model.language": "Langue",
   "model.transcriptLanguage": "Langue de transcription",
@@ -172,8 +165,6 @@ export const fr: Record<MessageKey, string> = {
   "banner.downloadFor": "Télécharger pour {platform}",
   "banner.dismiss": "Ignorer",
   "social.githubRepo": "Dépôt GitHub",
-  "social.discordServer": "Serveur Discord",
-  "social.xProfile": "Profil X",
   "globalError.title": "Rescript — une erreur est survenue",
   "globalError.heading": "Une erreur est survenue",
   "globalError.body":

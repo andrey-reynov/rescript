@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import type { NextConfig } from "next";
 
-// Telemetry reports which version is in use, so the client needs the version at
+// The client needs the app version at
 // build time. Read from package.json rather than duplicated in a constant that
 // `npm version` would silently leave stale.
 const { version } = JSON.parse(
@@ -17,9 +17,6 @@ const isExport = process.env.STATIC_EXPORT === "1";
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  // Sentry stack traces are unreadable against a minified bundle. The source is
-  // public anyway, so serving maps costs no secrecy and saves an upload step for
-  // the web build — Sentry fetches them from app.getrescript.com on demand.
   productionBrowserSourceMaps: true,
   // Inlined into the client bundle at build time (both targets are static, so
   // there is no runtime env to read this from).

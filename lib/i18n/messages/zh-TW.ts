@@ -2,7 +2,7 @@ import type { MessageKey } from "./en";
 
 /** Traditional Chinese UI catalog. Every key in {@link en} must be present. */
 export const zhTW: Record<MessageKey, string> = {
-  "app.title": "Rescript — 像編輯文字一樣編輯影片",
+  "app.title": "Rescript by Reynov",
   "common.cancel": "取消",
   "common.close": "關閉",
   "common.delete": "刪除",
@@ -20,14 +20,7 @@ export const zhTW: Record<MessageKey, string> = {
   "settings.light": "淺色",
   "settings.dark": "深色",
   "settings.interfaceLanguage": "介面語言",
-  "settings.privacy": "隱私",
-  "settings.helpImprove": "協助改善應用程式",
-  "settings.telemetryHelp": "傳送匿名功能使用統計與當機報告。",
-  "settings.support": "支援 / 意見回饋",
-  "settings.reportIssue": "回報問題",
-  "settings.homepage": "首頁",
-  "settings.github": "GitHub",
-  "settings.followX": "在 X 上追蹤",
+  "settings.github": "Fork on GitHub",
   "model.transcriptSource": "逐字稿來源",
   "model.language": "語言",
   "model.transcriptLanguage": "逐字稿語言",
@@ -171,8 +164,6 @@ export const zhTW: Record<MessageKey, string> = {
   "banner.downloadFor": "下載 {platform} 版",
   "banner.dismiss": "關閉",
   "social.githubRepo": "GitHub 儲存庫",
-  "social.discordServer": "Discord 伺服器",
-  "social.xProfile": "X 個人檔案",
   "globalError.title": "Rescript — 發生錯誤",
   "globalError.heading": "發生錯誤",
   "globalError.body":

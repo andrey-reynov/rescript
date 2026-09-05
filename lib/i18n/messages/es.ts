@@ -2,7 +2,7 @@ import type { MessageKey } from "./en";
 
 /** Spanish UI catalog. Every key in {@link en} must be present. */
 export const es: Record<MessageKey, string> = {
-  "app.title": "Rescript — edita videos como editas texto",
+  "app.title": "Rescript by Reynov",
   "common.cancel": "Cancelar",
   "common.close": "Cerrar",
   "common.delete": "Eliminar",
@@ -20,14 +20,7 @@ export const es: Record<MessageKey, string> = {
   "settings.light": "Claro",
   "settings.dark": "Oscuro",
   "settings.interfaceLanguage": "Idioma de la interfaz",
-  "settings.privacy": "Privacidad",
-  "settings.helpImprove": "Ayuda a mejorar la app",
-  "settings.telemetryHelp": "Envía estadísticas anónimas de uso de funciones e informes de fallos.",
-  "settings.support": "Soporte / comentarios",
-  "settings.reportIssue": "Informar de un problema",
-  "settings.homepage": "Página de inicio",
-  "settings.github": "GitHub",
-  "settings.followX": "Seguir en X",
+  "settings.github": "Fork on GitHub",
   "model.transcriptSource": "Origen de la transcripción",
   "model.language": "Idioma",
   "model.transcriptLanguage": "Idioma de transcripción",
@@ -172,8 +165,6 @@ export const es: Record<MessageKey, string> = {
   "banner.downloadFor": "Descargar para {platform}",
   "banner.dismiss": "Descartar",
   "social.githubRepo": "Repositorio de GitHub",
-  "social.discordServer": "Servidor de Discord",
-  "social.xProfile": "Perfil de X",
   "globalError.title": "Rescript — algo salió mal",
   "globalError.heading": "Algo salió mal",
   "globalError.body":

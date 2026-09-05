@@ -1,7 +1,7 @@
 /** English UI catalog. Runtime English emitters must match these values exactly
  *  when they flow through {@link localizeRuntimeMessage}. */
 export const en = {
-  "app.title": "Rescript — edit videos like you edit text",
+  "app.title": "Rescript by Reynov",
   "common.cancel": "Cancel",
   "common.close": "Close",
   "common.delete": "Delete",
@@ -19,14 +19,7 @@ export const en = {
   "settings.light": "Light",
   "settings.dark": "Dark",
   "settings.interfaceLanguage": "Interface language",
-  "settings.privacy": "Privacy",
-  "settings.helpImprove": "Help improve the app",
-  "settings.telemetryHelp": "Send anonymous feature usage statistics and crash reports.",
-  "settings.support": "Support / feedback",
-  "settings.reportIssue": "Report an issue",
-  "settings.homepage": "Homepage",
-  "settings.github": "GitHub",
-  "settings.followX": "Follow on X",
+  "settings.github": "Fork on GitHub",
   "model.transcriptSource": "Transcript source",
   "model.language": "Language",
   "model.transcriptLanguage": "Transcript language",
@@ -173,8 +166,6 @@ export const en = {
   "banner.downloadFor": "Download for {platform}",
   "banner.dismiss": "Dismiss",
   "social.githubRepo": "GitHub repository",
-  "social.discordServer": "Discord server",
-  "social.xProfile": "X profile",
   "globalError.title": "Rescript — something went wrong",
   "globalError.heading": "Something went wrong",
   "globalError.body":

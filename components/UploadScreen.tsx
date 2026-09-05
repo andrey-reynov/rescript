@@ -14,7 +14,7 @@ import {
   Type,
 } from "lucide-react";
 import logo from "@/assets/logo.png";
-import SocialLinks, { WEBSITE_URL } from "./SocialLinks";
+import SocialLinks, { GITHUB_REPO_URL, FORK_NOTICE } from "./SocialLinks";
 import SettingsMenu from "./SettingsMenu";
 import ModelSelector, {
   LanguageSection,
@@ -271,7 +271,7 @@ export default function UploadScreen({
         <div className="w-full max-w-xl">
           {!isElectron && (
             <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-              <a href={WEBSITE_URL} className="hover:opacity-80 transition-opacity">
+              <a href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer" className="hover:opacity-80 transition-opacity">
                 <div className="flex min-w-0 items-center">
                   <Image
                     src={logo}
@@ -434,7 +434,10 @@ export default function UploadScreen({
           </div>}
 
           {!isElectron && <div className="mt-6 flex flex-col items-center gap-2">
-            <SocialLinks variant="text" />
+            <div className="flex max-w-sm flex-col items-center gap-2 text-center">
+              <SocialLinks variant="text" />
+              <p className="text-[11px] leading-snug text-zinc-500 dark:text-zinc-400">{FORK_NOTICE}</p>
+            </div>
           </div>}
         </div>
       </div>

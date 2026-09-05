@@ -3,9 +3,9 @@
 import { useCallback, useEffect, useRef } from "react";
 import { en } from "@/lib/i18n/messages/en";
 import { isModelId } from "@/lib/models";
-import { reportError } from "@/lib/sentry";
+import { reportError } from "@/lib/diagnostics";
 import { useEditorStore } from "@/lib/store";
-import { trackEvent } from "@/lib/telemetry";
+
 import type { WorkerResponse } from "@/lib/types";
 
 let activeWorker: Worker | null = null;
@@ -61,21 +61,13 @@ export function useTranscriber() {
           s.setWords(msg.words);
           s.setStatus("ready");
           s.setPartialText("");
-          // Which model and language actually get used, to prioritise backends.
-          // Nothing about the media itself — not its length, not the text.
-          trackEvent("transcription_completed", {
-            model,
-            language: transcriptLanguage,
-          });
           break;
         case "error":
           s.setError(msg.message);
-          // A connection that dropped mid-download is the user's network, and
-          // the worker already retried it. There is no stack to act on, so
-          // reporting it only spends quota on an issue we cannot fix.
+          // Retried network failures already have a user-facing message.
           if (msg.cause !== "network") {
             // Worker errors cross a postMessage boundary, so the original stack
-            // is already gone by here — send the message with a stage tag.
+            // is already gone here; keep the message in local diagnostics.
             reportError(new Error(msg.message), "transcription");
           }
           break;
