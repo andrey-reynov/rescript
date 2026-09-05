@@ -12,9 +12,13 @@ export interface DesktopJobs {
 }
 export interface ProcessingBridge {
   take():Promise<{job:JobState;project:ProjectDocument}>;
+  preparation():Promise<{index:number;sampleCount:number;finished:boolean}>;
+  prepareChunk(index:number,bytes:Uint8Array,finished:boolean):Promise<{index:number;sampleCount:number;finished:boolean}>;
+  completePreparedAudio():Promise<JobState>;
   beginAudio():Promise<void>;
   appendAudio(bytes:Uint8Array):Promise<void>;
   audioReady(peaks:StoredPeaks):Promise<JobState>;
+  preferCpu():Promise<JobState>;
   next():Promise<JobChunk|null>;
   checkpoint(key:string,chunk:Omit<JobChunk,'audio'>,words:Word[]):Promise<JobState>;
   progress(message:string,value:number|null):Promise<void>;

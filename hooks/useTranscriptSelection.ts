@@ -126,6 +126,8 @@ export function useTranscriptSelection({
   const clickSelectionRef = useRef(false);
   // Between mousedown and mouseup, selectionchange only paints marks.
   const mouseDownRef = useRef(false);
+  const dragStartRef = useRef<number|null>(null);
+  const dragClickRef = useRef<{id:number;until:number}|null>(null);
   // Mirrored into a ref so the event handlers below stay stable across edits.
   const cutOutIdsRef = useRef(cutOutIds);
   useEffect(() => {
@@ -183,6 +185,7 @@ export function useTranscriptSelection({
 
   const handleWordClick = useCallback(
     (word: Word, el: HTMLElement) => {
+      if(dragClickRef.current?.id===word.id&&Date.now()<dragClickRef.current.until)return;
       const nativeSel = window.getSelection();
       // Drag ends with a click on the word under the cursor — leave the range alone.
       if (nativeSel && !nativeSel.isCollapsed) return;
@@ -251,14 +254,30 @@ export function useTranscriptSelection({
       updateFromNativeSelection(mouseDownRef.current ? "paint" : "commit");
     };
 
-    const onMouseDown = () => {
+    const onMouseDown = (event:MouseEvent) => {
       mouseDownRef.current = true;
+      const target=(event.target as HTMLElement|null)?.closest<HTMLElement>('[data-wid]');
+      dragStartRef.current=target&&containerRef.current?.contains(target)?Number(target.dataset.wid):null;
     };
 
     const onMouseUp = (e: MouseEvent) => {
       if (!mouseDownRef.current) return;
       mouseDownRef.current = false;
-
+      const anchor=dragStartRef.current;dragStartRef.current=null;
+      const endpoint=(e.target as HTMLElement|null)?.closest<HTMLElement>('[data-wid]');
+      if(anchor!==null&&endpoint&&containerRef.current?.contains(endpoint)&&Number(endpoint.dataset.wid)!==anchor){
+        const state=useEditorStore.getState(),end=Number(endpoint.dataset.wid);
+        const a=state.words.findIndex(word=>word.id===anchor),b=state.words.findIndex(word=>word.id===end);
+        if(a>=0&&b>=0){
+          const ids=state.words.slice(Math.min(a,b),Math.max(a,b)+1).filter(word=>state.showDeleted||!cutOutIdsRef.current.has(word.id)).map(word=>word.id);
+          // Browser selection can collapse when scrolling across virtual gaps.
+          // The source-word endpoints still define the complete intended range.
+          clickSelectionRef.current=true;dragClickRef.current={id:end,until:Date.now()+150};
+          window.getSelection()?.removeAllRanges();
+          syncToReact({ids,anyDeleted:ids.some(id=>cutOutIdsRef.current.has(id)),anyKept:ids.some(id=>!cutOutIdsRef.current.has(id))});
+          return;
+        }
+      }
       const sel = window.getSelection();
       if (sel && !sel.isCollapsed) {
         updateFromNativeSelection("commit");

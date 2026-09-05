@@ -27,6 +27,7 @@ export interface ProjectMeta {
   filePath?: string;
   missing?: boolean;
   recoveryAvailable?: boolean;
+  legacy?: boolean;
 }
 
 /** Read source from a stored row; older saves used `model`. */
@@ -55,6 +56,7 @@ export interface ProjectRecord extends ProjectMeta {
   currentTime?: number;
   transcriptionComplete?: boolean;
   transcriptionResultKey?: string;
+  transcriptionChunks?: number[];
 }
 
 export type ProjectWrite = Omit<ProjectRecord, "id" | "createdAt" | "updatedAt"> & {
@@ -127,7 +129,16 @@ function txDone(tx: IDBTransaction): Promise<void> {
 
 /** List projects newest-first (metadata only — no media/words payloads). */
 export async function listProjects(): Promise<ProjectMeta[]> {
-  if (typeof window !== "undefined" && window.rescriptDesktop?.projects) return window.rescriptDesktop.projects.list() as Promise<ProjectMeta[]>;
+  if (typeof window !== "undefined" && window.rescriptDesktop?.projects){
+    const saved=await window.rescriptDesktop.projects.list() as ProjectMeta[];
+    const ids=new Set(saved.map(project=>project.id));
+    const legacy=await listBrowserProjects();
+    return [...saved,...legacy.filter(project=>!ids.has(project.id)).map(project=>({...project,legacy:true}))].sort((a,b)=>b.updatedAt-a.updatedAt);
+  }
+  return listBrowserProjects();
+}
+
+async function listBrowserProjects():Promise<ProjectMeta[]> {
   const db = await openDb();
   const tx = db.transaction(STORE, "readonly");
   const store = tx.objectStore(STORE);
@@ -152,6 +163,14 @@ export async function listProjects(): Promise<ProjectMeta[]> {
 export async function getProject(id: string): Promise<ProjectRecord | null> {
   const desktop = typeof window !== "undefined" ? window.rescriptDesktop?.projects : undefined;
   if (desktop) {
+    if(!(await desktop.list()).some(project=>project.id===id)){
+      const legacy=await getBrowserProject(id);if(!legacy)return null;
+      const {media,mediaType: _type,...fields}=legacy;void _type;
+      const {fingerprintMediaBlob}=await import('./source-fingerprint');
+      const migrated=await desktop.migrate({...fields,id,transcriptionComplete:legacy.transcriptionComplete??true},
+        {name:legacy.mediaName??legacy.name,size:media.size,fingerprint:await fingerprintMediaBlob(media)});
+      if(!migrated)throw new Error('Migration cancelled. Your original browser project is still saved.');
+    }
     const doc = await desktop.read(id);
     let mediaUrl: string;
     try { mediaUrl = await desktop.media(id); }
@@ -165,6 +184,10 @@ export async function getProject(id: string): Promise<ProjectRecord | null> {
     return {...doc.data, id:doc.id, createdAt:doc.createdAt, updatedAt:doc.updatedAt,
       filePath:doc.filePath, media, mediaName:doc.media.name,mediaType:media.type} as ProjectRecord;
   }
+  return getBrowserProject(id);
+}
+
+async function getBrowserProject(id:string):Promise<ProjectRecord|null>{
   const db = await openDb();
   const tx = db.transaction(STORE, "readonly");
   const row = await idbReq(

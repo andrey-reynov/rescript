@@ -100,6 +100,7 @@ export default function UploadScreen({
   const inputId = useId();
   const [dragging, setDragging] = useState(false);
   const [projects, setProjects] = useState<ProjectMeta[]>([]);
+  const [libraryError,setLibraryError]=useState<string|null>(null);
   const [busyId, setBusyId] = useState<string | null>(null);
   // Don't accept a file until the media engine is known to be usable —
   // transcription would fail immediately otherwise.
@@ -114,10 +115,10 @@ export default function UploadScreen({
 
   const refreshProjects = useCallback(async () => {
     try {
-      setProjects(await listProjects());
+      setProjects(await listProjects());setLibraryError(null);
     } catch (err) {
       console.warn("Failed to list saved projects.", err);
-      setProjects([]);
+      setLibraryError(err instanceof Error?err.message:'Could not load the project library.');
     }
   }, []);
 
@@ -130,7 +131,7 @@ export default function UploadScreen({
       })
       .catch((err) => {
         console.warn("Failed to list saved projects.", err);
-        if (!cancelled) setProjects([]);
+        if (!cancelled) setLibraryError(err instanceof Error?err.message:'Could not load the project library.');
       });
     return () => {
       cancelled = true;
@@ -335,6 +336,7 @@ export default function UploadScreen({
             />
           </label>
 
+          {libraryError&&<p role="alert" className="my-4 text-sm text-red-600">{libraryError} <button className="underline" onClick={()=>void refreshProjects()}>Retry</button></p>}
           {ready && projects.length > 0 && <ProjectLibrary projects={projects} busyId={busyId} onOpen={handleOpen} />}
 
           {!isElectron && <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">

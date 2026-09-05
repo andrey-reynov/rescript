@@ -5,6 +5,7 @@ export interface DesktopProjects {
   chooseFolder(): Promise<string | null>;
   list(): Promise<ProjectSummary[]>;
   create(data: ProjectData, file: File): Promise<ProjectDocument>;
+  migrate(data:ProjectData,source:{name:string;size:number;fingerprint:string}):Promise<ProjectDocument|null>;
   save(id: string, data: ProjectData): Promise<ProjectDocument>;
   read(id: string): Promise<ProjectDocument & {filePath:string}>;
   media(id: string): Promise<string>;

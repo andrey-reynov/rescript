@@ -170,11 +170,20 @@ export default function TranscriptPanel() {
   const importInputRef = useRef<HTMLInputElement>(null);
   // Bound even a single-speaker monologue to small rendering rows; source data is unchanged.
   const turns=useMemo(()=>groupWordsBySpeaker(words).flatMap(turn=>{
-    const rows:typeof turn[]=[];for(let i=0;i<turn.words.length;i+=80)rows.push({...turn,words:turn.words.slice(i,i+80)});return rows;
-  }),[words]);
+    const sourceWordIds=turn.words.map(word=>word.id),sourceStart=turn.words[0].id;
+    const rows:Array<typeof turn & {sourceWordIds:number[];sourceStart:number}>=[];
+    for(let i=0;i<turn.words.length;i+=80){
+      const rowWords=turn.words.slice(i,i+80);
+      if(showDeleted||rowWords.some(word=>!cutOutIds.has(word.id)))rows.push({...turn,words:rowWords,sourceWordIds,sourceStart});
+    }
+    return rows;
+  }),[words,showDeleted,cutOutIds]);
   const rowByWord=useMemo(()=>{const index=new Map<number,number>();turns.forEach((turn,row)=>turn.words.forEach(word=>index.set(word.id,row)));return index;},[turns]);
+  const [dragAnchor,setDragAnchor]=useState<number|null>(null);
+  const dragAnchorRef=useRef<number|null>(null),lastDragAt=useRef(0);
+  useEffect(()=>{const release=()=>{if(dragAnchorRef.current!==null){lastDragAt.current=Date.now();dragAnchorRef.current=null;}setDragAnchor(null);};window.addEventListener('mouseup',release);return()=>window.removeEventListener('mouseup',release);},[]);
   const selectedIds=useMemo(()=>new Set(selectedWordIds),[selectedWordIds]);
-  const pinnedRows=useMemo(()=>[selectedWordIds[0],selectedWordIds[selectedWordIds.length-1]].map(id=>rowByWord.get(id)).filter((row):row is number=>row!==undefined),[selectedWordIds,rowByWord]);
+  const pinnedRows=useMemo(()=>[selectedWordIds[0],selectedWordIds[selectedWordIds.length-1],dragAnchor??-1].map(id=>rowByWord.get(id)).filter((row):row is number=>row!==undefined),[selectedWordIds,rowByWord,dragAnchor]);
   const virtualizer=useVirtualizer({count:turns.length,getScrollElement:()=>scrollRef.current,estimateSize:()=>180,overscan:3,scrollMargin:72,
     getItemKey:useCallback((index:number)=>turns[index].words[0].id,[turns]),
     rangeExtractor:useCallback((range: Parameters<typeof defaultRangeExtractor>[0])=>Array.from(new Set([...defaultRangeExtractor(range),...pinnedRows])).sort((a,b)=>a-b),[pinnedRows]),
@@ -186,6 +195,7 @@ export default function TranscriptPanel() {
   useEffect(()=>{ensureWordVisibleRef.current=ensureWordVisible;},[ensureWordVisible]);
   useEffect(()=>{
     const id=selectedWordIds[0];if(id===undefined)return;
+    if(selectedWordIds.length>1&&Date.now()-lastDragAt.current<200)return;
     ensureWordVisibleRef.current(id);
     // Dynamic rows are measured after mounting. Align the actual word after that
     // measurement rather than only the row's initial estimated position.
@@ -443,6 +453,7 @@ export default function TranscriptPanel() {
 
       <div
         ref={scrollRef}
+        onMouseDownCapture={event=>{if(event.button!==0)return;const word=(event.target as HTMLElement).closest<HTMLElement>('[data-wid]');if(word){dragAnchorRef.current=Number(word.dataset.wid);setDragAnchor(dragAnchorRef.current);}}}
         className="scrollbar-none relative min-h-0 flex-1 overflow-y-auto pt-10 scroll-pt-10"
       >
         <div ref={containerRef} className="relative mx-auto max-w-2xl px-4 py-6 sm:px-8 sm:py-8">
@@ -497,13 +508,13 @@ export default function TranscriptPanel() {
                   : turn.words.filter((w) => !cutOutIds.has(w.id));
                 if (visible.length === 0) return null;
                 // First turn in the full word list has no previous speaker to borrow from.
-                const canMove = turn.words[0].id !== words[0]?.id;
+                const canMove = turn.sourceStart !== words[0]?.id;
                 return (
                   <div key={virtualRow.key} ref={virtualizer.measureElement} data-index={virtualRow.index} className="pb-7" style={{position:"absolute",top:0,left:0,width:"100%",transform:`translateY(${virtualRow.start-72}px)`}}>
                     <SpeakerLabel
                       speakerId={turn.speaker}
-                      turnWordIds={turn.words.map((w) => w.id)}
-                      turnStartWordId={turn.words[0].id}
+                      turnWordIds={turn.sourceWordIds}
+                      turnStartWordId={turn.sourceStart}
                       canMove={canMove}
                     />
                     <p className="select-text text-[15px] leading-8">

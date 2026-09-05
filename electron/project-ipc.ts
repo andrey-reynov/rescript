@@ -27,6 +27,15 @@ export function installProjectIpc(getWindow: (event: IpcMainInvokeEvent) => Brow
     if(!sourcePath) throw new Error('Choose the source file from disk to create a desktop project.');
     return projects.create(data(input),await sourceReference(sourcePath));
   });
+  handle('migrate',async(event,input:ProjectData,expected:{name:string;size:number;fingerprint:string})=>{
+    data(input);
+    if(!expected||!Number.isFinite(expected.size)||typeof expected.fingerprint!=='string')throw Error('Missing source identity for migration.');
+    const result=await dialog.showOpenDialog(getWindow(event)!,{title:'Locate original media for browser project: '+input.name,properties:['openFile']});
+    if(result.canceled)return null;
+    const source=await sourceReference(result.filePaths[0]);
+    if(source.size!==expected.size||source.fingerprint!==expected.fingerprint)throw Error('This file does not match the media saved in the browser project. Select the original source.');
+    return projects.create(data(input),source);
+  });
   handle('save',(_event,id:string,input:ProjectData)=>projects.save(id,data(input)));
   handle('read',async (_event,id:string)=>({...(await projects.read(id)),filePath:await projects.fileFor(id)}));
   handle('media',async (_event,id:string)=>{await projects.mediaPath(id);return `app://localhost/__media/${encodeURIComponent(id)}`;});

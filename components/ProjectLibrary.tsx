@@ -18,8 +18,8 @@ export default function ProjectLibrary({projects,busyId,onOpen}:{projects:Projec
           </div>
           <div className="px-3 pt-3"><h2 title={project.name} className="truncate text-sm font-semibold">{project.name}</h2><p className="mt-1 text-xs text-zinc-500">{project.missing?'Project needs recovery':`Updated ${new Date(project.updatedAt).toLocaleString()}`}</p></div>
         </button>
-        <div className="flex items-center gap-2 px-3 pb-3 pt-2"><p title={project.filePath} className="min-w-0 flex-1 truncate text-[11px] text-zinc-400">{project.filePath||'Browser storage'}</p>
-          {typeof window!=='undefined'&&window.rescriptDesktop?.projects&&<>
+        <div className="flex items-center gap-2 px-3 pb-3 pt-2"><p title={project.filePath} className="min-w-0 flex-1 truncate text-[11px] text-zinc-400">{project.filePath||(project.legacy?'Older project · locate original media to migrate':'Browser storage')}</p>
+          {typeof window!=='undefined'&&window.rescriptDesktop?.projects&&!project.legacy&&<>
             <button title="Show project location" onClick={()=>void window.rescriptDesktop!.projects.show(project.id).catch(e=>setError(String(e)))}><FolderOpen size={15}/></button>
             <button title="Recovery snapshots" aria-label={`Recovery snapshots for ${project.name}`} onClick={()=>void window.rescriptDesktop!.projects.snapshots(project.id).then(snapshots=>setRecovery({id:project.id,snapshots})).catch(e=>setError(String(e)))}><History size={15}/></button>
           </>}

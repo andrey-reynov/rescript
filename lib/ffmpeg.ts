@@ -250,7 +250,7 @@ async function ensureInput(ffmpeg: FFmpeg, file: File): Promise<string> {
  * Works for both video and audio-only files. Resolves to null when the file
  * has no audio track — those still open for editing with an empty transcript.
  */
-export async function extractAudio(file: File): Promise<Float32Array | null> {
+export async function extractAudio(file: File, interval?: {start:number;duration:number}): Promise<Float32Array | null> {
   const ffmpeg = await getFFmpeg();
   const input = await ensureInput(ffmpeg, file);
   const out = "audio.pcm";
@@ -262,7 +262,9 @@ export async function extractAudio(file: File): Promise<Float32Array | null> {
   let code: number;
   try {
     code = await execWithWatchdog(ffmpeg, [
+      ...(interval ? ["-ss", String(interval.start)] : []),
       "-i", input,
+      ...(interval ? ["-t", String(interval.duration)] : []),
       "-vn",
       "-ac", "1",
       "-ar", "16000",

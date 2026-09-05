@@ -1407,7 +1407,8 @@ async function runWhisper(
 }
 
 self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
-  const { audio, duration, model, language } = event.data;
+  const { audio, duration, model, language, preferWasm } = event.data;
+  if(preferWasm)fallbackDevicePolicy.preferWasm();
   try {
     const choice: ModelId = model ?? "base";
     const transcriptLanguage: TranscriptLanguage = language ?? "en";
@@ -1443,6 +1444,7 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
     }
     post({
       type: "error",
+      cause: isWebGpuDeviceLostError(err) ? "gpu" : undefined,
       message: isWebGpuDeviceLostError(err)
         ? en["error.gpuReset"]
         : err instanceof Error

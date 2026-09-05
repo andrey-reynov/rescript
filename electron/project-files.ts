@@ -26,6 +26,7 @@ export interface ProjectData {
   thumbnail?: string;
   transcriptionComplete?: boolean;
   transcriptionResultKey?: string;
+  transcriptionChunks?: number[];
   [key: string]: unknown;
 }
 
@@ -206,7 +207,13 @@ export class ProjectFiles {
       // An editor may have queued this save before the worker committed its result.
       // Keep the authoritative transcript until that editor has acknowledged it.
       if(old.transcriptionResultKey && data.transcriptionResultKey!==old.transcriptionResultKey && data.source!=='import')
-        return {...data,words:old.words,speakers:old.speakers,transcriptionComplete:old.transcriptionComplete,transcriptionResultKey:old.transcriptionResultKey};
+        return {...data,words:old.words,speakers:old.speakers,transcriptionComplete:old.transcriptionComplete,transcriptionResultKey:old.transcriptionResultKey,transcriptionChunks:old.transcriptionChunks};
+      if(old.transcriptionResultKey&&data.transcriptionResultKey===old.transcriptionResultKey&&old.transcriptionChunks?.some(index=>!data.transcriptionChunks?.includes(index))){
+        const known=new Set(data.transcriptionChunks??[]);
+        const incoming=data.words as Array<{id:number;start:number;end:number}>;const ids=new Set(incoming.map(word=>word.id));
+        const unseen=(old.words as typeof incoming).filter(word=>!known.has(Math.floor(((word.start+word.end)/2)/60))&&!ids.has(word.id));
+        return {...data,words:[...incoming,...unseen].sort((a,b)=>a.start-b.start||a.id-b.id),transcriptionChunks:old.transcriptionChunks,transcriptionComplete:old.transcriptionComplete};
+      }
       return data;
     });
   }
@@ -216,6 +223,7 @@ export class ProjectFiles {
       const file = await this.fileFor(id);
       const old = await this.read(id);
       const data=change(old.data);
+      if(data===old.data)return old;
       if (data.id !== id) throw new Error("Project identity mismatch.");
       const snapshots = `${file}.snapshots`;
       await fs.mkdir(snapshots, { recursive: true });

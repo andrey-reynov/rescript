@@ -91,6 +91,7 @@ interface EditorState {
   projectId: string | null;
   projectName: string;
   transcriptionResultKey: string | null;
+  transcriptionChunks: number[];
   projectThumbnail: string | null;
   saveState: 'pending' | 'saving' | 'saved' | 'error';
   saveError: string | null;
@@ -342,7 +343,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   pendingTranscript: null,
   projectId: null,
   jobState: null,
-  transcriptionResultKey: null,
+  transcriptionResultKey: null, transcriptionChunks: [],
   projectName: '', projectThumbnail: null, saveState: 'saved', saveError: null, lastSavedAt: null,
   skipTranscription: false,
 
@@ -448,7 +449,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         : DEFAULT_TRANSCRIPT_LANGUAGE,
       projectId: record.id,
       jobState: null,
-      transcriptionResultKey: record.transcriptionResultKey ?? null,
+      transcriptionResultKey: record.transcriptionResultKey ?? null, transcriptionChunks: record.transcriptionChunks ?? [],
       projectName: record.name, projectThumbnail: record.thumbnail ?? null, saveState: "saved", saveError:null, lastSavedAt:record.updatedAt,
       skipTranscription: record.transcriptionComplete !== false,
       pendingTranscript: null,
@@ -499,7 +500,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setPendingTranscript: (pendingTranscript) => set({ pendingTranscript }),
   setDuration: (duration) => {
     set({ duration });
-    if (get().status === "ready") bumpAutosave();
+    if (get().videoFile) bumpAutosave();
   },
   setAudio: (audio) =>
     set({

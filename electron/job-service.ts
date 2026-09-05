@@ -1,6 +1,7 @@
 import { BrowserWindow, ipcMain, powerSaveBlocker, type IpcMainInvokeEvent } from 'electron';
 import { ProjectFiles } from './project-files';
-import { mergeChunkReplacement, TranscriptionJobs, type JobState, type JobChunk, type StoredPeaks } from './transcription-jobs';
+import { publishTranscriptionProgress } from './progressive-results';
+import { TranscriptionJobs, type JobState, type JobChunk, type StoredPeaks } from './transcription-jobs';
 import type { JobWord as Word } from './transcription-jobs';
 
 /** A separate hidden renderer owns inference; the editor can close or crash independently. */
@@ -12,15 +13,15 @@ export function installJobService(projects:ProjectFiles,devUrl:string|null,prelo
   const notify=(id:string)=>{for(const win of BrowserWindow.getAllWindows())if(win!==runner&&!win.webContents.isDestroyed())win.webContents.send('job:changed',id);};
   const release=()=>{if(blocker!==null&&powerSaveBlocker.isStarted(blocker))powerSaveBlocker.stop(blocker);blocker=null;};
   const closeRunner=()=>{const old=runner;runner=null;activeId=null;if(old&&!old.isDestroyed())old.destroy();release();};
+  const publish=async(id:string)=>{
+    const job=await jobs.read(id);if(!job?.transcribe||!job.completed.length)return;
+    const generated=await jobs.words(id);
+    await projects.update(id,data=>publishTranscriptionProgress(data,job,generated));
+  };
   const finish=async(id:string)=>{
     const job=await jobs.read(id);if(!job||job.status!=='complete')return;
-    if(job.transcribe) {
-      const words=await jobs.words(id);
-      await projects.update(id,data=>{
-        if(data.transcriptionResultKey===job.key || data.source==='import')return data;
-        return {...data,words:job.replacementChunks?mergeChunkReplacement(data.words as Word[],words,job.replacementChunks):words,transcriptionResultKey:job.key,transcriptionComplete:true,duration:data.duration||job.sampleCount/16000};
-      });
-    }
+    await publish(id);
+    if(job.transcribe)await projects.update(id,data=>data.source==='import'||data.transcriptionComplete?data:{...data,transcriptionComplete:true,transcriptionResultKey:job.key,transcriptionChunks:job.completed});
     notify(id);closeRunner();
   };
   const launch=async(id:string)=>{
@@ -47,7 +48,7 @@ export function installJobService(projects:ProjectFiles,devUrl:string|null,prelo
     starting=true;
     try{
       const job=await jobs.start(id,model,language,transcribe);
-      if(job.status==='complete')await finish(id);else await launch(id);
+      if(job.status==='complete')await finish(id);else {await publish(id);await launch(id);}
       notify(id);return job;
     }finally{starting=false;}
   });
@@ -64,11 +65,15 @@ export function installJobService(projects:ProjectFiles,devUrl:string|null,prelo
   ui('pause',async(_event,id:string)=>{if(activeId===id)closeRunner();const job=await jobs.setStatus(id,'paused','Paused — completed batches are saved');notify(id);return job;});
   ui('result',async(_event,id:string)=>({words:await jobs.words(id),waveform:await jobs.waveform(id),project:await projects.read(id)}));
   worker('take',async id=>({job:await jobs.read(id),project:await projects.read(id)}));
+  worker('preparation',id=>jobs.preparation(id));
+  worker('prepare-chunk',(id,index:number,bytes:Uint8Array,finished:boolean)=>jobs.prepareChunk(id,index,bytes,finished));
+  worker('complete-prepared-audio',async id=>{const job=await jobs.completePreparedAudio(id);if(job.status==='complete')await finish(id);else notify(id);return job;});
   worker('begin-audio',id=>jobs.beginAudio(id));
   worker('append-audio',(id,bytes:Uint8Array)=>jobs.appendAudio(id,bytes));
   worker('audio-ready',async(id,peaks:StoredPeaks)=>{const job=await jobs.audioReady(id,peaks);if(job.status==='complete')await finish(id);else notify(id);return job;});
+  worker('prefer-cpu',async id=>{const job=await jobs.preferCpu(id);progress.delete(id);notify(id);return job;});
   worker('next',id=>jobs.next(id));
-  worker('checkpoint',async(id,key:string,chunk:Omit<JobChunk,'audio'>,words:Word[])=>{const job=await jobs.checkpoint(id,key,chunk,words);notify(id);if(job.status==='complete')await finish(id);return job;});
+  worker('checkpoint',async(id,key:string,chunk:Omit<JobChunk,'audio'>,words:Word[])=>{const job=await jobs.checkpoint(id,key,chunk,words);if(job.status==='complete')await finish(id);else {await publish(id);notify(id);}return job;});
   worker('progress',(id,message:string,value:number|null)=>{progress.set(id,{message,value});notify(id);});
   worker('fail',async(id,message:string)=>{await jobs.setStatus(id,'error',message);notify(id);closeRunner();});
   return {jobs,stop:closeRunner,runner:()=>runner};

@@ -19,7 +19,7 @@ Status: in progress. These checks do not establish completion of v0.1.
 - Added storage regression tests for a worker commit racing a late autosave: generated words stay authoritative while unrelated name/manual-cut edits are preserved. Acknowledged results remain editable.
 - Added tests for selected-batch generations, restart, rejecting old-generation responses, preserving words/edits outside requested batches, and copying completed checkpoints into a distinct Save As project. Destination resumes at the next unfinished batch; the original remains paused.
 
-These checks cover actual inference, renderer reload, and worker crash. They do not yet prove a forced editor crash, full application death, display-off behavior, or long-recording processing.
+These checks cover actual inference, renderer reload, and worker crash. Additional long-recording and full-application recovery results follow below.
 
 ## Synthetic transcript performance
 
@@ -37,10 +37,25 @@ Provisional development regression gates for this exact synthetic fixture: fewer
 
 ## Still required
 
-- Forced editor crash and full application death with committed chunks; minimize, loss of focus, and display-off tests.
+- Forced editor crash; explicit minimize, loss-of-focus, and display-off tests.
 - Representative 40–50-minute and approximately 2.5-hour media tests, including audio extraction memory, inference, playback, search, and editing. Record total process memory and release-build timings.
 - Selected-batch UI currently operates on batches containing selected words; review recovery UX and verify Save As during an active job through the native dialog. Storage tests for checkpoint copying pass.
-- Continue auditing project/worker completion races; source loading of large files, partial-result delivery, autosave write volume, and legacy browser-project access remain to be addressed.
+- Continue auditing autosave write volume and completion races. Partial-result delivery and legacy browser-project migration are implemented; migration still needs native end-to-end verification.
 - Test native project-folder picker, Save As dialogs, graceful application exit, and installed release behavior. The File menu is wired and type-checked but still needs a native interaction test. Windows Computer Use could not see the shell-launched isolated test window; launching a dedicated isolated UI test runner timed out waiting for app approval. This leaves native dialog verification unproven.
-- Verify transcript selection across unmounted rows and hide-deleted layout, and confirm speaker actions preserve logical speech-group semantics after rendering virtualization.
+- Confirm speaker actions preserve logical speech-group semantics after rendering virtualization. Cross-row drag selection and hide-deleted layout passed runtime checks.
 - Build and validate the Windows installer, update the user-facing documentation, and audit every v0.1 acceptance criterion before declaring completion.
+
+## Long-recording checkpoint results (2026-09-05)
+
+Both fixtures repeat the supplied short recording as 16 kHz mono PCM WAV. They exercise real long-duration decoding and inference, but do not represent varied gameplay or transcription-accuracy benchmarks.
+
+- 50-minute fixture: all 50 batches completed, 48,000,000 samples, 3,126 words. Elapsed time was approximately 1,227 seconds including debugging and interruptions, not an uninterrupted throughput benchmark.
+- 150-minute fixture: all 150 batches completed, 144,000,000 samples, 9,355 words. Elapsed time was approximately 2,301 seconds including recovery and interruptions. The first-word deletion remained saved.
+- Forced full application termination after six committed batches in the 150-minute run. Reopening and resuming preserved all six checkpoint hashes and the live transcript edit.
+- Forced the isolated app GPU subprocess to exit near the end of the 50-minute run. Automatic CPU fallback completed transcription. A later GPU reset during the 150-minute run also recovered through CPU fallback.
+- The initial long preparation failed after 148 minutes of audio with a decoder memory error. Resuming decoded the remaining two minutes successfully. Decoder recycling every sixteen batches and one restart/retry are now implemented; a fresh uninterrupted 150-minute preparation with recycling still needs verification.
+- Sampled process-tree working sets were approximately 2.64 GB during the 50-minute run and 3.08 GB during the 150-minute run. These are development-build samples, not measured peaks. Hardware: Intel Core i5-12400F, approximately 31.8 GiB RAM.
+- Audio preparation regression tests pass for bounded chunks, crash-tail truncation, duplicate delivery, pause/resume, finalization recovery, exact sample counts, and waveform generation.
+- Progressive-result regression tests pass for live edits, stale autosaves, selected retry scope, and preservation of undo history as new batches arrive.
+- Actual mouse drag across virtualized transcript rows selected 10,725 words. Hiding the first 160 deleted words placed word 160 first; undo restored test changes.
+- Both TypeScript checks, seven relevant regression suites, and the Electron bundle build pass. Native-dialog migration, installed-release behavior, and the remaining acceptance criteria above are still open.

@@ -1,6 +1,7 @@
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
+import { beginPreparation, commitPreparation, readPreparation } from './audio-preparation';
 import { atomicJson, ProjectFiles } from './project-files';
 export interface JobWord { id:number; text:string; start:number; end:number; speaker:number; deleted:boolean; }
 type Word = JobWord;
@@ -12,6 +13,7 @@ export interface JobState {
   projectId:string;
   key:string;
   baseKey?:string;
+  preferWasm?:boolean;
   replacementChunks?:number[];
   model:string;
   language:string;
@@ -86,7 +88,7 @@ export class TranscriptionJobs {
     const cloned:JobState={...job,projectId:destinationId};
     const sourceCache=await this.cache(sourceId),destinationCache=await this.cache(destinationId);
     await fs.mkdir(destinationCache,{recursive:true});
-    for(const name of ['audio.f32','audio.json','waveform.json']){
+    for(const name of ['audio.f32','audio.json','waveform.json','audio.pending','audio-preparation.json']){
       try{await fs.copyFile(path.join(sourceCache,name),path.join(destinationCache,name));}catch(error){if((error as NodeJS.ErrnoException).code!=='ENOENT')throw error;}
     }
     const sourceDirectory=await this.resultDirectory(job),destinationDirectory=await this.resultDirectory(cloned);
@@ -115,6 +117,9 @@ export class TranscriptionJobs {
     return this.write(job);
   });}
   async audioFile(id:string){return path.join(await this.cache(id),'audio.f32');}
+  preparation(id:string){return this.serial(async()=>{const doc=await this.projects.read(id);const state=await beginPreparation(await this.cache(id),doc.media.fingerprint,doc.data.duration);return {index:state.index,sampleCount:state.sampleCount,finished:state.finished};});}
+  prepareChunk(id:string,index:number,bytes:Uint8Array,finished:boolean){return this.serial(async()=>{const state=await commitPreparation(await this.cache(id),index,bytes,finished);return {index:state.index,sampleCount:state.sampleCount,finished:state.finished};});}
+  completePreparedAudio(id:string):Promise<JobState>{return this.serial(async()=>{const state=await readPreparation(await this.cache(id));if(!state.finished)throw Error('Audio preparation is incomplete');return this.finishAudio(id,state);});}
   beginAudio(id:string):Promise<void>{return this.serial(async()=>{
     const cache=await this.cache(id);await fs.mkdir(cache,{recursive:true});
     await fs.writeFile(path.join(cache,'audio.pending'),'');
@@ -123,7 +128,8 @@ export class TranscriptionJobs {
     if(bytes.byteLength>8*1024*1024)throw new Error('Audio input must be sent in bounded chunks.');
     await fs.appendFile(path.join(await this.cache(id),'audio.pending'),bytes);
   });}
-  audioReady(id:string,peaks:StoredPeaks):Promise<JobState>{return this.serial(async()=>{
+  audioReady(id:string,peaks:StoredPeaks):Promise<JobState>{return this.serial(()=>this.finishAudio(id,peaks));}
+  private async finishAudio(id:string,peaks:StoredPeaks):Promise<JobState>{
     const job=await this.read(id);if(!job)throw Error('Job missing');
     const cache=await this.cache(id);const temp=path.join(cache,'audio.pending');
     if((await fs.stat(temp)).size!==peaks.sampleCount*4)throw Error('Incomplete audio extraction');
@@ -134,7 +140,7 @@ export class TranscriptionJobs {
     job.sampleCount=peaks.sampleCount;job.total=job.transcribe?Math.ceil(peaks.sampleCount/(RATE*JOB_CHUNK_SECONDS)):0;
     job.completed=await this.completed(job);job.status=job.completed.length===job.total?'complete':'running';
     job.message=job.status==='complete'?'Ready':'Transcribing in saved batches';return this.write(job);
-  });}
+  }
   async waveform(id:string):Promise<StoredPeaks|null>{try{return JSON.parse(await fs.readFile(path.join(await this.cache(id),'waveform.json'),'utf8'));}catch{return null;}}
   async next(id:string):Promise<JobChunk|null>{
     const job=await this.read(id);if(!job||job.status!=='running')return null;
@@ -155,6 +161,7 @@ export class TranscriptionJobs {
     if(job.completed.length===job.total){job.status='complete';job.message='Transcription complete';}
     return this.write(job);
   });}
+  preferCpu(id:string):Promise<JobState>{return this.serial(async()=>{const job=await this.read(id);if(!job)throw Error('Job missing');job.preferWasm=true;job.message='GPU reset — continuing on CPU from saved batches';return this.write(job);});}
   setStatus(id:string,status:JobState['status'],message:string):Promise<JobState>{return this.serial(async()=>{const job=await this.read(id);if(!job)throw Error('Job missing');job.status=status;job.message=message;return this.write(job);});}
   async words(id:string):Promise<Word[]>{const job=await this.read(id);if(!job)return [];const dir=await this.resultDirectory(job);const words:Word[]=[];for(const index of await this.completed(job)){const row=JSON.parse(await fs.readFile(path.join(dir,`${index}.json`),'utf8'));words.push(...row.words);}return words;}
 }

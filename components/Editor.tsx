@@ -147,6 +147,7 @@ export default function Editor() {
 
   const [modeTransitioning, setModeTransitioning] = useState(false);
   const wasIdle = useRef(status === "idle");
+  const isIdle = status === "idle";
 
   // File › Open Project… reaches the same picker the upload screen uses, from
   // anywhere in the app.
@@ -264,14 +265,14 @@ export default function Editor() {
   // Cover the swap with a brief overlay so the layout reflow isn't visible
   // while the window animates between sizes.
   useEffect(() => {
-    const idle = status === "idle";
+    const idle = isIdle;
     window.rescriptDesktop?.setWindowMode(idle ? "compact" : "expanded");
-    if (!isElectron || wasIdle.current === idle) return;
+    if (!isElectron || wasIdle.current === idle) { setModeTransitioning(false); return; }
     wasIdle.current = idle;
     setModeTransitioning(true);
     const timer = window.setTimeout(() => setModeTransitioning(false), WINDOW_MODE_OVERLAY_MS);
     return () => window.clearTimeout(timer);
-  }, [status]);
+  }, [isIdle]);
 
   // Global shortcuts: space = play/pause, ⌘Z / ⇧⌘Z = undo / redo, S = split,
   // Delete/Backspace = delete selected clip or restore selected cut / cut words.

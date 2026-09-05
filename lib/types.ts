@@ -91,9 +91,11 @@ export type WorkerResponse =
    * `cause` marks failures whose origin is the user's environment rather than
    * the app, so the main thread can skip crash reporting for them.
    */
-  | { type: "error"; message: string; cause?: "network" };
+  | { type: "error"; message: string; cause?: "network" | "gpu" };
 
 export interface WorkerRequest {
+  /** Use CPU/WASM after a GPU reset; source-time checkpoints remain valid. */
+  preferWasm?: boolean;
   audio: Float32Array;
   /** Total media duration in seconds (used for progress estimation). */
   duration: number;
