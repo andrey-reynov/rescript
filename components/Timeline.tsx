@@ -124,6 +124,7 @@ export default function Timeline() {
     [sceneBoundaries, keeps]
   );
 
+  const timelineRef = useRef<HTMLElement>(null);
   const outerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -376,14 +377,23 @@ export default function Timeline() {
     }
   }, [currentTime, playing, pps, width]);
 
-  // Vertical wheel / pinch zooms (anchored at the pointer); horizontal
-  // trackpad side-scroll pans via native overflow-x. Non-passive so zoom
-  // can preventDefault.
+  // Shift + wheel pans anywhere over the timeline, including its toolbar.
+  // Unmodified wheel/pinch keeps pointer-anchored zoom over the track.
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
+    const surface=timelineRef.current;if(!surface)return;
     const onWheel = (e: WheelEvent) => {
       if (durationRef.current <= 0) return;
+      if(e.shiftKey&&!e.ctrlKey){
+        e.preventDefault();
+        const unit=e.deltaMode===1?16:e.deltaMode===2?el.clientWidth:1;
+        const delta=Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:e.deltaY;
+        userScrolledRef.current=true;autoScrollRef.current=null;
+        el.scrollLeft+=delta*unit;
+        return;
+      }
+      if(!el.contains(e.target as Node))return;
       // Horizontal intent → pan: don't preventDefault, let native scroll run.
       if (!e.ctrlKey && Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
       e.preventDefault();
@@ -406,8 +416,8 @@ export default function Timeline() {
       pendingScrollRef.current = Math.max(0, tAnchor * nextPps - pointerX);
       setZoom(nextZoom);
     };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
+    surface.addEventListener("wheel", onWheel, { passive: false });
+    return () => surface.removeEventListener("wheel", onWheel);
   }, []);
 
   // Apply the anchor-preserving scroll once wheel-zoom has re-rendered.
@@ -509,6 +519,19 @@ export default function Timeline() {
     setHoveredSplitId(null);
   }, []);
 
+  // Capture before trim/join controls so Alt-click always places the playhead.
+  // Ruler seeking also leaves the current edit selection intact.
+  const onSeekPointerDown = useCallback((e:ReactPointerEvent)=>{
+    if(e.button!==0)return;
+    const top=e.currentTarget.getBoundingClientRect().top;
+    const y=e.clientY-top;
+    if(y>=RULER_H&&!(e.altKey&&y>=RULER_H+WORDBAR_H))return;
+    e.preventDefault();e.stopPropagation();
+    dragRef.current={type:'seek'};setDragging(true);
+    e.currentTarget.setPointerCapture(e.pointerId);
+    seekTo(timeFromClientX(e.clientX));
+  },[seekTo,timeFromClientX]);
+
   const onBackgroundPointerDown = useCallback(
     (e: ReactPointerEvent) => {
       if (e.button !== 0) return;
@@ -608,7 +631,7 @@ export default function Timeline() {
   const showHandles = pps >= HANDLE_VIS_PPS;
 
   return (
-    <footer className="flex h-48 shrink-0 flex-col border-t border-zinc-200 bg-white sm:h-52 dark:border-zinc-800 dark:bg-zinc-900">
+    <footer ref={timelineRef} aria-label="Timeline" className="flex h-48 shrink-0 flex-col border-t border-zinc-200 bg-white sm:h-52 dark:border-zinc-800 dark:bg-zinc-900">
       {/* Mobile wraps the transport onto its own row; from `sm` up it is
           absolutely centred so it stays put as the side groups change width. */}
       <div className="relative flex shrink-0 flex-wrap items-center gap-x-2 border-b border-zinc-100 px-2.5 sm:h-10 sm:flex-nowrap dark:border-zinc-800">
@@ -810,6 +833,8 @@ export default function Timeline() {
             autoScrollRef.current = null;
             setScrollLeft(next);
           }}
+          onPointerDownCapture={onSeekPointerDown}
+          onClickCapture={e=>{if(e.altKey)e.stopPropagation();}}
           onPointerDown={onBackgroundPointerDown}
           onPointerMove={onPointerMove}
           onPointerLeave={onPointerLeave}
@@ -1057,7 +1082,7 @@ export default function Timeline() {
 
         {pps < SMALL_PPS && ready && (
           <div className="pointer-events-none absolute bottom-2 left-1/2 z-10 -translate-x-1/2 rounded-full bg-zinc-900/70 px-2.5 py-1 text-[10px] text-white/90 backdrop-blur-sm transition-opacity dark:bg-zinc-100/80 dark:text-zinc-900">
-            {t("timeline.scrollZoom")}
+            {t("timeline.scrollZoom")} · Shift + scroll to pan
           </div>
         )}
       </div>
