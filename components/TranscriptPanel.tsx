@@ -280,7 +280,7 @@ export default function TranscriptPanel() {
 
   const deletedCount = useMemo(() => cutOutIds.size, [cutOutIds]);
   const handleImportTranscript = useCallback(
-    async (files: FileList | null) => {
+    async (files: readonly File[] | null) => {
       const file = files?.[0];
       if (!file) return;
       if (!isTranscriptFile(file)) {
@@ -420,7 +420,7 @@ export default function TranscriptPanel() {
           )}
           {status === "ready" && <TranscriptToolsMenu />}
           {status === "ready" && <TranscriptSearch />}
-          <input ref={importInputRef} type="file" accept={TRANSCRIPT_ACCEPT} className="sr-only" onChange={e=>{const files=e.target.files;e.target.value='';void handleImportTranscript(files);}}/>
+          <input ref={importInputRef} type="file" accept={TRANSCRIPT_ACCEPT} className="sr-only" onChange={e=>{const files=Array.from(e.target.files??[]);e.target.value='';void handleImportTranscript(files);}}/>
           <ActionMenu label={f('Transcript options')} actions={[
             {id:'visibility',group:f('Visibility'),label:f('Hide deleted words'),icon:<EyeOff size={14}/>,checked:!showDeleted,run:toggleShowDeleted},
             ...(['clips','speakers','continuous'] as const).map(mode=>({id:mode,group:f('Text layout'),label:f(mode==='clips'?'By clip':mode==='speakers'?'By speaker':'Continuous text'),icon:<Eye size={14}/>,checked:view===mode,radio:true,run:()=>useEditorStore.getState().setTranscriptView(mode)})),

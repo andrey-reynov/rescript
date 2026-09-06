@@ -98,3 +98,43 @@ Verified across two isolated runtime passes using a 10,000-word transcript and t
 
 **Tracking:** No issue assigned yet.
 
+
+## Item 3 — Transcript visibility and Import menu
+
+Verified 2026-09-06 through the isolated production-built Electron app, together with earlier continuous-view and visibility acceptance checks.
+
+- The far-right transcript menu contains Visibility, Text layout and Import groups with separators and icons. It uses the shared Settings-style icon/menu components. ArrowDown opened/focused its first action, End reached Import, and Enter activated the file input. Russian labels were verified; localization tests pass.
+- All three layouts have exclusive selected states. Hide deleted words stayed independent across layouts and preserved a compact Deleted row in By clip. Unhiding restored deleted word spans. Earlier runtime checks verified unchanged saved words, cuts, splits, names, phrases and optional speaker data across view/visibility toggles.
+- Continuous text uses naturally wrapped virtualized lines (10,000-word runtime check). By clip derives boundaries from deletions/explicit splits, while By speaker remains a presentation choice. Switching each layout preserved source time; Ctrl-click sought to the word's original timestamp without starting playback in each view.
+- Import activated through the new menu. Cancelling replacement preserved the existing words. Accepting an SRT loaded five expected timed words; Ctrl-click sought to 0.5 seconds without playback. The file chooser was intercepted by the test harness and confirmation decisions were supplied explicitly; file input change, parsing, state update and native project save ran normally.
+- Fixed a live FileList bug: clearing the input emptied the list before processing; the handler now copies File objects first. The same file can be selected again after cancellation.
+- Fixed transcript replacement erasing unrelated editing: existing effective cuts (including word-owned cuts) now persist as source-time manual ranges, while clip names, splits and view settings remain intact. Obsolete phrase/selection word references are cleared. Focused import regression tests cover those invariants; the runtime SRT test also verified preserved existing cuts/splits/names.
+- Production build/type checks and import/parser/state regressions pass. Test fixture data restored after every pass. Broader clip/phrase/direct-editing behavior remains under items 6 and 13.
+
+### Original requirements
+
+**Status:** Complete; verified above.
+
+**Expected behavior:**
+
+- Consolidate the transcript panel's current eye/visibility control and Import action into one meatballs menu at the far right of that panel's header.
+- Use the shared Settings-style icon button and action-menu visuals from UI-Rules.md. Organize the menu with labeled groups and dividers: **Visibility**, **Text layout**, and **Import**.
+- Under Visibility, provide **Hide deleted words** as one checkmark toggle: checked means deleted words are hidden; unchecked means they are shown. Clicking the same item toggles the state; this is independent of the chosen text layout.
+- Under Text layout, offer three mutually exclusive choices, with exactly one selected:
+  - **By clip** (default): retained sections bounded by deletions or explicit splits, with compact Deleted/duration rows.
+  - **By speaker:** optional attribution view; speaker changes do not create timeline cuts.
+  - **Continuous text:** one text flow without clip or speaker headings.
+- See [Transcript editing workflow](Transcript-Editing-Workflow.md) for clip/deletion behavior and synchronized selection. Hide deleted words keeps compact Deleted/duration rows in By clip view.
+- Keep Import in its own group and preserve the existing import workflow.
+- View changes affect presentation only: retain source timestamps, speaker metadata, deletion ranges, edits, and word-to-video seeking. Do not merge transcript data destructively when displaying a single block.
+- Show checked/radio states clearly, support keyboard interaction, and localize labels. Include action icons and existing shortcuts where applicable.
+
+**Acceptance criteria:**
+
+- The far-right meatballs replaces the standalone eye and Import controls and exposes visibly separated groups.
+- Hide deleted words toggles on/off in every text layout without changing the underlying edits.
+- Selecting one text layout deselects the others. Clip boundaries follow deletion areas and explicit splits, while continuous display does not destroy speaker or timing information.
+- Switching views preserves working word seeking and the Import action continues to open its existing flow.
+
+**Tracking:** No issue assigned yet.
+

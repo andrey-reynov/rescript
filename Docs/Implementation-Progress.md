@@ -117,3 +117,10 @@ Latest static build predates the final small tweaks for Space replacement, no-op
 
 - Completed item 9's remaining viewport-resize and restored-action checks on the isolated 10,000-word fixture. Hidden toolbar could not intercept clicks; selection persisted. Cut, Correct, and Speaker targeted the selection correctly after return. Speaker reassignment left cut/split data unchanged; By clip had no legacy toolbar.
 - Combined with stage six's above/below-edge and multi-word checks, the item's full acceptance scope is verified. Removed item 9 from the pending plan and retained its original requirements/evidence in Completed-Plan-Items.md. Test data restored, and no application changes were necessary in this pass.
+
+
+## Stage eleven: transcript menu acceptance complete
+
+- Fixed Import losing its live FileList when resetting the input. Replacement transcript import now preserves effective editing cuts as manual source ranges, explicit splits, clip names and view preferences; stale phrase/selection references are cleared.
+- Runtime menu group/icon/keyboard checks, cancellation/reselection/SRT parsing, preserved cuts, and imported-word seeking pass. Each text layout preserves the playhead and supports Ctrl-click source seeking. Combined with prior exclusive-layout/visibility/natural-flow checks, item 3 is complete and moved to Completed-Plan-Items.md.
+- Import preservation regression covers word-owned deletions, manual ranges, names, boundaries, preferences and cleared stale IDs. Full plan remains active.

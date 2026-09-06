@@ -570,7 +570,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
   importWords: (words, speakers) => {
     if (words.length === 0) return;
-    const { status } = get();
+    const state=get();
+    const { status } = state;
     if (
       status !== "ready" &&
       status !== "error" &&
@@ -580,12 +581,16 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     }
     // Stop Whisper if it was still running.
     void import("@/hooks/useTranscriber").then((m) => m.cancelTranscription());
+    // Word-owned deletions must survive replacement of those word identities.
+    // Preserve the exact source-time edit as manual ranges before importing text.
+    let nextCutId=state.nextManualCutId;
+    const preservedCuts=getCutRanges(state.words,state.duration,state.manualCuts).map(range=>({...range,id:nextCutId++}));
     set({
       words,
       speakers: speakersFromWords(words, speakers ?? []),
-      manualCuts: [],
-      sceneBoundaries: [],
-      phrases: [],clipNames: [],selectionAnchor:null,transcriptView:"clips",
+      manualCuts: preservedCuts,
+      nextManualCutId: nextCutId,
+      phrases: [],selectionAnchor:null,
       past: [],
       future: [],
       selectedClipIndex: null,

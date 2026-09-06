@@ -50,33 +50,6 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 
 **Tracking:** No issue assigned yet.
 
-### 3. Transcript visibility and Import menu
-
-**Status:** Implemented; continuous text now uses natural-width virtualized lines. Retain full menu/import, view-state and bilingual acceptance audit; see Implementation-Progress.md.
-
-**Expected behavior:**
-
-- Consolidate the transcript panel's current eye/visibility control and Import action into one meatballs menu at the far right of that panel's header.
-- Use the shared Settings-style icon button and action-menu visuals from UI-Rules.md. Organize the menu with labeled groups and dividers: **Visibility**, **Text layout**, and **Import**.
-- Under Visibility, provide **Hide deleted words** as one checkmark toggle: checked means deleted words are hidden; unchecked means they are shown. Clicking the same item toggles the state; this is independent of the chosen text layout.
-- Under Text layout, offer three mutually exclusive choices, with exactly one selected:
-  - **By clip** (default): retained sections bounded by deletions or explicit splits, with compact Deleted/duration rows.
-  - **By speaker:** optional attribution view; speaker changes do not create timeline cuts.
-  - **Continuous text:** one text flow without clip or speaker headings.
-- See [Transcript editing workflow](Transcript-Editing-Workflow.md) for clip/deletion behavior and synchronized selection. Hide deleted words keeps compact Deleted/duration rows in By clip view.
-- Keep Import in its own group and preserve the existing import workflow.
-- View changes affect presentation only: retain source timestamps, speaker metadata, deletion ranges, edits, and word-to-video seeking. Do not merge transcript data destructively when displaying a single block.
-- Show checked/radio states clearly, support keyboard interaction, and localize labels. Include action icons and existing shortcuts where applicable.
-
-**Acceptance criteria:**
-
-- The far-right meatballs replaces the standalone eye and Import controls and exposes visibly separated groups.
-- Hide deleted words toggles on/off in every text layout without changing the underlying edits.
-- Selecting one text layout deselects the others. Clip boundaries follow deletion areas and explicit splits, while continuous display does not destroy speaker or timing information.
-- Switching views preserves working word seeking and the Import action continues to open its existing flow.
-
-**Tracking:** No issue assigned yet.
-
 ### 4. Resize deletion regions
 
 **Status:** Implemented; focused bounds/undo/persistence tests pass. Retain direct pointer-resize and source-edge runtime audit.
