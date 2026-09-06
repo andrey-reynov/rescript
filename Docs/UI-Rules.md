@@ -31,4 +31,8 @@ Localize new labels. Check light/dark themes, pointer and keyboard use, narrow w
 
 Clip view uses a fixed sequence number, dot separator, editable display name (Clip N by default), and a Settings-style meatballs with Rename clip. Show an input only during renaming. Unchanged drafts do not create history; Escape cancels. Keep the existing explicit-boundary Join action.
 
-Keep menu group headings outside hoverable action rows. In timeline menus, non-favoritable actions reserve the same icon slot as favoritable actions so icons, text, and row height align. Selected deletion boundaries use the same thin indigo handle, outline, and hover treatment as retained clip boundaries; deletion stripes still identify excluded content.
+Keep menu group headings outside hoverable action rows. In timeline menus, non-favoritable actions reserve the same icon slot as favoritable actions so icons, text, and row height align. Selected deletion boundaries use the same thin handle, outline, and hover treatment, colored red instead of indigo as retained clip boundaries; deletion stripes still identify excluded content.
+
+## Timeline selection and shortcuts
+
+Follow [Timeline-Selection-and-Snapping.md](Timeline-Selection-and-Snapping.md). Grouped transcript words share a subtle underline/background while retaining individual word access with Ctrl. Use the shared action registry for configurable shortcut badges; fixed standard commands remain unchanged. Keep deletion handles red and retained clip handles indigo. The text-lane separator supports pointer and keyboard resizing.

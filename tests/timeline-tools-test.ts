@@ -1,0 +1,21 @@
+import assert from 'node:assert/strict';
+import {snapTime,eventShortcut,shortcutError} from '../lib/timeline-tools';
+assert.equal(snapTime(1.96,[0,1,2,3],100,0,3),2);
+assert.equal(snapTime(2.04,[0,1,2,3],100,0,3),2);
+assert.equal(snapTime(1.96,[0,1,2,3],100,0,1.98),1.96,'Snap cannot cross a legal bound');
+assert.equal(snapTime(1.96,[0,1,2,3],100,0,3,[2]),1.96,'Do not snap to the dragged boundary itself');
+assert.equal(snapTime(1.96,[0,1,2,3],1000,0,3),1.96,'Threshold is in screen pixels');
+assert.equal(snapTime(-1,[0,2],100,0,2),0);
+assert.equal(eventShortcut({key:'n',ctrlKey:false,metaKey:false,altKey:false,shiftKey:false}),'N');
+assert.ok(shortcutError('Ctrl+S','snapping',{}));
+assert.ok(shortcutError('Shift+S','snapping',{}));
+assert.ok(shortcutError('Shift+Space','snapping',{}));
+assert.ok(shortcutError('N','group',{snapping:'N'}));
+assert.equal(shortcutError('Ctrl+G','group',{snapping:'N'}),'');
+assert.equal(shortcutError('','snapping',{}),'');
+console.log('Snap bounds, self exclusion, pixel tolerance, shortcut normalization and conflicts passed.');
+
+assert.ok(shortcutError('Ctrl+N','snapping',{}));
+assert.ok(shortcutError('Ctrl+Alt+S','snapping',{}));
+assert.ok(shortcutError('F11','snapping',{}));
+assert.equal(shortcutError('Alt+G','group',{}),'');

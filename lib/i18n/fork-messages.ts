@@ -3,6 +3,12 @@ import {ru} from './messages/ru';
 import type {UiLocale} from './locales';
 /** Copy added by the fork. Other locales retain English until translated. */
 export const forkRussian={
+"Text editing":"Редактирование текста",
+"Pause or resume processing":"Пауза или продолжение обработки",
+"Pause or resume detection":"Пауза или продолжение анализа",
+"Import transcript":"Импорт расшифровки",
+"Export":"Экспорт",
+
  'Prepare source audio before retranscribing.':'Подготовьте исходное аудио перед повторной расшифровкой.',
  'The open project changed. Reopen the transcription dialog.':'Открытый проект изменился. Откройте окно расшифровки заново.',
  'Retranscription failed.':'Не удалось запустить повторную расшифровку.',
@@ -60,7 +66,7 @@ export const forkRussian={
  'More timeline tools':'Инструменты таймлайна','Project actions':'Действия проекта','Pin {tool}':'Закрепить {tool}','Unpin {tool}':'Открепить {tool}',
  'Retranscribe all':'Расшифровать всё заново','Full audio':'Всё аудио','The full transcript will be replaced. Timeline cuts stay unchanged.':'Вся расшифровка будет заменена. Монтаж останется без изменений.','Close revisions':'Закрыть версии','Revision list':'Список версий',
  'Skip deletion areas':'Пропускать удалённые области',
- 'Transcript options':'Настройки текста','Visibility':'Видимость','Hide deleted words':'Скрывать удалённые слова','Text layout':'Представление текста','By clip':'По клипам','By speaker':'По участникам','Continuous text':'Сплошной текст','Deleted':'Удалено','Clip {number}':'Клип {number}','Clip name':'Название клипа','Rename clip':'Переименовать клип','Join clips':'Объединить клипы',
+ 'Transcript options':'Настройки текста','Visibility':'Видимость','Hide deleted words':'Скрывать удалённые слова','Text layout':'Представление текста','By clip':'По клипам','By speaker':'По участникам','Continuous text':'Сплошной текст','Deleted':'Удалено','Clip {number}':'Клип {number}','shortcuts':'Сочетания клавиш','Snapping':'Привязка','Text lane height':'Высота текстовой дорожки','Not assigned':'Не назначено','Reset shortcuts':'Сбросить сочетания','This shortcut is reserved.':'Это сочетание зарезервировано.','This shortcut is already assigned.':'Это сочетание уже назначено.','Click a shortcut field and press the desired keys. Standard editing shortcuts stay fixed.':'Нажмите на поле и введите сочетание. Стандартные сочетания остаются неизменными.','Backspace clears a custom shortcut. Save, Open, Undo, Redo, Split, Delete, Restore and playback shortcuts are fixed.':'Backspace очищает сочетание. Сохранение, открытие, отмена, повтор, разрезание, удаление, восстановление и воспроизведение используют стандартные клавиши.','Clip name':'Название клипа','Rename clip':'Переименовать клип','Join clips':'Объединить клипы',
  'No actions yet':'Пока нет действий','Go to word':'Перейти к слову','Group into phrase':'Объединить во фразу','Ungroup':'Разгруппировать','Restore deletion area':'Восстановить удалённую область','Add deletion area':'Добавить удалённую область','Deletion start':'Начало удаления','Deletion end':'Конец удаления','Timeline actions':'Действия таймлайна',
  'Correct text':'Исправить текст','Text actions':'Действия с текстом','Split clip':'Разделить клип',
  'Model relocation was interrupted. Retry relocation to finish remaining files.':'Перенос моделей прерван. Повторите перенос оставшихся файлов.',

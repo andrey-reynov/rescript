@@ -1,10 +1,7 @@
-# Next Update Plan
+# Current plan
 
-All 13 items in this update are implemented and verified. No pending implementation items remain in this plan.
+The timeline selection, phrase editing, snapping, shortcuts and zoom update is complete. See [Timeline-Selection-and-Snapping.md](Timeline-Selection-and-Snapping.md) for the interaction contract and verification. Earlier completed work remains in [Completed-Plan-Items.md](Completed-Plan-Items.md).
 
-- [Completed requirements and acceptance records](Completed-Plan-Items.md) preserve the original scope and issue references.
-- [Transcript editing specification](Transcript-Editing-Workflow.md) describes the delivered workflow.
-- [Transcript acceptance audit](Transcript-Acceptance-Audit.md) maps its requirements to evidence.
-- [Implementation progress](Implementation-Progress.md) records final verification in stage 44.
+## Later — subtitles on video
 
-Future milestones remain in [Roadmap](Roadmap/Roadmap.md); they are not implied to be complete by this update. Add new agreed work here.
+- [ ] Display subtitles directly over the video image. Placement, styling, editing and export behavior will be specified by the user later. Do not implement speculative subtitle tools yet.

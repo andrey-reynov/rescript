@@ -1,14 +1,23 @@
 "use client";
-import {useSyncExternalStore,useId,useRef,useState,type ReactNode} from 'react';
+import {useEffect,useSyncExternalStore,useId,useRef,useState,type ReactNode} from 'react';
+import {CUSTOM_COMMANDS,eventShortcut,shortcutError,type CustomCommand,useTimelinePreferences} from '@/lib/timeline-tools';
+import {isTypingTarget,isCompositionKey} from '@/lib/keyboard';
 import {Ellipsis,Star,Check} from 'lucide-react';
 import Popover,{PopoverContent,PopoverTrigger} from './Popover';
 import Button,{Shortcut} from './Button';
 import {useForkI18n} from './I18nProvider';
 const subscribe=(notify:()=>void)=>{window.addEventListener('storage',notify);window.addEventListener('rescript:favorites',notify);return()=>{window.removeEventListener('storage',notify);window.removeEventListener('rescript:favorites',notify);};};
 export type MenuAction={id:string;label:string;icon:ReactNode;shortcut?:string;disabled?:boolean;run:()=>void;title?:string;checked?:boolean;radio?:boolean;group?:string;favoritable?:boolean};
-export default function ActionMenu({label,actions,favoritesKey,defaults=[]}:{label:string;actions:MenuAction[];favoritesKey?:string;defaults?:string[]}){
+export default function ActionMenu({label,actions:providedActions,favoritesKey,defaults=[]}:{label:string;actions:MenuAction[];favoritesKey?:string;defaults?:string[]}){
  const f=useForkI18n(),id=useId(),root=useRef<HTMLDivElement>(null),panel=useRef<HTMLDivElement>(null);
  const [open,setOpen]=useState(false);
+ const prefs=useTimelinePreferences();
+ const actions=providedActions.map(action=>action.id in CUSTOM_COMMANDS?{...action,shortcut:prefs.bindings[action.id as CustomCommand]||undefined}:action);
+ useEffect(()=>{const handler=(e:KeyboardEvent)=>{
+  if(e.repeat||e.defaultPrevented||isTypingTarget(e.target)||isCompositionKey(e)||(e.target as HTMLElement)?.closest?.('dialog,[role="dialog"],[role="menu"],[role="listbox"]'))return;
+  const key=eventShortcut(e);const action=actions.find(a=>a.id in CUSTOM_COMMANDS&&a.shortcut===key&&!a.disabled&&!shortcutError(key,a.id as CustomCommand,prefs.bindings));
+  if(action){e.preventDefault();action.run();}
+ };document.addEventListener('keydown',handler);return()=>document.removeEventListener('keydown',handler);},[actions,prefs.bindings]);
  const saved=useSyncExternalStore(subscribe,()=>{try{return favoritesKey?localStorage.getItem(favoritesKey):null;}catch{return null;}},()=>null);
  let favorites=defaults;try{const parsed=JSON.parse(saved??'null');if(Array.isArray(parsed)&&parsed.every(v=>typeof v==='string'))favorites=parsed;}catch{}
  const toggle=(key:string)=>{const next=favorites.includes(key)?favorites.filter(v=>v!==key):[...favorites,key];try{if(favoritesKey)localStorage.setItem(favoritesKey,JSON.stringify(next));window.dispatchEvent(new Event('rescript:favorites'));}catch{}};
