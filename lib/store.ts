@@ -101,6 +101,7 @@ interface EditorState {
   /** IndexedDB project id when this session is persisted; null for a fresh upload mid-pipeline. */
   projectId: string | null;
   projectName: string;
+  transcriptImportId: string | null;
   transcriptionResultKey: string | null;
   transcriptionChunks: number[];
   sourceAudio: SourceAudioLayout | null;
@@ -134,6 +135,7 @@ interface EditorState {
   selectionAnchor: number|null;
   setTranscriptView: (view:TranscriptView)=>void;
   selectWordRange: (ids:number[],extend?:boolean)=>void;
+  selectWordSpan: (anchor:number,target:number)=>void;
   groupSelectedPhrase: ()=>void;
   ungroupSelectedPhrase: ()=>void;
   renameClip: (time:number,name:string)=>void;
@@ -374,7 +376,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   pendingTranscript: null,
   projectId: null,
   jobState: null,
-  transcriptionResultKey: null, transcriptionChunks: [], sourceAudio: null,
+  transcriptImportId: null, transcriptionResultKey: null, transcriptionChunks: [], sourceAudio: null,
   projectName: '', projectThumbnail: null, saveState: 'saved', saveError: null, lastSavedAt: null,
   skipTranscription: false,
 
@@ -424,7 +426,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       mediaKind: kind,
       projectId: null,
       jobState: null,
-      transcriptionResultKey: null,
+      transcriptImportId: null, transcriptionResultKey: null,
       projectName: file.name.replace(/\.[^.]+$/, ''), projectThumbnail: null, saveState: 'pending', saveError: null, lastSavedAt: null,
       skipTranscription: true,
       source: imported ? "import" : isModelId(current) ? current : "base",
@@ -484,7 +486,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
         : DEFAULT_TRANSCRIPT_LANGUAGE,
       projectId: record.id,
       jobState: null,
-      transcriptionResultKey: record.transcriptionResultKey ?? null, transcriptionChunks: record.transcriptionChunks ?? [], sourceAudio: record.sourceAudio ?? null,
+      transcriptImportId: record.transcriptImportId ?? null, transcriptionResultKey: record.transcriptionResultKey ?? null, transcriptionChunks: record.transcriptionChunks ?? [], sourceAudio: record.sourceAudio ?? null,
       projectName: record.name, projectThumbnail: record.thumbnail ?? null, saveState: "saved", saveError:null, lastSavedAt:record.updatedAt,
       skipTranscription: record.transcriptionComplete !== false,
       pendingTranscript: null,
@@ -588,6 +590,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     set({
       words,
       speakers: speakersFromWords(words, speakers ?? []),
+      transcriptImportId: crypto.randomUUID(),
       manualCuts: preservedCuts,
       nextManualCutId: nextCutId,
       phrases: [],selectionAnchor:null,
@@ -803,6 +806,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   applyWordAlignment:(selection,result)=>{const s=get();const blocks=transcriptBlocks(s.words,getCutRanges(s.words,s.duration,s.manualCuts),s.sceneBoundaries,s.duration);const words=applyAlignment(s.words,selection,result,blocks);pushEdit(get,set,{words});},
   setSilenceSettings:value=>{set({silenceSettings:normalizeSilenceSettings({...get().silenceSettings,...value})});bumpAutosave();},
   setTranscriptView:transcriptView=>{set({transcriptView});bumpAutosave();},
+  selectWordSpan:(anchor,target)=>{const s=get();set({selectionAnchor:anchor,selectedWordIds:selectedRange(s.words,anchor,[target]),selectedClipIndex:null,selectedCutIndex:null});},
   selectWordRange:(ids,extend=false)=>{const s=get();const anchor=extend?s.selectionAnchor??ids[0]:ids[0];set({selectionAnchor:anchor??null,selectedWordIds:extend?selectedRange(s.words,anchor,ids):ids,selectedClipIndex:null,selectedCutIndex:null});},
   groupSelectedPhrase:()=>{const s=get();const blocks=transcriptBlocks(s.words,getCutRanges(s.words,s.duration,s.manualCuts),s.sceneBoundaries,s.duration);pushEdit(get,set,{phrases:groupPhrase(s.words,s.phrases,s.selectedWordIds,blocks,crypto.randomUUID())});},
   ungroupSelectedPhrase:()=>{const s=get();const selected=new Set(s.selectedWordIds);pushEdit(get,set,{phrases:s.phrases.filter(g=>!g.wordIds.some(id=>selected.has(id)))});},
@@ -1012,7 +1016,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       transcriptLanguage: loadTranscriptLanguagePreference(),
       pendingTranscript: null,
       projectId: null,
-      projectName: '', projectThumbnail: null, jobState: null, transcriptionResultKey: null,
+      projectName: '', projectThumbnail: null, jobState: null, transcriptImportId: null, transcriptionResultKey: null,
       saveState: 'saved', saveError: null, lastSavedAt: null,
       skipTranscription: false,
       status: "idle",

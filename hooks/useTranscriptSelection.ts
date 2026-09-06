@@ -154,11 +154,14 @@ export function useTranscriptSelection({
   );
 
   const syncToReact = useCallback(
-    (info: TranscriptSelectionInfo | null) => {
+    (info: TranscriptSelectionInfo | null, anchor?:number) => {
       setSelection(info);
       const ids = info?.ids ?? [];
       const prev = useEditorStore.getState().selectedWordIds;
-      if (!sameIds(prev, ids)) setSelectedWords(ids);
+      if(anchor!==undefined&&ids.length) {
+        const target=ids[0]===anchor?ids[ids.length-1]:ids[0];
+        useEditorStore.getState().selectWordSpan(anchor,target);
+      } else if (!sameIds(prev, ids)) setSelectedWords(ids);
     },
     [setSelectedWords]
   );
@@ -233,7 +236,7 @@ export function useTranscriptSelection({
         const state=useEditorStore.getState();
         const first=state.words.findIndex(w=>w.id===Number(els[0].dataset.wid));
         const last=state.words.findIndex(w=>w.id===Number(els[els.length-1].dataset.wid));
-        const ids=state.words.slice(first,last+1).filter(w=>state.showDeleted||!cutOutIdsRef.current.has(w.id)).map(w=>w.id);
+        const ids=state.words.slice(first,last+1).map(w=>w.id);
         info={ids,anyDeleted:ids.some(id=>cutOutIdsRef.current.has(id)),anyKept:ids.some(id=>!cutOutIdsRef.current.has(id))};
       }
 
@@ -242,7 +245,8 @@ export function useTranscriptSelection({
         setSelection(null);
         return;
       }
-      syncToReact(info);
+      const anchorEl=wordElFromNode(sel.anchorNode,container);
+      syncToReact(info,anchorEl?Number(anchorEl.dataset.wid):undefined);
     };
 
     const onSelectionChange = () => {
@@ -250,6 +254,7 @@ export function useTranscriptSelection({
     };
 
     const onMouseDown = (event:MouseEvent) => {
+      if(freezeSelectionRef.current||event.button!==0||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
       mouseDownRef.current = true;
       const target=(event.target as HTMLElement|null)?.closest<HTMLElement>('[data-wid]');
       dragStartRef.current=target&&containerRef.current?.contains(target)?Number(target.dataset.wid):null;
@@ -258,18 +263,19 @@ export function useTranscriptSelection({
     const onMouseUp = (e: MouseEvent) => {
       if (!mouseDownRef.current) return;
       mouseDownRef.current = false;
+      if(freezeSelectionRef.current){dragStartRef.current=null;return;}
       const anchor=dragStartRef.current;dragStartRef.current=null;
       const endpoint=(e.target as HTMLElement|null)?.closest<HTMLElement>('[data-wid]');
       if(anchor!==null&&endpoint&&containerRef.current?.contains(endpoint)&&Number(endpoint.dataset.wid)!==anchor){
         const state=useEditorStore.getState(),end=Number(endpoint.dataset.wid);
         const a=state.words.findIndex(word=>word.id===anchor),b=state.words.findIndex(word=>word.id===end);
         if(a>=0&&b>=0){
-          const ids=state.words.slice(Math.min(a,b),Math.max(a,b)+1).filter(word=>state.showDeleted||!cutOutIdsRef.current.has(word.id)).map(word=>word.id);
+          const ids=state.words.slice(Math.min(a,b),Math.max(a,b)+1).map(word=>word.id);
           // Browser selection can collapse when scrolling across virtual gaps.
           // The source-word endpoints still define the complete intended range.
           clickSelectionRef.current=true;dragClickRef.current={id:end,until:Date.now()+150};
           window.getSelection()?.removeAllRanges();
-          syncToReact({ids,anyDeleted:ids.some(id=>cutOutIdsRef.current.has(id)),anyKept:ids.some(id=>!cutOutIdsRef.current.has(id))});
+          syncToReact({ids,anyDeleted:ids.some(id=>cutOutIdsRef.current.has(id)),anyKept:ids.some(id=>!cutOutIdsRef.current.has(id))},anchor);
           return;
         }
       }

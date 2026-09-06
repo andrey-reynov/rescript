@@ -136,3 +136,97 @@ Latest static build predates the final small tweaks for Space replacement, no-op
 
 - Completed zoom/scroll source-position, keyboard Split/Add, overlap merging, clicked-target Restore, source-end clamping, undo/redo/save persistence, viewport bounds, Escape/outside dismissal and unchanged left/Alt-click behavior checks.
 - Item 11 moved to Completed-Plan-Items.md with its original requirements and evidence. No application change was needed. Final fixture data restored; remaining plan work remains active.
+
+## Stage fourteen: overlapping speech correction boundaries
+
+- Fixed correction allocation and phrase eligibility to use the minimum selected start and maximum selected end. Source-ordered words can overlap, so the final word's end is not a safe boundary. This prevents shortened correction ranges and rejects grouping/correction when an earlier selected word crosses a deletion or explicit split.
+- Focused regression checks cover overlap, unchanged unselected/source words, approximate timing provenance, mixed speakers remaining Unknown, and rejection across both cuts and splits. Transcript structure/state and selected alignment tests pass.
+- This closes an implementation defect under items 6/13, not their complete acceptance audit. Remaining keyboard/IME, cross-view selection and installed model/language checks remain pending.
+
+## Stage fifteen: dragged selection anchor and hidden scope
+
+- Drag selection now includes the complete source-ordered word range, including hidden deleted words, consistently with Shift-click. Existing deletion summaries communicate hidden selection scope; grouping/correction remain constrained to one retained clip.
+- Added atomic source-span selection with the pointer-down anchor. Backwards drag no longer retains a stale anchor or substitutes the lowest selected ID. Modified pointer gestures and active caret correction are excluded from drag handling.
+- State regression verifies hidden words, both anchor directions, subsequent Shift extension, clearing stale clip/cut picks, unchanged deletion flags and unchanged playhead. Type checking, focused lint and production renderer build pass.
+- Real pointer runtime on the isolated project: drag 142→138 selected 138–142, then Shift-click 144 selected 142–144; drag 138→142 then Shift-click 137 selected 137–138. Playhead remained at 10 seconds. No project edit was made by this test. Cross-view/hidden-range runtime and remaining keyboard/IME acceptance remain under item 13.
+
+## Stage sixteen: correction keyboard routing
+
+- Shared composition guard handles both isComposing and legacy key code 229. Applied to global editor shortcuts, direct transcript typing, correction Enter/Escape, selection Escape and optional speaker shortcut. An IME confirmation must not accidentally commit, split, or clear a selection.
+- Actual renderer input test replaced two selected words with English/Russian text, committed with Enter without changing cuts/splits, verified approximate provenance and saved output, then restored original words with Undo. Double-click opened existing text; native Select All/Backspace edited characters, and Escape discarded the draft without cutting media. Fixture restored.
+- Simulated key-229 Enter left the correction open. This proves event routing, not full OS IME composition entry; that remains pending. The first harness attempt omitted native Select All's virtual key code; adding it made the character-deletion check pass without an app change.
+- Focused composition test and production build pass. Full item 13 acceptance remains open.
+
+## Stage seventeen: correction draft eligibility
+
+- Shared correction selection validation now runs before opening any correction draft (typing, double-click, context action or legacy toolbar), and again during commit. Cross-cut/split, disjoint and stale-ID selections cannot hide text in an invalid draft. IDs are normalized to source order.
+- Runtime cross-split selection of four words rejected typing with an explanation, retained all four selected spans and preserved saved words/cuts/splits/phrases. The valid bilingual replacement/Enter/Undo/double-click/Backspace/Escape checks passed again. Fixture restored.
+- Added missing Russian translations for correction/grouping eligibility errors discovered in that runtime check. Structure/state tests and production build pass; item 13 remains open for its remaining acceptance scope.
+
+## Stage eighteen: phrase grouping and clip structure acceptance
+
+- Extracted timeline phrase projection and fixed geometry to include every overlapping member's source span. Mixed phrases use Unknown display metadata and retain each word's attribution unchanged.
+- Regression tests cover overlap, no missing/duplicated words, projection across cuts and splits, and stable persisted group identity. Type checks, focused lint and production build pass.
+- Native runtime grouped/saved/reopened six mixed-speaker words, split into two three-word phrase projections, reopened/joined, verified original-time seeking paused, and ungrouped without word/cut changes. Fixture restored.
+- Item 6 is complete and moved with its original requirements to Completed-Plan-Items.md. The rest of PLAN.md remains pending.
+
+## Stage nineteen: source cuts survive retranscription publication
+
+- Found and fixed replacement publication losing cuts owned by deleted word IDs. Materialize their existing source ranges before replacing words; clear retained word deletion flags to prevent newly adjacent words bridging an empty replacement. Existing manual cuts remain intact, and the editor receives the published ranges with a fresh cut-ID counter.
+- Protect materialized ranges and pruned phrase IDs against a queued old-generation autosave. Reassign preserved-range IDs against incoming manual cuts so a concurrent new cut remains intact. Renderer publication also checks manual cut/split reference changes during its save/read round trip.
+- Native regression covers full and partial/empty replacement, exact effective cut geometry, retained names/splits, obsolete phrases, idempotent publication, paused/error atomicity, and late saves with a new manual cut. Progressive result tests and both type checks pass.
+- Item 1 remains pending: integrated fresh inference/modal checks, and the explicit-import exception in ProjectFiles.save versus a retranscription of an imported transcript still needs audit. Model/language preference publication and concurrent edit behavior require end-to-end verification before closing the item.
+
+## Stage twenty: imported transcript generation protection
+
+- Explicit imports receive a persisted identity, carried through autosave and project load (optional for legacy files). ProjectFiles.save now distinguishes a deliberate import from an old imported-transcript save; the blanket source=import exception no longer overwrites a completed replacement result.
+- Replacement jobs capture the import identity at start. A newer import invalidates publication from that older job, protecting the reverse race even if cancellation and worker completion overlap.
+- Native regression covers imported and legacy-imported late saves, deliberate replacement import, and a job finishing after a newer import. Import edit-preservation, project files, progressive results and both type checks pass.
+- Item 1 remains active for end-to-end modal/fresh model-language and conflict acceptance; this stage resolves the import exception identified in stage nineteen.
+
+## Stage twenty-one: full-audio model/language persistence
+
+- Full versus selected replacement scope is explicit in the durable job. Full completion publishes its model/language with the transcript; selected replacement leaves project defaults unchanged. Queued old-generation saves retain the completed full-run preferences. The renderer loads the authoritative project choices alongside its result.
+- Regression covers scope, full settings, selected independence and stale-save protection. Both type checks, focused lint and production renderer/native builds pass.
+- Real cached Whisper Base inference processed the entire 42.4106875-second source (45 words), changed project source from Tiny English to Base, kept English language, preserved the existing manual cut and a deliberately deleted first-word interval (0.095–0.55). Reopened the project and opened/cancelled the full-audio dialog with Base/English shown. Test project, job manifest and summary restored after shutting down the isolated app.
+- Remaining item 1 checks include model/language changes through the modal itself, selected numeric-range/cancel/error/conflicting-job acceptance; this result does not close the whole item.
+
+## Stage twenty-two: shared retranscription dialog acceptance
+
+- Added initial focus, Tab wrapping, Escape dismissal, busy focus and duplicate-submit guard. Captured project ID prevents submission against a different open project. Current job state gates opening/submitting even when a conflict begins after opening. Initial model/language is normalized for compatibility. Native errors are stripped of transport boilerplate and localized.
+- Runtime: full dialog displayed “Всё аудио”; selected dialog displayed “0.10–0.55 s”. Tab/Shift-Tab wrapped; Escape first closed the model dropdown, then the dialog. Cancelling either preserved saved transcript/cuts/settings and job generation.
+- Temporarily moved only the isolated fixture's job manifest to exercise missing prepared audio. Submission showed an inline error, retained focus and old edit, and remained dismissible. Manifest restored exactly. Added missing Russian error translation afterward.
+- Type checking, focused lint, i18n tests and production renderer build passed before runtime; final busy-focus/translation additions checked again. Active-job conflict and model/language submission through the modal remain open under item 1.
+
+## Stage twenty-three: full retranscription acceptance complete
+
+- Dialog model/language submission and conflict acceptance passed with real cached Base inference. Full generation covered the original 42.4106875-second source despite a one-word selection and timeline cut, and published 45 words with Base/Automatic preferences.
+- Existing fixture's cut had no recognized speech, so the initial output-overlap assertion was inconclusive. Repeated with a known spoken word deleted; recognition included it while its exact deletion survived. This establishes the requested behavior directly instead of assuming speech inside the first cut.
+- Together with the previous modal cancellation/error, atomic job/recovery and source-edit preservation evidence, item 1 is complete. Moved original requirements/evidence to Completed-Plan-Items.md. Test fixture restored; overall goal remains active.
+
+## Stage twenty-four: model transfer failure recovery
+
+- Cache import reserves its URL before asynchronous validation, preventing two simultaneous transfers of the same file. Reservations contribute to busy/status and block relocation/default-folder mutation; cancellation releases the lock.
+- Relocation removes its owned partial copy on copy, verification, sync or rename failure. The manifest still points to the usable original until a verified copy is committed.
+- Native test injects a disk-full error after writing partial bytes: original lookup retained, no .part residue, actionable retry status, successful verified relocation on retry and offline reopen. Tests also cover simultaneous import ownership, truncation cleanup/retry, cancellation and reserved-import locking.
+- Model storage tests and both type checks pass. Item 2 remains open for installed-build and Parakeet acceptance; abrupt process death/orphan cleanup has not been established by these injected failure tests.
+
+## Stage twenty-five: managed Parakeet v3 inference
+
+- Checked installed parakeet.js fromUrls argument names and worker/native artifact mapping. Downloaded the CPU artifact set through the actual native Models API: encoder-model.int8.onnx, decoder_joint-model.fp16.onnx, vocab.txt, nemo128.onnx; 688,689,912 bytes, four of four completed and CPU availability true.
+- Used the isolated prepared sample with a paused test job explicitly preferring WASM to avoid downloading a separate GPU set. Native resume launched the real processing worker and Parakeet v3/Automatic completed all 42.4106875 seconds with 44 words, beginning “Hello. This is an example video for your…”. Published generation matched the job and source became parakeet.
+- Test project, job manifest and summary restored after closing the app. Model files remain in the isolated test model directory for subsequent offline/relocation and bilingual validation.
+- This proves English sample inference via managed CPU artifacts, not GPU, Russian, or offline relocation. Those acceptance checks and installed-build work remain open; no application code change was needed in this pass.
+
+## Stage twenty-six: relocated Parakeet works offline after restart
+
+- Changed the isolated default model directory through the native folder action and relocated all 32 existing artifacts. Every previously available model remained available; all manifest roots point to the new directory, original file copies are gone, cleanup queue is empty and no relocation error remains.
+- Restarted the isolated app with native and renderer Hugging Face requests blocked/logged. Parakeet v3 CPU/Automatic completed the real sample with 44 words from the moved files. The model network-attempt log remained empty, proving no silent replacement download.
+- Restored the project/job/summary after closing the test app. Managed test models intentionally remain at work/offline-model-validation/Rescript Models, with that default persisted for later tests.
+- This completes the outstanding native Parakeet offline-relocation check. Item 2 retains final freshly installed-build acceptance; bilingual/model-capability work remains in items 7/8.
+
+## Stage twenty-seven: capability and bilingual acceptance
+
+- Actual Settings UI language switches left Russian transcription preferences unchanged. Fresh Base/Russian output stayed Cyrillic under English UI; Parakeet/Automatic retained both languages in the bilingual sample under Russian UI.
+- Shared dialog language choices matched fixed English, automatic-only Parakeet and explicit multilingual Whisper profiles. Unsupported native forcing rejected before changing job generation. Capability/model tests pass.
+- Item 7 moved to Completed-Plan-Items.md with original requirements/evidence. Item 8 retains installed/native-menu/migration gates. Isolated Russian and bilingual project/job/summary files restored; UI returned to Russian.

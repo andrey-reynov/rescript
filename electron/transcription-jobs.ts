@@ -17,6 +17,8 @@ export interface JobState {
   preferWasm?:boolean;
   replacementChunks?:number[];
   replacementRange?:{start:number;end:number};
+  replacementImportId?:string|null;
+  replacementScope?:'selection'|'all';
   model:string;
   language:string;
   transcribe:boolean;
@@ -122,19 +124,19 @@ export class TranscriptionJobs {
     // the previous valid generation; committed source chunks are never deleted.
     return this.write(job);
   });}
-  transcribeRange(id:string,start:number,end:number,model:string,language:string):Promise<JobState>{return this.serial(async()=>{
+  transcribeRange(id:string,start:number,end:number,model:string,language:string,scope:'selection'|'all'='selection'):Promise<JobState>{return this.serial(async()=>{
     assertModelLanguage(model,language);
     const old=await this.read(id),doc=await this.projects.read(id);
     if(!old || old.status==='preparing'||old.status==='running')throw Error('Wait for audio preparation or pause processing first.');
     if(!Number.isFinite(start)||!Number.isFinite(end)||start<0||end<=start||end>old.sampleCount/RATE)throw Error('Select a valid source range.');
     if(old.sourceFingerprint!==doc.media.fingerprint)throw Error('Source media changed. Prepare audio again.');
     return this.write({...old,key:randomUUID(),baseKey:undefined,model,language,transcribe:true,preferWasm:undefined,
-      replacementChunks:undefined,replacementRange:{start,end},completed:[],total:Math.ceil((end-start)/JOB_CHUNK_SECONDS),status:'running',message:'Transcribing selected range'});
+      replacementChunks:undefined,replacementScope:scope,replacementImportId:doc.data.transcriptImportId??null,replacementRange:{start,end},completed:[],total:Math.ceil((end-start)/JOB_CHUNK_SECONDS),status:'running',message:'Transcribing selected range'});
   });}
   async transcribeAll(id:string,model:string,language:string):Promise<JobState>{
     const previous=await this.read(id);
     if(!previous?.sampleCount)throw Error('Prepare source audio before retranscribing.');
-    return this.transcribeRange(id,0,previous.sampleCount/RATE,model,language);
+    return this.transcribeRange(id,0,previous.sampleCount/RATE,model,language,'all');
   }
   async alignmentAudio(id:string,start:number,end:number):Promise<{audio:Float32Array;start:number;fingerprint:string}>{
     if(!Number.isFinite(start)||!Number.isFinite(end)||start<0||end<=start||end-start>60)throw Error('Select an alignment batch of at most 60 seconds.');

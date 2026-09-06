@@ -27,7 +27,7 @@ export function projectPayload() {
     manualCuts:s.manualCuts, sceneBoundaries:s.sceneBoundaries, speakers:s.speakers,
     currentTime:s.currentTime, thumbnail:s.projectThumbnail ?? undefined,
     transcriptionComplete:s.skipTranscription || (!window.rescriptDesktop?.jobs && (s.status === 'ready' || s.status === 'exporting')),
-    transcriptionResultKey:s.transcriptionResultKey ?? undefined, transcriptionChunks:s.transcriptionChunks,
+    transcriptImportId:s.transcriptImportId ?? undefined, transcriptionResultKey:s.transcriptionResultKey ?? undefined, transcriptionChunks:s.transcriptionChunks,
     sourceAudio:s.sourceAudio ?? undefined, media:s.videoFile, mediaType:s.videoFile.type };
 }
 

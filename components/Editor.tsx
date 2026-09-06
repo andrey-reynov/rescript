@@ -29,7 +29,7 @@ import { Redo2, Undo2 } from "lucide-react";
 import LogoLoader from "./LogoLoader";
 import SettingsMenu from "./SettingsMenu";
 
-import { isTypingTarget } from "@/lib/keyboard";
+import { isTypingTarget, isCompositionKey } from "@/lib/keyboard";
 import { en } from "@/lib/i18n/messages/en";
 import { useI18n } from "./I18nProvider";
 
@@ -279,7 +279,7 @@ export default function Editor() {
       if((e.target as HTMLElement)?.closest?.('dialog,[role="dialog"],[role="menu"],[role="listbox"]'))return;
       const s = useEditorStore.getState();
       const transcriptTarget=(e.target as HTMLElement)?.closest?.('[data-transcript-editor]');
-      if(e.isComposing)return;
+      if(isCompositionKey(e))return;
       if(transcriptTarget&&s.selectedWordIds.length&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&(e.key==='Enter'||e.key.length===1))return;
       if(e.key==='Enter'&&s.selectedWordIds.length&&s.status==='ready'&&!s.exportOpen&&!transcriptTarget){e.preventDefault();e.stopPropagation();s.splitBeforeSelection();return;}
       if (e.code === "Space" && s.videoEl && !s.exportOpen) {

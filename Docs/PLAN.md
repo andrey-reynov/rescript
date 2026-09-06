@@ -6,29 +6,6 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 
 ## Features
 
-### 1. Retranscribe all from the top menu
-
-**Status:** Implemented and shipped in 1.3.0; retain final full/selected modal, cancellation/error, and conflicting-job acceptance audit.
-
-**Expected behavior:**
-
-- Add **Retranscribe all** to the top meatballs (Project actions) menu, with an appropriate icon and the shared menu styling.
-- Open the same modal used for selected-range retranscription, reusing its model and transcription-language dropdowns and regular buttons.
-- Display **Full audio** instead of a numeric range such as `1540.17–1557.57 s`. Localize both new labels.
-- Allow the user to change the model and language before starting. Opening or cancelling the modal must not start processing or change the transcript.
-- On Transcribe, start a fresh transcription/alignment run for the entire original source audio, from zero to its full duration, regardless of the current selection or timeline cuts. Do not resume a checkpoint from the previous model/language run.
-- Use the existing job progress and recovery infrastructure. Preserve source media and timeline edits; replace the full transcript only when the new result is ready.
-- Disable the action when no source is loaded or a conflicting job prevents retranscription.
-
-**Acceptance criteria:**
-
-- The top menu opens the shared modal with **Full audio**, including when nothing is selected.
-- Changing the model/language and confirming processes the full source, including regions outside the current selection and regions excluded by timeline cuts.
-- Cancelling leaves the current project unchanged. Errors do not discard the existing transcript or edits.
-- Selected-range retranscription retains its numeric range and existing behavior.
-
-**Tracking:** No issue assigned yet.
-
 ### 2. Models manager in Settings
 
 **Status:** Implemented; native/runtime checks recorded in [Implementation-Progress.md](Implementation-Progress.md). Retain final installed, Parakeet and interruption acceptance audit.
@@ -67,43 +44,6 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 
 - Gameplay/music without speech can be distinguished from low-amplitude silence; overlap is shown in green.
 - Detector settings and the legend are understandable, and selecting/deleting/resizing regions preserves original media and extendable handles.
-
-### 6. Merge and split speech blocks
-
-**Status:** Implemented baseline; structure/state tests and initial grouping runtime checks pass. Retain remaining cross-boundary, mixed-speaker, and reopen acceptance audit.
-
-**Tracking:** [#5 — Merge and split speech blocks without losing source timestamps](https://github.com/andrey-reynov/rescript/issues/5). Roadmap: `Roadmap/03-Language-and-Transcript-Model.md`.
-
-**Expected behavior:**
-
-- Follow [Transcript editing workflow](Transcript-Editing-Workflow.md): distinguish phrase grouping, edit clip Split/Join, and optional speaker metadata. Merge compatible adjacent blocks in source order and split at a selected word boundary without conflating these operations.
-- Use stable block IDs and preserve every word, word-level source timestamp, and source-media reference.
-- Treat speaker as optional metadata. For mixed speakers, ask for an explicit choice or use Unknown; do not silently assign an incorrect speaker.
-- Keep block structure separate from editing ranges. Persist changes through autosave and project save/load without retranscribing.
-- Coordinate with item 3: choosing a display layout must not perform a structural merge or split.
-
-**Acceptance criteria:**
-
-- Merge/split introduces no missing or duplicated words; Ctrl-click / Go to word still seeks to its original source position; plain click selects without seeking.
-- Existing cuts and source handles remain unchanged, mixed speaker labels remain repairable, and reopening preserves block structure.
-- Cover merge/split and persistence with focused tests, including mismatched speaker labels. Diarization replacement and NLE finishing remain out of scope.
-
-### 7. Model capability metadata and language compatibility
-
-**Status:** Shared capability profiles and validation implemented. Retain integrated selector/bilingual verification; see [Model-Capabilities.md](Model-Capabilities.md).
-
-**Tracking:** [#6 — Show supported languages beneath each transcription model](https://github.com/andrey-reynov/rescript/issues/6).
-
-**Remaining work:**
-
-- Derive descriptions and language choices from shared, model-specific capability metadata instead of generic backend/English-only checks.
-- Distinguish supported spoken languages, automatic detection, and the ability to force a particular language, especially for Parakeet. Do not imply that every multilingual model accepts every explicit language.
-- Reuse the same capability information in the Settings model manager (item 2), full-audio retranscription (item 1), and selected-range transcription.
-
-**Acceptance criteria:**
-
-- Model descriptions agree with available language choices and actual backend capabilities. Unsupported explicit choices are rejected before inference/download starts.
-- Automatic detection versus forced-language limitations are clear. Descriptions remain localized/readable and preserve the existing grouped model-menu design.
 
 ### 8. Russian support and independent language settings: remaining verification
 

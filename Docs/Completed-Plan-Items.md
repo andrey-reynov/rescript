@@ -203,3 +203,93 @@ Verified 2026-09-06 in the isolated production-built Electron app using actual r
 
 **Tracking:** No issue assigned yet. Depends on item 4 for deletion-range resizing.
 
+
+## Item 6 acceptance complete
+
+### 6. Merge and split speech blocks
+
+**Status:** Implemented baseline; structure/state tests and initial grouping runtime checks pass. Retain remaining cross-boundary, mixed-speaker, and reopen acceptance audit.
+
+**Tracking:** [#5 — Merge and split speech blocks without losing source timestamps](https://github.com/andrey-reynov/rescript/issues/5). Roadmap: `Roadmap/03-Language-and-Transcript-Model.md`.
+
+**Expected behavior:**
+
+- Follow [Transcript editing workflow](Transcript-Editing-Workflow.md): distinguish phrase grouping, edit clip Split/Join, and optional speaker metadata. Merge compatible adjacent blocks in source order and split at a selected word boundary without conflating these operations.
+- Use stable block IDs and preserve every word, word-level source timestamp, and source-media reference.
+- Treat speaker as optional metadata. For mixed speakers, ask for an explicit choice or use Unknown; do not silently assign an incorrect speaker.
+- Keep block structure separate from editing ranges. Persist changes through autosave and project save/load without retranscribing.
+- Coordinate with item 3: choosing a display layout must not perform a structural merge or split.
+
+**Acceptance criteria:**
+
+- Merge/split introduces no missing or duplicated words; Ctrl-click / Go to word still seeks to its original source position; plain click selects without seeking.
+- Existing cuts and source handles remain unchanged, mixed speaker labels remain repairable, and reopening preserves block structure.
+- Cover merge/split and persistence with focused tests, including mismatched speaker labels. Diarization replacement and NLE finishing remain out of scope.
+
+
+**Completion evidence:**
+
+- Runtime native save/reopen fixture with alternating speaker metadata: grouped six words, reopened with the exact persisted phrase ID and members, split before the fourth word, reopened, joined the clips, and ungrouped. Every original word, timestamp, per-word speaker and existing manual cut stayed unchanged. Ctrl-click sought to 0.095 seconds with playback paused. Fixture restored.
+- Structure regression covers grouping rejection across deletions and explicit splits, disjoint selections, complete membership after split/cut projection, stable persisted IDs and full overlapping-word bounds. Mixed phrase display metadata is Unknown; original per-word attribution remains untouched and repairable through the optional speaker workflow (action verified in item 9).
+- Item 3's completed view-switching checks establish that layout changes do not alter edit structure. Existing state tests cover grouping undo/redo and persisted payload. Item 13 retains the broader direct-editing/caption-foundation acceptance scope.
+
+## Item 1 acceptance complete
+
+### 1. Retranscribe all from the top menu
+
+**Status:** Implemented and shipped in 1.3.0; retain final full/selected modal, cancellation/error, and conflicting-job acceptance audit.
+
+**Expected behavior:**
+
+- Add **Retranscribe all** to the top meatballs (Project actions) menu, with an appropriate icon and the shared menu styling.
+- Open the same modal used for selected-range retranscription, reusing its model and transcription-language dropdowns and regular buttons.
+- Display **Full audio** instead of a numeric range such as `1540.17–1557.57 s`. Localize both new labels.
+- Allow the user to change the model and language before starting. Opening or cancelling the modal must not start processing or change the transcript.
+- On Transcribe, start a fresh transcription/alignment run for the entire original source audio, from zero to its full duration, regardless of the current selection or timeline cuts. Do not resume a checkpoint from the previous model/language run.
+- Use the existing job progress and recovery infrastructure. Preserve source media and timeline edits; replace the full transcript only when the new result is ready.
+- Disable the action when no source is loaded or a conflicting job prevents retranscription.
+
+**Acceptance criteria:**
+
+- The top menu opens the shared modal with **Full audio**, including when nothing is selected.
+- Changing the model/language and confirming processes the full source, including regions outside the current selection and regions excluded by timeline cuts.
+- Cancelling leaves the current project unchanged. Errors do not discard the existing transcript or edits.
+- Selected-range retranscription retains its numeric range and existing behavior.
+
+**Tracking:** No issue assigned yet.
+
+
+**Completion evidence:**
+
+- Same full/selected component, model/language dropdowns and regular buttons. Runtime verified full label with no selected words and numeric selected range; localized labels, Tab wrapping, nested Escape, cancellation and native error recovery preserve project/job state (stage twenty-two).
+- Runtime dialog selection changed Tiny English/English to Whisper Base/Automatic, with one word selected. Started a fresh generation over 0–42.4106875 seconds, completed with 45 words beyond the selection, and saved the new preferences. Prior native regression also verifies fresh checkpoint generation and full/partial atomic publication.
+- Repeated full run with a known spoken word deleted: recognized “This” at 1.275–1.4330952380952382 while retaining that exact source-time cut and the prior manual cut. Group IDs are pruned, names/splits retained, original media is untouched. See stages nineteen through twenty-one for queued saves/import generation and preference preservation tests.
+- An active real job disabled Transcribe in an already open dialog and the top menu action; a second native start was rejected. Pausing allowed the next fresh run. The action also requires a project and usable selection/duration in source.
+- Restored the isolated project, job manifest and summary after closing the test app. Remaining broader model/installed/language and item 13 requirements remain in PLAN.md.
+
+## Item 7 acceptance complete
+
+### 7. Model capability metadata and language compatibility
+
+**Status:** Shared capability profiles and validation implemented. Retain integrated selector/bilingual verification; see [Model-Capabilities.md](Model-Capabilities.md).
+
+**Tracking:** [#6 — Show supported languages beneath each transcription model](https://github.com/andrey-reynov/rescript/issues/6).
+
+**Remaining work:**
+
+- Derive descriptions and language choices from shared, model-specific capability metadata instead of generic backend/English-only checks.
+- Distinguish supported spoken languages, automatic detection, and the ability to force a particular language, especially for Parakeet. Do not imply that every multilingual model accepts every explicit language.
+- Reuse the same capability information in the Settings model manager (item 2), full-audio retranscription (item 1), and selected-range transcription.
+
+**Acceptance criteria:**
+
+- Model descriptions agree with available language choices and actual backend capabilities. Unsupported explicit choices are rejected before inference/download starts.
+- Automatic detection versus forced-language limitations are clear. Descriptions remain localized/readable and preserve the existing grouped model-menu design.
+
+
+**Completion evidence:**
+
+- Shared profile metadata is consumed by model descriptions, Settings manager and both full/selected dialog instances. model-capabilities-test.ts and models-test.ts pass; invalid explicit Parakeet/Russian requests fail without a new job generation.
+- Runtime language menu matrix: Parakeet v3 exposes only Automatic; Tiny English exposes fixed English/English and disables Russian; Base exposes Automatic/Russian/English and its supported UI subset. Existing grouped model menu and localized descriptions retained.
+- Real managed Whisper Base/Russian inference under English UI kept the Russian text (“Неэронной сети. Это хорошо.”). Real Parakeet v3/Automatic CPU inference retained English and Russian in the bilingual fixture (“Hello. This is an example…” and “Нейронные сети это хорошо.”). These checks establish source-language retention, not perfect recognition accuracy.
+- Switched UI language through Settings in both directions; saved Russian transcription preference remained Russian. Restored test project/job files afterward. Fresh-install/native-menu/migration acceptance remains explicitly in item 8.

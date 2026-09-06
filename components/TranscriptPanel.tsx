@@ -23,7 +23,7 @@ import RealignSelection from './RealignSelection';
 import {alignmentSelection,type AlignmentSelection} from '@/lib/correction-alignment';
 import ActionMenu from './ActionMenu';
 import {intervalDuration,hiddenSelectionCount} from '@/lib/transcript-presentation';
-import {transcriptBlocks,type TranscriptBlock} from '@/lib/transcript-structure';
+import {transcriptBlocks,correctionSelection,type TranscriptBlock} from '@/lib/transcript-structure';
 import TranscriptionSetup from "./TranscriptionSetup";
 import TranscriptToolsMenu from "./TranscriptToolsMenu";
 import TranscriptSearch from "./TranscriptSearch";
@@ -50,7 +50,7 @@ import { useTranscriptPlayheadFollow } from "@/hooks/useTranscriptPlayheadFollow
 import { useWordAnchorFloating } from "@/hooks/useWordAnchorFloating";
 import { useCutRanges } from "@/hooks/useCutRanges";
 import { findActiveWordId, groupWordsBySpeaker } from "@/lib/transcript";
-import { isTypingTarget } from "@/lib/keyboard";
+import { isTypingTarget, isCompositionKey } from "@/lib/keyboard";
 import { useI18n, useForkI18n } from "./I18nProvider";
 import { localizeRuntimeMessage } from "@/lib/i18n";
 
@@ -320,18 +320,20 @@ export default function TranscriptPanel() {
     clearSelection();
   }, [selection, restoreWords, clearSelection]);
 
+  const beginCorrection=useCallback((ids:number[],replacement?:string)=>{
+    if(status!=='ready')return;
+    try{
+      const {members}=correctionSelection(words,ids,blocks);
+      freezeSelectionRef.current=true;setEditError('');
+      setCorrecting({ids:members.map(word=>word.id)});
+      setCorrectText(replacement??members.map(word=>word.text).join(' '));
+      releaseToolbar();
+    }catch(e){setEditError(e instanceof Error?e.message:String(e));}
+  },[status,words,blocks,releaseToolbar]);
+
   const openCorrect = useCallback(() => {
-    if (!selection) return;
-    const idSet = new Set(selection.ids);
-    const text = words
-      .filter((w) => idSet.has(w.id))
-      .map((w) => w.text)
-      .join(" ");
-    freezeSelectionRef.current = true;
-    setCorrectText(text);
-    setCorrecting({ ids: selection.ids });
-    releaseToolbar();
-  }, [selection, words, releaseToolbar]);
+    if(selection)beginCorrection(selection.ids);
+  }, [selection,beginCorrection]);
 
   const closeCorrect = useCallback(() => {
     freezeSelectionRef.current = false;
@@ -362,7 +364,7 @@ export default function TranscriptPanel() {
   // globally in Editor (cut words restore; kept words / clips delete).
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key !== "Escape") return;
+      if (isCompositionKey(e)||e.key !== "Escape") return;
       if (isTypingTarget(e.target)) return;
       if (selectedWordIds.length === 0) return;
       e.preventDefault();
@@ -375,6 +377,7 @@ export default function TranscriptPanel() {
   // "@" opens the speaker picker for the current selection.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
+      if(isCompositionKey(e))return;
       if (view!=="speakers" || e.key !== "@" || e.metaKey || e.ctrlKey || e.altKey) return;
       if (isTypingTarget(e.target)) return;
       if (!selection || assigningSpeaker || correcting) return;
@@ -385,12 +388,9 @@ export default function TranscriptPanel() {
     return () => document.removeEventListener("keydown", handler);
   }, [view,selection, assigningSpeaker, correcting, openSpeakerAssign]);
 
-  const beginCorrection=(ids:number[],replacement?:string)=>{
-    if(!ids.length)return;freezeSelectionRef.current=true;setEditError('');setCorrecting({ids});setCorrectText(replacement??words.filter(w=>ids.includes(w.id)).map(w=>w.text).join(' '));
-  };
   const contextRun=(action:()=>void)=>()=>{try{action();setEditError('');}catch(e){setEditError(e instanceof Error?e.message:String(e));}};
   const editKey=(e:React.KeyboardEvent)=>{
-    if(e.isDefaultPrevented()||e.nativeEvent.isComposing||isTypingTarget(e.target)||e.ctrlKey||e.metaKey||e.altKey||correcting||!selectedWordIds.length||status!=='ready')return;
+    if(e.isDefaultPrevented()||isCompositionKey(e.nativeEvent)||isTypingTarget(e.target)||e.ctrlKey||e.metaKey||e.altKey||correcting||!selectedWordIds.length||status!=='ready')return;
     if(e.key==='Enter'){e.preventDefault();e.stopPropagation();useEditorStore.getState().splitBeforeSelection();}
     else if(e.key.length===1){e.preventDefault();e.stopPropagation();beginCorrection(selectedWordIds,e.key);}
   };
@@ -505,7 +505,7 @@ export default function TranscriptPanel() {
                     </div>}
                     <p className="select-text text-[15px] leading-8">
                       {visible.map((w) => {
-                        if(correcting?.ids.includes(w.id))return w.id===correcting.ids[0]?<input key={w.id} aria-label={f('Correct text')} autoFocus value={correctText} onChange={e=>setCorrectText(e.target.value)} onKeyDown={e=>{e.stopPropagation();if(e.nativeEvent.isComposing)return;if(e.key==='Enter'){e.preventDefault();applyCorrection();}if(e.key==='Escape'){e.preventDefault();closeCorrect();}}} onBlur={applyCorrection} style={{width:`${Math.max(8,Math.min(65,correctText.length+2))}ch`}} className="max-w-full rounded border border-blue-500 bg-white px-1 text-[15px] leading-8 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"/>:null;
+                        if(correcting?.ids.includes(w.id))return w.id===correcting.ids[0]?<input key={w.id} aria-label={f('Correct text')} autoFocus value={correctText} onChange={e=>setCorrectText(e.target.value)} onKeyDown={e=>{e.stopPropagation();if(isCompositionKey(e.nativeEvent))return;if(e.key==='Enter'){e.preventDefault();applyCorrection();}if(e.key==='Escape'){e.preventDefault();closeCorrect();}}} onBlur={applyCorrection} style={{width:`${Math.max(8,Math.min(65,correctText.length+2))}ch`}} className="max-w-full rounded border border-blue-500 bg-white px-1 text-[15px] leading-8 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"/>:null;
                         const split = splitBeforeWordId.get(w.id);
                         return (
                           <React.Fragment key={w.id}>
