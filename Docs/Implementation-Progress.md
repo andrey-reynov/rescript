@@ -77,3 +77,62 @@ Latest static build predates the final small tweaks for Space replacement, no-op
 - `silence-analysis-test.ts`, `silence-jobs-test.ts`, `silence-state-test.ts`, localization tests and both type checks pass; static/Electron builds pass. Runtime evidence is detailed in Silence-Detection.md.
 - Isolated real analysis: 1,326 frames, all three colors, unchanged transcript/cuts before explicit deletion. Auto Cut + Undo preserved word timestamps; 20% threshold survived reopen. Fresh analysis completed across an editor reload. Dialog visual inspection and Escape were checked.
 - Full-plan completion remains unproven. Remaining areas include selected correction realignment, installed bilingual/Parakeet/migration checks, gameplay/music detector validation, long-video/editor keyboard and boundary audits, and the final requirement-by-requirement audit.
+
+
+## Stage six: continuous flow and viewport audit
+
+- Continuous text now packs visual rows using the actual 15px transcript font and available panel width, replacing arbitrary 80-word paragraph breaks. Font loading and panel resizing reflow the display; word identities and source data remain untouched. Visible rows and selected endpoints remain virtualized.
+- `transcript-flow-test.ts` verifies width-based wrapping, resize, oversized words, unchanged identities/data, and a 50,000-word projection. Renderer type checking, production static/Electron build, and changed-file lint pass (the existing TanStack compiler warning remains).
+- Isolated runtime with 10,000 mixed English/Russian words: first eight rows exactly matched an ordinary browser paragraph; only 136 word spans initially and 205 after scrolling were mounted. Word 2 stayed selected offscreen without seeking (source time 0); resized layout reflowed and mounted 88 spans. Screenshot inspected. Test fixture restored afterward.
+- Optional By speaker toolbar: selected word 150, scrolled above and below the viewport, returned, and extended to words 150–153. The toolbar was hidden with pointer events disabled offscreen and returned at the visible anchor; selection persisted throughout. Resize and restored toolbar actions still need a dedicated check before closing item 9.
+- This stage does not complete the full plan. Selected correction realignment, installed bilingual/Parakeet/migration checks, representative gameplay/music analysis, remaining keyboard/IME and clip-boundary runtime cases, and final requirement audit remain open.
+
+
+## Stage seven (in progress): selected correction alignment
+
+- Added captured selection/result validation and atomic store publication for selected-word alignment. Only contiguous visible text within one retained clip is accepted. Invalid, partial, reordered or stale results leave existing text/timings unchanged. Worker results cannot replace text, IDs, speaker metadata, deletion flags, phrases or original correction provenance.
+- Existing transcription worker now has an alignment-only request path: it uses supplied words and the language's CTC model without ASR or diarization. Strict mode rejects failed batches and words whose timings would otherwise be interpolated (for example bare digits), rather than falsely marking those words measured. Normal transcription fallback behavior is unchanged.
+- Focused tests cover measured timings, invalid/partial/stale results, identity and provenance preservation, one-step undo/redo, unchanged phrase membership, autosave payload, and rejection of interpolated CTC words. Renderer/Electron type checks and changed-file lint pass.
+- The user-facing selected-range action, bounded source-audio transport, progress/cancellation, language explanation and runtime inference validation are still to implement. This is a committed implementation step, not completion of the selected alignment requirement.
+
+
+- Selected alignment is now available in the word context menu with a shared-style language modal, progress and cancellation. Prepared PCM reads are bounded and checked against the source fingerprint; jobs/checkpoints are not replaced. See [Selected-Text-Alignment.md](Selected-Text-Alignment.md).
+- Real cached-model inference updated one selected word, preserved the remaining data and supported Undo. Cancel preserved all words; an unalignable digit correction failed explicitly and stayed approximate. Focused native/read and localization tests, both type checks, and production static/Electron builds pass. Remaining multi-batch/multi-word alignment cases and the rest of PLAN.md still require audit.
+
+
+## Stage eight: Project Manager acceptance complete
+
+- Extracted revision dialog with initial/return focus, keyboard containment and Escape, visible local restore errors, and a restore-in-progress guard. A failed restore now returns focus to usable dialog controls instead of leaving focus behind the overlay.
+- Item 10 passed its full acceptance checks: Accent Open project, both card icons' hover/pressed/keyboard actions, X/no Cancel, stationary header/description with scrolling list in a short window, light/dark visuals, actual native revision restoration and recovery backup, unchanged project on dismissal, and failure recovery.
+- Removed only item 10 from the pending plan. Its original requirements and detailed evidence are preserved in [Completed-Plan-Items.md](Completed-Plan-Items.md). The rest of the plan remains active.
+
+
+## Stage nine: playback toggle acceptance complete
+
+- Item 12 passed integrated real-playback checks, including enabling skip during playback within a deletion, visible checkbox states, independent Hide deleted words in all three layouts, preserved saved edit data, and preference persistence after reopening.
+- Added regression coverage for unchanged exported NLE timeline output across preview/visibility toggle combinations. Removed only item 12 from the pending plan; its requirements and evidence remain in Completed-Plan-Items.md. Other transcript menu/import acceptance work remains under item 3.
+
+
+## Stage ten: optional toolbar acceptance complete
+
+- Completed item 9's remaining viewport-resize and restored-action checks on the isolated 10,000-word fixture. Hidden toolbar could not intercept clicks; selection persisted. Cut, Correct, and Speaker targeted the selection correctly after return. Speaker reassignment left cut/split data unchanged; By clip had no legacy toolbar.
+- Combined with stage six's above/below-edge and multi-word checks, the item's full acceptance scope is verified. Removed item 9 from the pending plan and retained its original requirements/evidence in Completed-Plan-Items.md. Test data restored, and no application changes were necessary in this pass.
+
+
+## Stage eleven: transcript menu acceptance complete
+
+- Fixed Import losing its live FileList when resetting the input. Replacement transcript import now preserves effective editing cuts as manual source ranges, explicit splits, clip names and view preferences; stale phrase/selection references are cleared.
+- Runtime menu group/icon/keyboard checks, cancellation/reselection/SRT parsing, preserved cuts, and imported-word seeking pass. Each text layout preserves the playhead and supports Ctrl-click source seeking. Combined with prior exclusive-layout/visibility/natural-flow checks, item 3 is complete and moved to Completed-Plan-Items.md.
+- Import preservation regression covers word-owned deletions, manual ranges, names, boundaries, preferences and cleared stale IDs. Full plan remains active.
+
+
+## Stage twelve: deletion resizing acceptance complete
+
+- Real pointer drags selected/resized dedicated start/end handles, produced expected source-time ranges, and respected both source edges. Undo/Redo operated once per full drag. Native save/reopen retained the resized ranges; word timings and explicit splits stayed unchanged.
+- Combined with the existing focused resizing tests, item 4 is complete and moved to Completed-Plan-Items.md. No application change was needed in this audit; initial harness failures came from clicking before native window resize settled. The final checks waited for layout and used live timeline coordinates. Test fixture restored afterward.
+
+
+## Stage thirteen: waveform context-menu acceptance complete
+
+- Completed zoom/scroll source-position, keyboard Split/Add, overlap merging, clicked-target Restore, source-end clamping, undo/redo/save persistence, viewport bounds, Escape/outside dismissal and unchanged left/Alt-click behavior checks.
+- Item 11 moved to Completed-Plan-Items.md with its original requirements and evidence. No application change was needed. Final fixture data restored; remaining plan work remains active.

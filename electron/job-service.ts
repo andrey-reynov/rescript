@@ -78,6 +78,7 @@ export function installJobService(projects:ProjectFiles,devUrl:string|null,prelo
     starting=true;
     try{progress.delete(id);const job=await jobs.transcribeAll(id,model,language);await launch(id);notify(id);return job;}finally{starting=false;}
   });
+  ui('alignment-audio',async(_event,id:string,start:number,end:number)=>{if(starting||runner)throw Error('Pause processing before aligning selected text.');return jobs.alignmentAudio(id,start,end);});
   ui('read',async(_event,id:string)=>{const job=await jobs.read(id);return job?{...job,progress:progress.get(id)}:null;});
   ui('pause',async(_event,id:string)=>{if(activeId===id)closeRunner();const job=await jobs.setStatus(id,'paused','Paused — completed batches are saved');notify(id);return job;});
   ui('result',async(_event,id:string)=>({words:await jobs.words(id),waveform:await jobs.waveform(id),project:await projects.read(id)}));

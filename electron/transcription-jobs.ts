@@ -136,6 +136,16 @@ export class TranscriptionJobs {
     if(!previous?.sampleCount)throw Error('Prepare source audio before retranscribing.');
     return this.transcribeRange(id,0,previous.sampleCount/RATE,model,language);
   }
+  async alignmentAudio(id:string,start:number,end:number):Promise<{audio:Float32Array;start:number;fingerprint:string}>{
+    if(!Number.isFinite(start)||!Number.isFinite(end)||start<0||end<=start||end-start>60)throw Error('Select an alignment batch of at most 60 seconds.');
+    const doc=await this.projects.read(id),cache=await this.cache(id);
+    const info=JSON.parse(await fs.readFile(path.join(cache,'audio.json'),'utf8'));
+    const file=await this.audioFile(id),stat=await fs.stat(file);
+    if(info.fingerprint!==doc.media.fingerprint||!Number.isSafeInteger(info.sampleCount)||stat.size!==info.sampleCount*4||end>info.sampleCount/RATE)throw Error('Prepare source audio before alignment.');
+    const from=Math.floor(start*RATE),to=Math.ceil(end*RATE),buffer=Buffer.alloc((to-from)*4),handle=await fs.open(file,'r');
+    try{const {bytesRead}=await handle.read(buffer,0,buffer.length,from*4);if(bytesRead!==buffer.length)throw Error('Prepared audio is incomplete.');}finally{await handle.close();}
+    return {audio:new Float32Array(buffer.buffer.slice(buffer.byteOffset,buffer.byteOffset+buffer.byteLength)),start:from/RATE,fingerprint:doc.media.fingerprint};
+  }
   async audioFile(id:string){return path.join(await this.cache(id),'audio.f32');}
   preparation(id:string){return this.serial(async()=>{const doc=await this.projects.read(id);const state=await beginPreparation(await this.cache(id),doc.media.fingerprint,doc.data.duration);return {index:state.index,sampleCount:state.sampleCount,finished:state.finished};});}
   prepareChunk(id:string,index:number,bytes:Uint8Array,finished:boolean){return this.serial(async()=>{const state=await commitPreparation(await this.cache(id),index,bytes,finished);const job=await this.read(id);if(job){job.sampleCount=state.sampleCount;await this.write(job);}return {index:state.index,sampleCount:state.sampleCount,finished:state.finished};});}

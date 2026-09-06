@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import {useEditorStore as store} from '../lib/store';
+import {getCutRanges} from '../lib/edits';
+import {parseTranscript} from '../lib/parseTranscript';
+import type {Word} from '../lib/types';
+const words:Word[]=[{id:10,text:'remove',start:1,end:2,speaker:0,deleted:true},{id:11,text:'keep',start:3,end:4,speaker:0,deleted:false}];
+store.setState({status:'ready',duration:10,words,manualCuts:[{id:3,start:6,end:7}],nextManualCutId:4,sceneBoundaries:[{id:7,time:4}],nextBoundaryId:8,clipNames:[{id:'name',time:3,name:'Commentary'}],phrases:[{id:'old',wordIds:[10,11]}],selectedWordIds:[10],selectionAnchor:10,transcriptView:'continuous',skipDeletions:false,showDeleted:false});
+const before=store.getState(),cuts=getCutRanges(before.words,before.duration,before.manualCuts);
+const parsed=parseTranscript('1\n00:00:00,000 --> 00:00:05,000\nNew imported words\n','test.srt');
+store.getState().importWords(parsed.words,parsed.speakers);
+const after=store.getState();
+assert.deepEqual(after.words,parsed.words);assert.deepEqual(getCutRanges(after.words,after.duration,after.manualCuts),cuts);
+assert.deepEqual(after.sceneBoundaries,before.sceneBoundaries);assert.deepEqual(after.clipNames,before.clipNames);assert.equal(after.nextBoundaryId,8);
+assert.deepEqual(after.phrases,[]);assert.deepEqual(after.selectedWordIds,[]);assert.equal(after.selectionAnchor,null);
+assert.equal(after.transcriptView,'continuous');assert.equal(after.skipDeletions,false);assert.equal(after.showDeleted,false);
+assert(after.manualCuts.every(cut=>cut.id<after.nextManualCutId));
+store.getState().importWords([],[]);assert.equal(store.getState(),after,'An empty import must not erase the project');
+console.log('Transcript import preserves source-time cuts, splits, names and view settings while clearing obsolete word references.');

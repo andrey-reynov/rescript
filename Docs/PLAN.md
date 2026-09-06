@@ -1,6 +1,6 @@
 # Next Update Plan
 
-Pending features only. Remove completed items as they ship.
+Pending features only. Completed acceptance records are retained in [Completed-Plan-Items.md](Completed-Plan-Items.md). Keep existing item numbers when removing completed work.
 
 GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://github.com/andrey-reynov/rescript/issues). Open issue status is not proof that implementation is missing; entries below retain only pending scope or explicit verification work. Existing items 1–3 remain first; imported issue order does not change release milestones.
 
@@ -8,7 +8,7 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 
 ### 1. Retranscribe all from the top menu
 
-**Status:** Planned; not implemented.
+**Status:** Implemented and shipped in 1.3.0; retain final full/selected modal, cancellation/error, and conflicting-job acceptance audit.
 
 **Expected behavior:**
 
@@ -50,50 +50,6 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 
 **Tracking:** No issue assigned yet.
 
-### 3. Transcript visibility and Import menu
-
-**Status:** Planned; not implemented.
-
-**Expected behavior:**
-
-- Consolidate the transcript panel's current eye/visibility control and Import action into one meatballs menu at the far right of that panel's header.
-- Use the shared Settings-style icon button and action-menu visuals from UI-Rules.md. Organize the menu with labeled groups and dividers: **Visibility**, **Text layout**, and **Import**.
-- Under Visibility, provide **Hide deleted words** as one checkmark toggle: checked means deleted words are hidden; unchecked means they are shown. Clicking the same item toggles the state; this is independent of the chosen text layout.
-- Under Text layout, offer three mutually exclusive choices, with exactly one selected:
-  - **By clip** (default): retained sections bounded by deletions or explicit splits, with compact Deleted/duration rows.
-  - **By speaker:** optional attribution view; speaker changes do not create timeline cuts.
-  - **Continuous text:** one text flow without clip or speaker headings.
-- See [Transcript editing workflow](Transcript-Editing-Workflow.md) for clip/deletion behavior and synchronized selection. Hide deleted words keeps compact Deleted/duration rows in By clip view.
-- Keep Import in its own group and preserve the existing import workflow.
-- View changes affect presentation only: retain source timestamps, speaker metadata, deletion ranges, edits, and word-to-video seeking. Do not merge transcript data destructively when displaying a single block.
-- Show checked/radio states clearly, support keyboard interaction, and localize labels. Include action icons and existing shortcuts where applicable.
-
-**Acceptance criteria:**
-
-- The far-right meatballs replaces the standalone eye and Import controls and exposes visibly separated groups.
-- Hide deleted words toggles on/off in every text layout without changing the underlying edits.
-- Selecting one text layout deselects the others. Clip boundaries follow deletion areas and explicit splits, while continuous display does not destroy speaker or timing information.
-- Switching views preserves working word seeking and the Import action continues to open its existing flow.
-
-**Tracking:** No issue assigned yet.
-
-### 4. Resize deletion regions
-
-**Status:** Planned; GitHub issue open.
-
-**Tracking:** [#2 — Make it possible to change the length of the deletion region](https://github.com/andrey-reynov/rescript/issues/2).
-
-**Expected behavior:**
-
-- Make deletion boundaries easy to adjust directly from a selected deletion region.
-- Use either dedicated deletion-region handles or reveal the full-size handles of the neighboring speech regions when the deletion region is selected. The latter is the simpler option identified in the issue.
-- Preserve source handles, timestamps, and synchronization while changing only editing ranges.
-
-**Acceptance criteria:**
-
-- Selecting a deletion region exposes clear, usable controls for its start/end instead of requiring tiny inactive neighboring grabbers.
-- Resizing updates the deletion range and adjacent retained ranges consistently, including source-edge cases; undo/redo and save/reopen preserve the result.
-
 ### 5. Silence blocks with separate detectors
 
 **Status:** Implemented; see [Silence-Detection.md](Silence-Detection.md) for behavior and evidence. Retain representative gameplay/music and final installed-build validation.
@@ -114,7 +70,7 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 
 ### 6. Merge and split speech blocks
 
-**Status:** Planned; GitHub issue open.
+**Status:** Implemented baseline; structure/state tests and initial grouping runtime checks pass. Retain remaining cross-boundary, mixed-speaker, and reopen acceptance audit.
 
 **Tracking:** [#5 — Merge and split speech blocks without losing source timestamps](https://github.com/andrey-reynov/rescript/issues/5). Roadmap: `Roadmap/03-Language-and-Transcript-Model.md`.
 
@@ -163,96 +119,9 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 - Verify migration preserves existing project language and UI locale preferences.
 - Apply item 7's model-specific Automatic/forced-language limitations consistently; fix only failures uncovered by these checks.
 
-### 9. Hide offscreen word-selection toolbar
-
-**Status:** Planned for any retained legacy toolbar. Item 13 removes this toolbar from the default By clip view; do not rebuild it there.
-
-**Related specification:** [Transcript editing workflow](Transcript-Editing-Workflow.md).
-
-**Observed bug:** Selecting a transcript word opens the Cut / Correct / Speaker toolbar. After scrolling the selected text out of view, the toolbar remains visible above other content.
-
-**Expected behavior:**
-
-- Keep the toolbar anchored to the visible word selection within the transcript scroll viewport.
-- Hide it when its selection anchor leaves that viewport; scrolling alone must not clear the selection or change the transcript.
-- Show it again when the selected anchor returns to view, provided the selection is still active.
-- Investigate positioning, portal placement, scroll-container clipping, and visibility tracking as well as z-index. A z-index issue is a hypothesis, not a confirmed cause; lowering z-index alone must not leave a detached toolbar visible or interactive.
-
-**Acceptance criteria:**
-
-- Select a word and scroll it above or below the transcript viewport: the toolbar disappears and cannot intercept clicks while hidden.
-- Scroll back: the toolbar returns at the selection, with Cut, Correct, and Speaker working normally.
-- Check both viewport edges, resizing, and multi-word selections. The toolbar must not float over the transcript header, timeline, or unrelated panels when its anchor is offscreen.
-
-**Tracking:** No issue assigned yet.
-
-### 10. Project Manager buttons and revision modal
-
-**Status:** Planned; not implemented.
-
-**Expected behavior:**
-
-- Restyle the Project Manager's **Open project…** button using the shared **Accent** button variant from UI-Rules.md.
-- Add consistent hover and pressed/click feedback to the folder and revision buttons on project cards, using the shared icon-button styling. Preserve their existing actions and prevent their clicks from also opening the project card.
-- In the revision modal, add an accessible **X** close button in the top-right corner using the shared icon-button style.
-- Remove the bottom **Cancel** button; retain the existing non-destructive dismissal behavior through the new X button.
-- Keep the modal title, close button, and description stationary. Restrict scrolling to the revision list itself, with a height bounded by the available viewport.
-
-**Acceptance criteria:**
-
-- Open project… matches the Accent style and retains its existing opening behavior.
-- Folder and revision buttons visibly respond to hover and press, remain keyboard accessible, and trigger only their own actions.
-- The revision modal closes from the top-right X without selecting or restoring a revision; no bottom Cancel button remains.
-- With many revisions or a short window, only the list scrolls. The title, description, and X remain visible and usable.
-- Revision selection/restoration continues to work; verify light/dark styling and visible keyboard focus.
-
-**Tracking:** No issue assigned yet.
-
-### 11. Waveform context menus
-
-**Status:** Planned; not implemented.
-
-**Expected behavior:**
-
-- Right-click anywhere inside the waveform container opens the app's context menu, replacing the native browser menu there. If no actions have been implemented for that target, show a non-actionable **No actions yet** entry instead of displaying nothing.
-- Right-clicking the waveform places the playhead at the clicked source time and opens the menu at the pointer. Use the current timeline zoom and horizontal scroll when converting the pointer position to source time.
-- On a deletion area (red stripes), offer **Restore deletion area** (final wording may be shortened). It removes that clicked deletion range and restores its source audio/video to the edit; it does not remove original media or act on a different prior selection.
-- On ordinary waveform content, offer **Split** at the clicked playhead position and **Add deletion area**.
-- Add deletion area creates an approximately three-second deletion range starting at the clicked source time, clamped to the source end. Make the new range selected and resizable using item 4's deletion-boundary controls.
-- Reuse shared menu styling, icons, and real shortcut badges. Preserve disabled-state rules when an implemented action cannot currently run; the empty placeholder is for targets with no implemented actions.
-- Opening or dismissing the menu alone must not split, delete, or restore anything. Preserve normal left-click and Alt-click behavior.
-
-**Acceptance criteria:**
-
-- Right-click consistently opens the appropriate app menu throughout the waveform container; unsupported targets show No actions yet.
-- At different zoom/scroll positions, right-click places the playhead at the expected source time and Split operates there.
-- Right-clicking a red-striped region restores that region when its restore command is chosen.
-- Add deletion area creates a bounded, resizable range of about three seconds (shorter near the source end), handles overlaps consistently with existing deletion logic, and supports undo/redo and save/reopen.
-- Context menus remain within the viewport, support keyboard navigation/Escape, and close on outside click or action selection.
-
-**Tracking:** No issue assigned yet. Depends on item 4 for deletion-range resizing.
-
-### 12. Skip deletion areas playback toggle
-
-**Status:** Planned; not implemented.
-
-**Expected behavior:**
-
-- Add **Skip deletion areas** to the timeline meatballs menu as a single checkmark toggle.
-- Checked: playback skips deletion areas. Unchecked: playback includes those areas, allowing the user to hear deleted source content.
-- Toggling affects preview playback only. Preserve deletion ranges, transcript data, and export cuts.
-- Reflect the actual playback setting with a visible checkmark when on and no checkmark when off, plus an accessible checked state. Use the same checkmark convention for item 3's Hide deleted words toggle; keep the two settings independent.
-
-**Acceptance criteria:**
-
-- Clicking the same menu item switches between skipping and playing deleted regions, and the checkmark immediately matches playback behavior.
-- Hide deleted words independently uses checked = hidden and unchecked = visible. Neither toggle changes the other or destroys edits.
-
-**Tracking:** No issue assigned yet.
-
 ### 13. Clip-based transcript editing and phrase grouping
 
-**Status:** Planned; not implemented.
+**Status:** Implemented baseline, with continuous-flow and selection-scope refinements. Selected correction realignment is implemented; see [Selected-Text-Alignment.md](Selected-Text-Alignment.md). The full detailed acceptance audit remains open.
 
 **Detailed specification:** [Transcript-Editing-Workflow.md](Transcript-Editing-Workflow.md). This consolidates the agreed large editing update and refines items 3, 4, 6, 9, 11, and 12 without duplicating their implementation.
 

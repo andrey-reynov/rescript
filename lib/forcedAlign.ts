@@ -293,7 +293,8 @@ export function alignBatch(
   emission: CtcEmission,
   sliceStartS: number,
   sliceDurationS: number,
-  vocab: CtcVocab
+  vocab: CtcVocab,
+  requireEveryWord = false
 ): Word[] | null {
   if (words.length === 0) return [];
   const { tokens, spans } = buildTokens(words, vocab);
@@ -304,7 +305,7 @@ export function alignBatch(
 
   const frameS = sliceDurationS / emission.frames;
   const timings = spansFromPath(path, spans, frameS, sliceStartS);
-  if (timings.size === 0) return null;
+  if (timings.size === 0 || (requireEveryWord && timings.size !== words.length)) return null;
 
   const out = words.map((w) => ({ ...w }));
   for (const [index, span] of timings) {

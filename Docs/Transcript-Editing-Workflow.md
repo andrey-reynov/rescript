@@ -1,6 +1,6 @@
 # Clip-based transcript editing specification
 
-Status: planned, not implemented. This document records the agreed workflow and guides implementation of [PLAN.md item 13](PLAN.md#13-clip-based-transcript-editing-and-phrase-grouping). It refines plan items 3, 4, 6, 9, 11, and 12; it does not mark them complete. Follow [UI-Rules.md](UI-Rules.md) for shared controls.
+Status: implementation in progress; the acceptance checklist is not yet complete. See [Implementation-Progress.md](Implementation-Progress.md) for verified behavior. This document records the agreed workflow and guides implementation of [PLAN.md item 13](PLAN.md#13-clip-based-transcript-editing-and-phrase-grouping). It refines plan items 3, 4, 6, 9, 11, and 12; it does not mark them complete. Follow [UI-Rules.md](UI-Rules.md) for shared controls.
 
 ## Goal
 

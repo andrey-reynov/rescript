@@ -3,6 +3,24 @@ import {ru} from './messages/ru';
 import type {UiLocale} from './locales';
 /** Copy added by the fork. Other locales retain English until translated. */
 export const forkRussian={
+ 'Restoring revision…':'Восстановление ревизии…','Snapshot not found.':'Снимок не найден. Обновите список версий.',
+ 'Realign selected text':'Уточнить время слов','Realign':'Уточнить','Speech language':'Язык речи',
+ 'Adjust word timing against the audio. Text and timeline cuts stay unchanged.':'Уточнение времени слов по аудио. Текст и монтажные вырезы не изменятся.',
+ 'Automatic word alignment is unavailable for this language. Choose the actual spoken language if supported; otherwise use manual timing.':'Для этого языка автоматическое уточнение времени недоступно. Выберите фактический язык речи, если он поддерживается, или измените время вручную.',
+ 'The alignment model downloads on first use. Cancelling keeps existing timings.':'Модель загружается при первом использовании. Отмена сохраняет прежнее время слов.',
+ 'Alignment could not measure the selected text. Existing timings were kept.':'Не удалось определить время выбранных слов. Прежнее время сохранено.',
+ 'Select text to realign.':'Выберите текст для уточнения времени.', 'Select consecutive text to realign.':'Выберите последовательные слова.',
+ 'Realign visible words within one retained clip.':'Выберите видимые слова в одном сохранённом клипе.',
+ 'Selected text changed. Run alignment again.':'Выбранный текст изменился. Запустите уточнение снова.',
+ 'Source media changed. Run alignment again.':'Исходный файл изменился. Запустите уточнение снова.',
+ 'Alignment did not return every selected word.':'Не удалось уточнить время всех выбранных слов.',
+ 'Alignment returned invalid word timings.':'Модель вернула некорректное время слов.',
+ 'Alignment worker stopped.':'Обработка остановилась.',
+ 'Select an alignment batch of at most 60 seconds.':'Выберите участок не длиннее 60 секунд.',
+ 'Prepare source audio before alignment.':'Подготовьте аудио перед уточнением времени.',
+ 'Prepared audio is incomplete.':'Подготовка аудио не завершена.',
+ 'Pause processing before aligning selected text.':'Приостановите обработку перед уточнением времени.',
+
  's':'с','Hidden selected words: {count}':'Выбрано скрытых слов: {count}',
  'Pause detection':'Приостановить анализ',
  'Silence detection':'Обнаружение тишины','Volume and speech are separate detectors. Detection never deletes audio.':'Громкость и речь определяются отдельно. Обнаружение ничего не удаляет.',

@@ -19,6 +19,8 @@ import { FloatingPortal } from "@floating-ui/react";
 import { useEditorStore } from "@/lib/store";
 import { isDisfluencyPlaceholder } from "@/lib/disfluencies";
 import ContextMenu from './ContextMenu';
+import RealignSelection from './RealignSelection';
+import {alignmentSelection,type AlignmentSelection} from '@/lib/correction-alignment';
 import ActionMenu from './ActionMenu';
 import {intervalDuration,hiddenSelectionCount} from '@/lib/transcript-presentation';
 import {transcriptBlocks,type TranscriptBlock} from '@/lib/transcript-structure';
@@ -42,6 +44,7 @@ import {
   isWordCutOut,
   mapSplitsToWords,
 } from "@/lib/edits";
+import {useTranscriptFlow} from '@/hooks/useTranscriptFlow';
 import { useTranscriptSelection } from "@/hooks/useTranscriptSelection";
 import { useTranscriptPlayheadFollow } from "@/hooks/useTranscriptPlayheadFollow";
 import { useWordAnchorFloating } from "@/hooks/useWordAnchorFloating";
@@ -133,6 +136,7 @@ export default function TranscriptPanel() {
   const f=useForkI18n();
   const [wordContext,setWordContext]=useState<{x:number;y:number;id:number}|null>(null);
   const [editError,setEditError]=useState('');
+  const [realignment,setRealignment]=useState<{selection:AlignmentSelection;projectId:string}|null>(null);
   const view=useEditorStore(s=>s.transcriptView),clipNames=useEditorStore(s=>s.clipNames);
   const { t } = useI18n();
   const words = useEditorStore((s) => s.words);
@@ -178,21 +182,24 @@ export default function TranscriptPanel() {
   const importInputRef = useRef<HTMLInputElement>(null);
   // Bound even a single-speaker monologue to small rendering rows; source data is unchanged.
   const blocks=useMemo(()=>transcriptBlocks(words,cuts,sceneBoundaries,duration,clipNames),[words,cuts,sceneBoundaries,duration,clipNames]);
+  const continuousWords=useMemo(()=>showDeleted?words:words.filter(word=>!cutOutIds.has(word.id)),[words,showDeleted,cutOutIds]);
+  const flowLines=useTranscriptFlow(continuousWords,view==='continuous',containerRef);
   const turns=useMemo(()=>{
-    const groups:Array<{speaker:number;words:Word[];block?:TranscriptBlock}>=view==='speakers'?groupWordsBySpeaker(words):view==='continuous'?[{speaker:-1,words}]:blocks.map(block=>({speaker:-1,words:block.words,block}));
+    if(view==='continuous')return flowLines.map((line,index)=>({speaker:-1,words:line,block:undefined as TranscriptBlock|undefined,key:`continuous:${line[0].id}`,sourceWordIds:line.map(word=>word.id),sourceStart:line[0].id,first:index===0}));
+    const groups:Array<{speaker:number;words:Word[];block?:TranscriptBlock}>=view==='speakers'?groupWordsBySpeaker(words):blocks.map(block=>({speaker:-1,words:block.words,block}));
     return groups.flatMap((turn,groupIndex)=>{
       const sourceWordIds=turn.words.map(word=>word.id),sourceStart=turn.words[0]?.id??-1;
       const rows:Array<typeof turn & {key:string;sourceWordIds:number[];sourceStart:number;first:boolean}>=[];
       for(let i=0;i<Math.max(1,turn.words.length);i+=80){const rowWords=turn.words.slice(i,i+80);if(view==='clips'||showDeleted||rowWords.some(word=>!cutOutIds.has(word.id)))rows.push({...turn,key:`${view}:${turn.block?.id??groupIndex}:${i}`,words:rowWords,sourceWordIds,sourceStart,first:i===0});}return rows;
     });
-  },[words,showDeleted,cutOutIds,blocks,view]);
+  },[words,showDeleted,cutOutIds,blocks,view,flowLines]);
   const rowByWord=useMemo(()=>{const index=new Map<number,number>();turns.forEach((turn,row)=>turn.words.forEach(word=>index.set(word.id,row)));return index;},[turns]);
   const [dragAnchor,setDragAnchor]=useState<number|null>(null);
   const dragAnchorRef=useRef<number|null>(null),lastDragAt=useRef(0);
   useEffect(()=>{const release=()=>{if(dragAnchorRef.current!==null){lastDragAt.current=Date.now();dragAnchorRef.current=null;}setDragAnchor(null);};window.addEventListener('mouseup',release);return()=>window.removeEventListener('mouseup',release);},[]);
   const selectedIds=useMemo(()=>new Set(selectedWordIds),[selectedWordIds]);
   const pinnedRows=useMemo(()=>[selectedWordIds[0],selectedWordIds[selectedWordIds.length-1],dragAnchor??-1].map(id=>rowByWord.get(id)).filter((row):row is number=>row!==undefined),[selectedWordIds,rowByWord,dragAnchor]);
-  const virtualizer=useVirtualizer({count:turns.length,getScrollElement:()=>scrollRef.current,estimateSize:()=>180,overscan:3,scrollMargin:72,
+  const virtualizer=useVirtualizer({count:turns.length,getScrollElement:()=>scrollRef.current,estimateSize:()=>view==='continuous'?32:180,overscan:3,scrollMargin:72,
     getItemKey:useCallback((index:number)=>turns[index].key,[turns]),
     rangeExtractor:useCallback((range: Parameters<typeof defaultRangeExtractor>[0])=>Array.from(new Set([...defaultRangeExtractor(range),...pinnedRows])).sort((a,b)=>a-b),[pinnedRows]),
   });
@@ -252,7 +259,7 @@ export default function TranscriptPanel() {
     ensureWordVisible,
   });
 
-  // Clicking a word seeks — resume following so playback stays in view.
+  // Selection and seeking are separate; explicit seek gestures handle the playhead.
   const onWordClick = useCallback(
     (word: Word, el: HTMLElement) => {
       resumeFollowPlayhead();
@@ -273,7 +280,7 @@ export default function TranscriptPanel() {
 
   const deletedCount = useMemo(() => cutOutIds.size, [cutOutIds]);
   const handleImportTranscript = useCallback(
-    async (files: FileList | null) => {
+    async (files: readonly File[] | null) => {
       const file = files?.[0];
       if (!file) return;
       if (!isTranscriptFile(file)) {
@@ -413,7 +420,7 @@ export default function TranscriptPanel() {
           )}
           {status === "ready" && <TranscriptToolsMenu />}
           {status === "ready" && <TranscriptSearch />}
-          <input ref={importInputRef} type="file" accept={TRANSCRIPT_ACCEPT} className="sr-only" onChange={e=>{const files=e.target.files;e.target.value='';void handleImportTranscript(files);}}/>
+          <input ref={importInputRef} type="file" accept={TRANSCRIPT_ACCEPT} className="sr-only" onChange={e=>{const files=Array.from(e.target.files??[]);e.target.value='';void handleImportTranscript(files);}}/>
           <ActionMenu label={f('Transcript options')} actions={[
             {id:'visibility',group:f('Visibility'),label:f('Hide deleted words'),icon:<EyeOff size={14}/>,checked:!showDeleted,run:toggleShowDeleted},
             ...(['clips','speakers','continuous'] as const).map(mode=>({id:mode,group:f('Text layout'),label:f(mode==='clips'?'By clip':mode==='speakers'?'By speaker':'Continuous text'),icon:<Eye size={14}/>,checked:view===mode,radio:true,run:()=>useEditorStore.getState().setTranscriptView(mode)})),
@@ -593,10 +600,12 @@ export default function TranscriptPanel() {
         {id:'cut',label:t('transcript.cut'),icon:<Scissors size={13}/>,shortcut:'Delete',disabled:status!=='ready',run:()=>deleteWords(selectedWordIds)},
         {id:'restore',label:t('common.restore'),icon:<RotateCcw size={13}/>,disabled:!selectedWordIds.some(id=>cutOutIds.has(id)),run:()=>restoreWords(selectedWordIds)},
         {id:'correct',label:t('transcript.correct'),icon:<Pencil size={13}/>,disabled:status!=='ready',run:()=>beginCorrection(selectedWordIds)},
+        {id:'realign',label:f('Realign selected text'),icon:<RotateCcw size={13}/>,disabled:status!=='ready'||!useEditorStore.getState().projectId||['running','preparing'].includes(useEditorStore.getState().jobState??''),run:contextRun(()=>{const state=useEditorStore.getState();setRealignment({selection:alignmentSelection(words,selectedWordIds,blocks),projectId:state.projectId!});})},
         {id:'split',label:f('Split clip'),icon:<Merge size={13}/>,shortcut:'Enter',disabled:status!=='ready',run:()=>{useEditorStore.getState().splitBeforeSelection();}},
         {id:'group',label:f('Group into phrase'),icon:<Merge size={13}/>,disabled:selectedWordIds.length<2,run:contextRun(()=>useEditorStore.getState().groupSelectedPhrase())},
         {id:'ungroup',label:f('Ungroup'),icon:<Merge size={13}/>,run:()=>useEditorStore.getState().ungroupSelectedPhrase()},
       ]}/>}
+      {realignment&&<RealignSelection {...realignment} onClose={()=>{setRealignment(null);containerRef.current?.closest<HTMLElement>('[data-transcript-editor]')?.focus({preventScroll:true});}}/>}
       <TranscriptScrollIndicator
         scrollRef={scrollRef}
         contentRef={containerRef}

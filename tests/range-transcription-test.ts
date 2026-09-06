@@ -17,6 +17,10 @@ async function main(){
   await projects.create(data,await sourceReference(media));const jobs=new TranscriptionJobs(projects);
   await jobs.start(id,'base','en',false);await jobs.beginAudio(id);await jobs.appendAudio(id,new Uint8Array(125*16000*4));
   const prepared=await jobs.audioReady(id,{bucketSize:16000,sampleCount:125*16000,min:[],max:[]});assert.equal(prepared.status,'complete');assert.equal(prepared.total,0);
+  const beforeAlignmentRead=await jobs.read(id);
+  const audio=await jobs.alignmentAudio(id,1.25,2.75);assert.equal(audio.start,1.25);assert.equal(audio.audio.length,24000);
+  assert.equal(audio.fingerprint,(await projects.read(id)).media.fingerprint);assert.deepEqual(await jobs.read(id),beforeAlignmentRead,'Alignment read must not replace/resume a transcription job');
+  await assert.rejects(jobs.alignmentAudio(id,-1,2));await assert.rejects(jobs.alignmentAudio(id,0,61));await assert.rejects(jobs.alignmentAudio(id,124,126));await assert.rejects(jobs.alignmentAudio(id,NaN,2));
   let job=await jobs.transcribeRange(id,10,75,'tinyEn','en');assert.equal(job.model,'tinyEn');assert.equal(job.total,2);
   let chunk=(await jobs.next(id))!;assert.equal(chunk.start,10);assert.equal(chunk.coreStart,10);assert.equal(chunk.coreEnd,70);assert.equal(chunk.audio.length,62*16000);
   job=await jobs.checkpoint(id,job.key,chunk,[{...word(0,1,2),text:'new'}]);

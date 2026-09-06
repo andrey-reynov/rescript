@@ -146,6 +146,7 @@ function word(id: number, text: string, start: number, end: number): Word {
   const words = [word(0, "Cat", 0, 0.1), word(1, "1985", 0.1, 0.2), word(2, "sat", 0.2, 0.3)];
   const aligned = alignBatch(words, emissionFor(frames), 0, frames.length * 0.02, VOCAB);
   assert(aligned !== null, "batch with an unspellable word should still align");
+  assert(alignBatch(words, emissionFor(frames), 0, frames.length * 0.02, VOCAB, true) === null, "strict selected alignment must not label interpolated digits as measured");
   const [a, b, c] = aligned!;
   assert(b.start >= a.end - 1e-9 && b.end <= c.start + 1e-9, "digits sit in the gap");
   assert(b.end > b.start, "digits keep a positive duration");
