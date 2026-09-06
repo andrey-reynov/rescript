@@ -19,6 +19,8 @@ import { FloatingPortal } from "@floating-ui/react";
 import { useEditorStore } from "@/lib/store";
 import { isDisfluencyPlaceholder } from "@/lib/disfluencies";
 import ContextMenu from './ContextMenu';
+import RealignSelection from './RealignSelection';
+import {alignmentSelection,type AlignmentSelection} from '@/lib/correction-alignment';
 import ActionMenu from './ActionMenu';
 import {intervalDuration,hiddenSelectionCount} from '@/lib/transcript-presentation';
 import {transcriptBlocks,type TranscriptBlock} from '@/lib/transcript-structure';
@@ -134,6 +136,7 @@ export default function TranscriptPanel() {
   const f=useForkI18n();
   const [wordContext,setWordContext]=useState<{x:number;y:number;id:number}|null>(null);
   const [editError,setEditError]=useState('');
+  const [realignment,setRealignment]=useState<{selection:AlignmentSelection;projectId:string}|null>(null);
   const view=useEditorStore(s=>s.transcriptView),clipNames=useEditorStore(s=>s.clipNames);
   const { t } = useI18n();
   const words = useEditorStore((s) => s.words);
@@ -597,10 +600,12 @@ export default function TranscriptPanel() {
         {id:'cut',label:t('transcript.cut'),icon:<Scissors size={13}/>,shortcut:'Delete',disabled:status!=='ready',run:()=>deleteWords(selectedWordIds)},
         {id:'restore',label:t('common.restore'),icon:<RotateCcw size={13}/>,disabled:!selectedWordIds.some(id=>cutOutIds.has(id)),run:()=>restoreWords(selectedWordIds)},
         {id:'correct',label:t('transcript.correct'),icon:<Pencil size={13}/>,disabled:status!=='ready',run:()=>beginCorrection(selectedWordIds)},
+        {id:'realign',label:f('Realign selected text'),icon:<RotateCcw size={13}/>,disabled:status!=='ready'||!useEditorStore.getState().projectId||['running','preparing'].includes(useEditorStore.getState().jobState??''),run:contextRun(()=>{const state=useEditorStore.getState();setRealignment({selection:alignmentSelection(words,selectedWordIds,blocks),projectId:state.projectId!});})},
         {id:'split',label:f('Split clip'),icon:<Merge size={13}/>,shortcut:'Enter',disabled:status!=='ready',run:()=>{useEditorStore.getState().splitBeforeSelection();}},
         {id:'group',label:f('Group into phrase'),icon:<Merge size={13}/>,disabled:selectedWordIds.length<2,run:contextRun(()=>useEditorStore.getState().groupSelectedPhrase())},
         {id:'ungroup',label:f('Ungroup'),icon:<Merge size={13}/>,run:()=>useEditorStore.getState().ungroupSelectedPhrase()},
       ]}/>}
+      {realignment&&<RealignSelection {...realignment} onClose={()=>{setRealignment(null);containerRef.current?.closest<HTMLElement>('[data-transcript-editor]')?.focus({preventScroll:true});}}/>}
       <TranscriptScrollIndicator
         scrollRef={scrollRef}
         contentRef={containerRef}

@@ -29,6 +29,7 @@ contextBridge.exposeInMainWorld("rescriptDesktop", {
     importCancel:(token:string)=>ipcRenderer.invoke('models:import-cancel',token),
   },
   jobs: {
+    alignmentAudio:(id:string,start:number,end:number)=>ipcRenderer.invoke('job:alignment-audio',id,start,end),
     start: (id:string,model:string,language:string,transcribe:boolean) => ipcRenderer.invoke('job:start',id,model,language,transcribe),
     read: (id:string) => ipcRenderer.invoke('job:read',id),
     pause: (id:string) => ipcRenderer.invoke('job:pause',id),

@@ -252,7 +252,7 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 
 ### 13. Clip-based transcript editing and phrase grouping
 
-**Status:** Implemented baseline, with continuous-flow and selection-scope refinements. Selected correction realignment and the full detailed acceptance audit remain open.
+**Status:** Implemented baseline, with continuous-flow and selection-scope refinements. Selected correction realignment is implemented; see [Selected-Text-Alignment.md](Selected-Text-Alignment.md). The full detailed acceptance audit remains open.
 
 **Detailed specification:** [Transcript-Editing-Workflow.md](Transcript-Editing-Workflow.md). This consolidates the agreed large editing update and refines items 3, 4, 6, 9, 11, and 12 without duplicating their implementation.
 

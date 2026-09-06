@@ -2,6 +2,7 @@ import type { ProjectDocument } from '../electron/project-files';
 import type { JobState, JobChunk, StoredPeaks } from '../electron/transcription-jobs';
 import type { Word } from '../lib/types';
 export interface DesktopJobs {
+  alignmentAudio(id:string,start:number,end:number):Promise<{audio:Float32Array;start:number;fingerprint:string}>;
   start(id:string,model:string,language:string,transcribe:boolean):Promise<JobState>;
   read(id:string):Promise<(JobState&{progress?:{message:string;value:number|null}})|null>;
   pause(id:string):Promise<JobState>;
