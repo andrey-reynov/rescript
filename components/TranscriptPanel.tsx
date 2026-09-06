@@ -20,6 +20,7 @@ import { useEditorStore } from "@/lib/store";
 import { isDisfluencyPlaceholder } from "@/lib/disfluencies";
 import ContextMenu from './ContextMenu';
 import ActionMenu from './ActionMenu';
+import {intervalDuration,hiddenSelectionCount} from '@/lib/transcript-presentation';
 import {transcriptBlocks,type TranscriptBlock} from '@/lib/transcript-structure';
 import TranscriptionSetup from "./TranscriptionSetup";
 import TranscriptToolsMenu from "./TranscriptToolsMenu";
@@ -489,7 +490,7 @@ export default function TranscriptPanel() {
                     />
 </>}
                     {view==='clips'&&turn.first&&turn.block&&<div className="mb-2 flex items-center gap-2 text-xs text-zinc-500">
-                      {turn.block.kind==='deleted'?<span className="text-red-500">{f('Deleted')} · {(turn.block.end-turn.block.start).toFixed(1)} s</span>:<>
+                      {turn.block.kind==='deleted'?<span className="text-red-500">{f('Deleted')} · {intervalDuration(turn.block.end-turn.block.start,f('s'))}{!showDeleted&&hiddenSelectionCount(turn.sourceWordIds,selectedIds,cutOutIds)>0&&<span role="status" className="ml-2 text-zinc-500">{f('Hidden selected words: {count}',{count:hiddenSelectionCount(turn.sourceWordIds,selectedIds,cutOutIds)})}</span>}</span>:<>
                         <button onClick={()=>{useEditorStore.getState().selectWordRange(turn.sourceWordIds);useEditorStore.getState().setSelectedClipIndex(turn.block!.clipIndex!);}}>{f('Clip {number}',{number:(turn.block.clipIndex??0)+1})}</button>
                         <input aria-label={f('Clip name')} placeholder={f('Clip name')} value={turn.block.name??''} onChange={e=>useEditorStore.getState().renameClip((turn.block!.start+turn.block!.end)/2,e.target.value)} className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 hover:border-zinc-300"/>
                         {turn.block.splitId!==undefined&&<button title={f('Join clips')} onClick={()=>removeSceneBoundary(turn.block!.splitId!)}><Merge size={13}/></button>}

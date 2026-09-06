@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {intervalDuration,hiddenSelectionCount} from '../lib/transcript-presentation';
+import {transcriptBlocks} from '../lib/transcript-structure';
+assert.equal(intervalDuration(3.25),'3.3 s');assert.equal(intervalDuration(65.4),'1:05.4');assert.equal(intervalDuration(3605),'1:00:05.0');
+assert.equal(hiddenSelectionCount([1,2,3],new Set([2,3]),new Set([1,2])),1);
+const words=[{id:1,start:0,end:8,text:'overlap',speaker:0,deleted:false},{id:2,start:1,end:2,text:'early',speaker:0,deleted:false},{id:3,start:4,end:5,text:'later',speaker:0,deleted:false}];
+const blocks=transcriptBlocks(words,[],[{id:1,time:3}],10);
+assert.deepEqual(blocks[0].words.map(w=>w.id),[2]);assert.deepEqual(blocks[1].words.map(w=>w.id),[1,3]);assert.deepEqual(blocks[1].partialIds,[1]);
+assert.deepEqual(blocks.flatMap(b=>b.words).map(w=>w.id).sort(),[1,2,3],'overlapping words must not disappear');
+console.log('Transcript presentation: long durations, hidden selection scope and overlapping word ownership passed.');

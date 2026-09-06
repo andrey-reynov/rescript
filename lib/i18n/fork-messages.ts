@@ -3,6 +3,7 @@ import {ru} from './messages/ru';
 import type {UiLocale} from './locales';
 /** Copy added by the fork. Other locales retain English until translated. */
 export const forkRussian={
+ 's':'с','Hidden selected words: {count}':'Выбрано скрытых слов: {count}',
  'Pause detection':'Приостановить анализ',
  'Silence detection':'Обнаружение тишины','Volume and speech are separate detectors. Detection never deletes audio.':'Громкость и речь определяются отдельно. Обнаружение ничего не удаляет.',
  'Analyze audio':'Анализировать звук','Resume detection':'Продолжить анализ','Detecting silence':'Анализ тишины','Silence detection paused':'Анализ приостановлен','Silence detection complete':'Анализ завершён',

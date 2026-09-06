@@ -10,7 +10,7 @@ export function normalizeRanges(ranges:TimeRange[],duration:number):TimeRange[]{
  const result:TimeRange[]=[];for(const r of valid){const last=result.at(-1);if(last&&r.start<=last.end)last.end=Math.max(last.end,r.end);else result.push({...r});}return result;
 }
 
-/** O(words + regions) once boundaries are sorted. Each word has one primary row.
+/** Word assignment is O(words × log(regions)) after building boundaries. Each word has one primary row.
  * Partial words belong to the region containing their midpoint; the source span
  * and partial indicator are retained, never snapped to the edit boundary. */
 export function transcriptBlocks(words:Word[],cuts:TimeRange[],splits:SceneBoundary[],duration:number,names:ClipName[]=[]):TranscriptBlock[]{
@@ -24,7 +24,8 @@ export function transcriptBlocks(words:Word[],cuts:TimeRange[],splits:SceneBound
   const isDeleted=!!deleted[cutIndex]&&deleted[cutIndex].start<=start&&deleted[cutIndex].end>=end;
   blocks.push({id:`${isDeleted?'deleted':'clip'}:${start}:${end}`,kind:isDeleted?'deleted':'clip',start,end,words:[],partialIds:[],splitId:splitMap.get(start),...(!isDeleted?{clipIndex:clipIndex++}:{}),name:isDeleted?undefined:names.filter(n=>n.time>=start&&n.time<end).map(n=>n.name).filter(Boolean).join(' / ')||undefined});
  }
- let index=0;for(const word of words){const anchor=(word.start+word.end)/2;while(index<blocks.length-1&&anchor>=blocks[index].end)index++;const b=blocks[index];if(!b||anchor<b.start||anchor>b.end)continue;b.words.push(word);if(word.start<b.start||word.end>b.end)b.partialIds.push(word.id);}
+ // Overlapping words can have non-monotonic midpoints even in source order.
+ for(const word of words){const anchor=Math.max(0,Math.min(duration,(word.start+word.end)/2));let lo=0,hi=blocks.length;while(lo<hi){const mid=(lo+hi)>>>1;if(blocks[mid].end<=anchor)lo=mid+1;else hi=mid;}const b=blocks[Math.min(lo,blocks.length-1)];if(!b)continue;b.words.push(word);if(word.start<b.start||word.end>b.end)b.partialIds.push(word.id);}
  return blocks;
 }
 
