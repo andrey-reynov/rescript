@@ -68,3 +68,11 @@ assert.equal(transcriptBlocks(words,[],[],8,anchoredNames)[0].name,'First clip /
 assert.deepEqual(transcriptBlocks(words,[],[{id:72,time:4}],8,anchoredNames).map(b=>b.name),['First clip','Second clip'],'Re-splitting restores each source-anchored name');
 assert.deepEqual(anchoredNames.map(n=>n.id),['first-name','second-name'],'Merge projection never rewrites persisted name identities');
 console.log('Clip names: merge retains both labels and re-splitting restores their original source ownership.');
+
+
+const noisySpeakers:Word[]=Array.from({length:120},(_,id)=>({id,text:'commentary',start:id,end:id+.8,speaker:id,deleted:false}));
+const originalSpeakers=structuredClone(noisySpeakers);
+const commentaryClips=transcriptBlocks(noisySpeakers,[{start:30,end:40}],[],120);
+assert.deepEqual(commentaryClips.map(b=>b.kind),['clip','deleted','clip'],'Diarization labels never create edit clips');
+assert.deepEqual(noisySpeakers,originalSpeakers,'Edit projection preserves every optional speaker attribution');
+console.log('Commentary structure: 120 differing speaker labels yield only edit-range boundaries and retain source metadata.');
