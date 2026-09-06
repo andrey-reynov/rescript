@@ -28,6 +28,7 @@ export interface ProjectData {
   speakers?: unknown[];
   currentTime?: number;
   thumbnail?: string;
+  transcriptionPreferences?: {source:string;transcriptLanguage:string};
   transcriptionPreservedCuts?: Array<{start:number;end:number}>;
   transcriptionComplete?: boolean;
   transcriptImportId?: string;
@@ -222,7 +223,7 @@ export class ProjectFiles {
           let nextId=incoming.reduce((max,cut)=>Math.max(max,cut.id),0)+1;
           manualCuts=[...incoming,...old.transcriptionPreservedCuts.map(range=>({...range,id:nextId++}))];
         }
-        return {...data,manualCuts,phrases:old.phrases,transcriptionPreservedCuts:old.transcriptionPreservedCuts,words:old.words,speakers:old.speakers,transcriptionComplete:old.transcriptionComplete,transcriptionResultKey:old.transcriptionResultKey,transcriptionChunks:old.transcriptionChunks};
+        return {...data,...old.transcriptionPreferences,transcriptionPreferences:old.transcriptionPreferences,manualCuts,phrases:old.phrases,transcriptionPreservedCuts:old.transcriptionPreservedCuts,words:old.words,speakers:old.speakers,transcriptionComplete:old.transcriptionComplete,transcriptionResultKey:old.transcriptionResultKey,transcriptionChunks:old.transcriptionChunks};
       }
       if(old.transcriptionResultKey&&data.transcriptionResultKey===old.transcriptionResultKey&&old.transcriptionChunks?.some(index=>!data.transcriptionChunks?.includes(index))){
         const known=new Set(data.transcriptionChunks??[]);

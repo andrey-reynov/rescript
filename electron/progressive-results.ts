@@ -26,8 +26,9 @@ export function publishTranscriptionProgress(data:ProjectData,job:JobState,gener
       manualCuts=[...previous,...wordCuts.map(range=>({...range,id:nextId++}))];
     }
     const retained=wordCuts.length?keep.map(word=>word.deleted?{...word,deleted:false}:word):keep;
+    const preferences=job.replacementScope==='all'?{source:job.model,transcriptLanguage:job.language}:undefined;
     const keepIds=new Set(keep.map(w=>w.id));
-    return {...data,manualCuts,transcriptionPreservedCuts:wordCuts,phrases:(data.phrases??[]).map(g=>({...g,wordIds:g.wordIds.filter(id=>keepIds.has(id))})).filter(g=>g.wordIds.length>1),words:[...retained,...replacement].sort((a,b)=>a.start-b.start),transcriptionResultKey:job.key,transcriptionChunks:job.completed,transcriptionComplete:true};
+    return {...data,...preferences,transcriptionPreferences:preferences,manualCuts,transcriptionPreservedCuts:wordCuts,phrases:(data.phrases??[]).map(g=>({...g,wordIds:g.wordIds.filter(id=>keepIds.has(id))})).filter(g=>g.wordIds.length>1),words:[...retained,...replacement].sort((a,b)=>a.start-b.start),transcriptionResultKey:job.key,transcriptionChunks:job.completed,transcriptionComplete:true};
   }
   if(data.source==='import')return data;
   const applied=data.transcriptionResultKey===job.key?data.transcriptionChunks??[]:[];

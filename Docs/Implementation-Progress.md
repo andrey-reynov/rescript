@@ -183,3 +183,10 @@ Latest static build predates the final small tweaks for Space replacement, no-op
 - Replacement jobs capture the import identity at start. A newer import invalidates publication from that older job, protecting the reverse race even if cancellation and worker completion overlap.
 - Native regression covers imported and legacy-imported late saves, deliberate replacement import, and a job finishing after a newer import. Import edit-preservation, project files, progressive results and both type checks pass.
 - Item 1 remains active for end-to-end modal/fresh model-language and conflict acceptance; this stage resolves the import exception identified in stage nineteen.
+
+## Stage twenty-one: full-audio model/language persistence
+
+- Full versus selected replacement scope is explicit in the durable job. Full completion publishes its model/language with the transcript; selected replacement leaves project defaults unchanged. Queued old-generation saves retain the completed full-run preferences. The renderer loads the authoritative project choices alongside its result.
+- Regression covers scope, full settings, selected independence and stale-save protection. Both type checks, focused lint and production renderer/native builds pass.
+- Real cached Whisper Base inference processed the entire 42.4106875-second source (45 words), changed project source from Tiny English to Base, kept English language, preserved the existing manual cut and a deliberately deleted first-word interval (0.095–0.55). Reopened the project and opened/cancelled the full-audio dialog with Base/English shown. Test project, job manifest and summary restored after shutting down the isolated app.
+- Remaining item 1 checks include model/language changes through the modal itself, selected numeric-range/cancel/error/conflicting-job acceptance; this result does not close the whole item.
