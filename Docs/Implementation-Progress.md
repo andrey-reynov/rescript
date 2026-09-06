@@ -1,6 +1,6 @@
 # Plan implementation progress
 
-Objective: implement all of PLAN.md and Transcript-Editing-Workflow.md. This log is evidence and remaining work, not a narrowed substitute for that objective. No release/push of these implementation stages has been requested yet.
+Objective: implement all of PLAN.md and Transcript-Editing-Workflow.md. This log is evidence and remaining work, not a narrowed substitute for that objective. The user authorized publishing the current implementation stages as release 1.3.0. This release does not mark the full plan complete; remaining requirements stay tracked below.
 
 ## Coverage
 
