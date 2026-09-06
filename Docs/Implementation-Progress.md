@@ -230,3 +230,10 @@ Latest static build predates the final small tweaks for Space replacement, no-op
 - Actual Settings UI language switches left Russian transcription preferences unchanged. Fresh Base/Russian output stayed Cyrillic under English UI; Parakeet/Automatic retained both languages in the bilingual sample under Russian UI.
 - Shared dialog language choices matched fixed English, automatic-only Parakeet and explicit multilingual Whisper profiles. Unsupported native forcing rejected before changing job generation. Capability/model tests pass.
 - Item 7 moved to Completed-Plan-Items.md with original requirements/evidence. Item 8 retains installed/native-menu/migration gates. Isolated Russian and bilingual project/job/summary files restored; UI returned to Russian.
+
+
+## Stage 28 — Recoverable empty text corrections
+
+Item 13 audit found that committing an empty correction preserved its timed token but rendered only a nearly invisible space. The transcript now shows a localized, visibly selectable **Empty text** placeholder; empty timeline chips use the same label. The placeholder is presentation only: editing reopens an empty value, source timing/provenance and audio remain intact, and no placeholder text is stored or exported.
+
+Validation: TypeScript and production UI build passed, as did transcript-structure and localization tests. In an isolated runtime project, double-clicking the first word, deleting its characters, and committing showed the Russian placeholder with an 88.8 px target. Double-click reopened an empty input; typing and committing `Restored` replaced it successfully. Playback stayed at 0 throughout. The isolated fixture was restored afterward. Full item 13 acceptance, including native initial IME input and remaining migration/long-video checks, remains open.

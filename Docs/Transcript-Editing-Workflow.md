@@ -105,6 +105,7 @@ Distinguish **timed-word selection** from **text-caret editing**. Show a visible
 - Keep the replacement linked to the original selected source interval, from the earliest selected start to the latest selected end (including overlapping words). A changed word count has no automatically trustworthy per-word timing: mark internal replacement timing approximate until alignment is performed.
 - Preserve original source provenance separately from corrected text/timing. Group membership and selections must be updated deliberately when corrected token counts change.
 - Offer selected-range realignment as appropriate to the existing alignment roadmap; do not silently rerun the entire video for a spelling correction.
+- Committing empty text keeps a selectable **Empty text** placeholder for the retained timed token. This label is presentation only and never becomes transcript/export text; reopening correction edits an empty value. It does not delete audio.
 - Commit a correction as one meaningful undo step; keep transient caret input separate from persisted committed data. Canceling an unfinished correction must restore the prior text. Autosave committed edits and preserve them across reopening.
 - Approximate timings must not be presented as measured alignment in seeking/caption workflows. Exact corrected-word timing, including insertion/deletion cases, needs focused validation before subtitle use.
 

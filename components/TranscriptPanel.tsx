@@ -73,6 +73,7 @@ const WordSpan = memo(function WordSpan({
   const { t } = useI18n();
   const f=useForkI18n();
   const placeholder = isDisfluencyPlaceholder(word.text);
+  const emptyText = !word.text.trim();
   // The trailing space lives inside the span so that selection and deletion
   // highlights are continuous across words instead of breaking at each gap.
   return (
@@ -81,7 +82,7 @@ const WordSpan = memo(function WordSpan({
       data-sel={selected ? "" : undefined}
       data-cut={cutOut ? "" : undefined}
       data-placeholder={placeholder ? "" : undefined}
-      title={partial?f("Partially cut · source timing preserved"):word.correction?.timing==='approximate'?f("Approximate timing · corrected text"):placeholder ? t("transcript.hesitation") : undefined}
+      title={emptyText?f("Empty text · audio preserved; double-click to correct"):partial?f("Partially cut · source timing preserved"):word.correction?.timing==='approximate'?f("Approximate timing · corrected text"):placeholder ? t("transcript.hesitation") : undefined}
       onClick={(e) => {
         if(e.ctrlKey){useEditorStore.getState().seekTo(word.start);return;}
         if(e.shiftKey){e.currentTarget.closest<HTMLElement>('[data-transcript-editor]')?.focus({preventScroll:true});useEditorStore.getState().selectWordRange([word.id],true);window.getSelection()?.removeAllRanges();return;}
@@ -97,7 +98,7 @@ const WordSpan = memo(function WordSpan({
             : "text-zinc-800 hover:bg-neutral-50 dark:text-zinc-200 dark:hover:bg-neutral-800/60"
         }`}
     >
-      {word.text}{" "}
+      {emptyText?<span className="rounded border border-dashed border-current px-1 text-xs italic opacity-70">{f("Empty text")}</span>:word.text}{" "}
     </span>
   );
 });

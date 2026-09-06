@@ -923,6 +923,7 @@ export default function Timeline() {
               const cutOut = isWordCutOut(w, cuts);
               const wordSelected = w.memberIds.some(id=>selectedWordIds.includes(id));
               const placeholder = isDisfluencyPlaceholder(w.text);
+              const displayText = w.text.trim() ? w.text : f("Empty text");
               const showWordHandles = w.memberIds.length===1 && showHandles && (hovered || wWidth > 28);
               return (
                 <div
@@ -955,8 +956,8 @@ export default function Timeline() {
                         ? t("timeline.hesitationAdjust")
                         : t("timeline.hesitationCut")
                       : showHandles
-                        ? t("timeline.dragTiming", { word: w.text })
-                        : w.text
+                        ? t("timeline.dragTiming", { word: displayText })
+                        : displayText
                   }
                   onPointerEnter={() => setHoveredWordId(w.id)}
                   onPointerLeave={() =>
@@ -969,7 +970,7 @@ export default function Timeline() {
                 >
                   {w.memberIds.length>1&&w.members.filter(member=>selectedWordIds.includes(member.id)).map(member=><span key={member.id} className="pointer-events-none absolute inset-y-0 bg-indigo-400/25" style={{left:`${100*(member.start-w.start)/(w.end-w.start)}%`,width:`${100*(member.end-member.start)/(w.end-w.start)}%`}}/>)}
                   <span className="pointer-events-none relative min-w-0 flex-1 truncate px-1.5">
-                    {w.text}
+                    {displayText}
                   </span>
                   {showWordHandles && (
                     <>
