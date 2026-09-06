@@ -40,7 +40,8 @@ export function groupPhrase(words:Word[],groups:PhraseGroup[],ids:number[],block
  if(members.length<2)throw Error('Select at least two words in one clip.');
  const first=words.indexOf(members[0]),last=words.indexOf(members.at(-1)!);
  if(last-first+1!==members.length)throw Error('Select consecutive words.');
- const clip=blocks.find(b=>b.kind==='clip'&&b.start<=members[0].start&&b.end>=members.at(-1)!.end);
+ const start=members.reduce((value,word)=>Math.min(value,word.start),Infinity),end=members.reduce((value,word)=>Math.max(value,word.end),-Infinity);
+ const clip=blocks.find(b=>b.kind==='clip'&&b.start<=start&&b.end>=end);
  if(!clip||members.some(w=>w.deleted))throw Error('Group words within one retained clip.');
  const leftovers=groups.map(g=>({...g,wordIds:g.wordIds.filter(id=>!selected.has(id))})).filter(g=>g.wordIds.length>1);
  return [...leftovers,{id,wordIds:members.map(w=>w.id)}];
@@ -62,8 +63,10 @@ export function replaceTimedText(words:Word[],ids:number[],text:string,blocks:Tr
  if(!members.length)throw Error('Select text to correct.');
  const from=words.indexOf(members[0]),to=words.indexOf(members.at(-1)!);
  if(to-from+1!==members.length)throw Error('Select consecutive text to correct.');
- if(!blocks.some(b=>b.kind==='clip'&&b.start<=members[0].start&&b.end>=members.at(-1)!.end)||members.some(w=>w.deleted))throw Error('Correct visible words within one retained clip.');
- const start=members[0].start,end=members.at(-1)!.end;
+ // Overlapping speech may end after the final source-ordered word. Keep the
+ // entire selected interval, including when checking cuts and explicit splits.
+ const start=members.reduce((value,word)=>Math.min(value,word.start),Infinity),end=members.reduce((value,word)=>Math.max(value,word.end),-Infinity);
+ if(!blocks.some(b=>b.kind==='clip'&&b.start<=start&&b.end>=end)||members.some(w=>w.deleted))throw Error('Correct visible words within one retained clip.');
  const inherited=members.flatMap(w=>w.correction?.sourceWordIds??[w.id]);
  const provenance:CorrectionProvenance={sourceWordIds:[...new Set(inherited)],sourceStart:Math.min(...members.map(w=>w.correction?.sourceStart??w.start)),sourceEnd:Math.max(...members.map(w=>w.correction?.sourceEnd??w.end)),originalText:members.filter((w,i)=>!w.correction||i===0||w.correction.sourceStart!==members[i-1].correction?.sourceStart||w.correction.sourceEnd!==members[i-1].correction?.sourceEnd).map(w=>w.correction?.originalText??w.text).join(' '),timing:'approximate'};
  const speaker=members.every(w=>w.speaker===members[0].speaker)?members[0].speaker:-1;

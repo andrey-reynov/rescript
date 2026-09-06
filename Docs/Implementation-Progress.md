@@ -136,3 +136,9 @@ Latest static build predates the final small tweaks for Space replacement, no-op
 
 - Completed zoom/scroll source-position, keyboard Split/Add, overlap merging, clicked-target Restore, source-end clamping, undo/redo/save persistence, viewport bounds, Escape/outside dismissal and unchanged left/Alt-click behavior checks.
 - Item 11 moved to Completed-Plan-Items.md with its original requirements and evidence. No application change was needed. Final fixture data restored; remaining plan work remains active.
+
+## Stage fourteen: overlapping speech correction boundaries
+
+- Fixed correction allocation and phrase eligibility to use the minimum selected start and maximum selected end. Source-ordered words can overlap, so the final word's end is not a safe boundary. This prevents shortened correction ranges and rejects grouping/correction when an earlier selected word crosses a deletion or explicit split.
+- Focused regression checks cover overlap, unchanged unselected/source words, approximate timing provenance, mixed speakers remaining Unknown, and rejection across both cuts and splits. Transcript structure/state and selected alignment tests pass.
+- This closes an implementation defect under items 6/13, not their complete acceptance audit. Remaining keyboard/IME, cross-view selection and installed model/language checks remain pending.

@@ -17,3 +17,22 @@ const replacement=replaceTimedText(words,[0,1],'one two three',blocks);
 assert.equal(replacement.length,9);assert.deepEqual(replacement.slice(3),words.slice(2));assert.equal(replacement[0].start,0);assert.equal(replacement[2].end,1.8);assert.equal(replacement[0].speaker,-1);assert.equal(replacement[0].correction?.timing,'approximate');assert.deepEqual(replacement[0].correction?.sourceWordIds,[0,1]);
 assert.throws(()=>replaceTimedText(words,[2,3,4],'hidden',blocks));
 console.log('Transcript structure: clip/deletion projection, partial cuts, shared ranges, phrases, corrections and timing provenance passed.');
+
+// Source order does not imply monotonically increasing ends (overlapping speech).
+const overlapping:Word[]=[{...words[0],start:0,end:4},{...words[1],start:1,end:2},{...words[2],start:5,end:6}];
+const unchanged=structuredClone(overlapping);
+const overlapBlocks=transcriptBlocks(overlapping,[],[],8);
+const correctedOverlap=replaceTimedText(overlapping,[0,1],'new caption text',overlapBlocks);
+assert.equal(correctedOverlap[0].start,0);
+assert.equal(correctedOverlap[2].end,4,'Replacement must retain the longest selected source span');
+assert.equal(correctedOverlap[0].correction?.sourceEnd,4);
+assert.equal(correctedOverlap[0].correction?.timing,'approximate');
+assert.equal(correctedOverlap[0].speaker,-1,'Mixed speaker correction remains Unknown');
+assert.deepEqual(correctedOverlap[3],overlapping[2],'Unselected text and timing stay intact');
+assert.deepEqual(groupPhrase(overlapping,[],[0,1],overlapBlocks,'overlap')[0].wordIds,[0,1]);
+for(const boundaryBlocks of [transcriptBlocks(overlapping,[],[{id:9,time:3}],8),transcriptBlocks(overlapping,[{start:3,end:4}],[],8)]){
+ assert.throws(()=>replaceTimedText(overlapping,[0,1],'bad',boundaryBlocks),/one retained clip/,'An earlier overlapping word cannot cross a cut or split');
+ assert.throws(()=>groupPhrase(overlapping,[],[0,1],boundaryBlocks,'bad'),/one retained clip/);
+}
+assert.deepEqual(overlapping,unchanged,'Neither accepted nor rejected operations mutate source words');
+console.log('Overlapping speech: full correction span, mixed metadata and cross-boundary rejection passed.');
