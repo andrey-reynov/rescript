@@ -307,3 +307,8 @@ Combined with prior actual offline inference, availability-picker, active-job lo
 In an isolated runtime fixture, hid deleted word 139 and selected transcript word 137, then Shift-clicked timeline word 142 with an actual pointer event. Visible highlights were 137,138,140,141,142; the absent word 139 remained represented by the Deleted row's `Hidden selected words: 1` summary. Replacement typing was rejected without opening a correction draft. Starting instead from timeline word 142 and Shift-clicking transcript word 138 selected the backward range; Shift-clicking 144 afterward selected 142–144, proving the original anchor stayed fixed. Playback remained at 0 throughout. The fixture was restored after stopping its test process.
 
 Together with stage 31's partial/full phrase highlight verification, this completes the detailed checklist's plain-click and cross-view Shift-selection item. Other item 13 gates remain unchecked until their complete evidence is audited.
+
+
+## Stage 39 — Explicit word seeking and context scope
+
+Actual renderer check selected words 140–142 and right-clicked middle word 141. The menu preserved the full selection, and Go to word sought to the clicked word's 1.81-second start while playback stayed paused. Right-clicking unselected word 138 selected only it and left the playhead at 1.81; its Go to word then sought to 1.26, still paused. Ctrl-click on word 142 sought to approximately 2.4125 without starting playback. Combined with stage 13's distinct waveform context behavior and stage 31's partial-phrase context fix, the detailed seek/context checklist item is verified. No transcript or cut mutation was performed.
