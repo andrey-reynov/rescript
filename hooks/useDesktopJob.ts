@@ -32,8 +32,8 @@ export function useDesktopJob() {
             useEditorStore.setState({words,speakers:speakersFromWords(words,latest.speakers),
               transcriptionResultKey:job.key,transcriptionChunks:data.transcriptionChunks??[],
               skipTranscription:job.status==='complete',
-              past:job.replacementChunks?[]:extendTranscriptHistory(latest.past,latest.words,words),
-              future:job.replacementChunks?[]:extendTranscriptHistory(latest.future,latest.words,words)});
+              past:(job.replacementChunks||job.replacementRange)?[]:extendTranscriptHistory(latest.past,latest.words,words),
+              future:(job.replacementChunks||job.replacementRange)?[]:extendTranscriptHistory(latest.future,latest.words,words)});
           }
           const waveform=result.waveform;
           useEditorStore.setState({waveform:waveform?{...waveform,min:new Int8Array(waveform.min),max:new Int8Array(waveform.max)}:null,hasAudio:job.sampleCount>0});

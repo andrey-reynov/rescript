@@ -15,13 +15,7 @@ import {
 import logo from "@/assets/logo.png";
 import SocialLinks, { GITHUB_REPO_URL, FORK_NOTICE } from "./SocialLinks";
 import SettingsMenu from "./SettingsMenu";
-import ModelSelector, {
-  LanguageSection,
-  ModelOption,
-  ModelOptionSeparator,
-} from "./ModelSelector";
-import ImportTranscriptOption from "./ImportTranscriptOption";
-import { MODEL_ORDER } from "@/lib/models";
+
 import { useMediaEngineSupport } from "@/hooks/useMediaEngineSupport";
 import { detectMediaKind, MEDIA_ACCEPT } from "@/lib/media";
 import ProjectLibrary from "./ProjectLibrary";
@@ -148,15 +142,6 @@ export default function UploadScreen({
         alert(t("editor.chooseMedia"));
         return;
       }
-      const { source, pendingTranscript: pending } = useEditorStore.getState();
-      if (source === "import") {
-        if (!pending) {
-          alert(t("editor.chooseTranscript"));
-          return;
-        }
-        onFile(file, { words: pending.words, speakers: pending.speakers });
-        return;
-      }
       onFile(file);
     },
     [onFile, ready, t]
@@ -216,15 +201,7 @@ export default function UploadScreen({
               <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                 <SettingsMenu />
                 <div className="h-5 w-px bg-zinc-200 dark:bg-zinc-700 mr-1" />
-                <ModelSelector groupLabel={t("model.transcriptSource")}>
-                  <div className="max-h-[45vh] overflow-y-auto">{MODEL_ORDER.map((id) => (
-                    <ModelOption key={id} id={id} />
-                  ))}</div>
-                  <ModelOptionSeparator />
-                  <LanguageSection />
-                  <ModelOptionSeparator />
-                  <ImportTranscriptOption />
-                </ModelSelector>
+
               </div>
             </div>
           )}

@@ -396,7 +396,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       jobState: null,
       transcriptionResultKey: null,
       projectName: file.name.replace(/\.[^.]+$/, ''), projectThumbnail: null, saveState: 'pending', saveError: null, lastSavedAt: null,
-      skipTranscription: Boolean(imported),
+      skipTranscription: true,
       source: imported ? "import" : isModelId(current) ? current : "base",
       pendingTranscript: null,
       status: "preparing",

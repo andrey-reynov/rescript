@@ -17,11 +17,14 @@ import {
   Pause,
   Play,
   RotateCcw,
+  AudioLines,
   SquareSplitHorizontal,
   Trash2,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
+import ActionMenu from './ActionMenu';
+import RetranscribeSelection from "./RetranscribeSelection";
 import { useEditorStore } from "@/lib/store";
 import {
   canSplitAt,
@@ -654,7 +657,7 @@ export default function Timeline() {
           )}
         </div>
 
-        <div className="order-3 -mx-2.5 flex h-9 w-[calc(100%+1.25rem)] items-center justify-center gap-1.5 border-t border-zinc-100 sm:absolute sm:left-1/2 sm:top-1/2 sm:order-2 sm:mx-0 sm:h-auto sm:w-auto sm:-translate-x-1/2 sm:-translate-y-1/2 sm:border-t-0 dark:border-zinc-800">
+        <div className="order-3 -mx-2.5 flex h-9 w-[calc(100%+1.25rem)] items-center justify-center gap-1.5 border-t border-zinc-100 sm:order-2 sm:mx-0 sm:h-auto sm:w-auto sm:shrink-0 sm:border-t-0 dark:border-zinc-800">
           <button
             type="button"
             disabled={!ready}
@@ -689,101 +692,12 @@ export default function Timeline() {
         </div>
 
         <div className="order-2 flex h-9 items-center justify-end gap-1 sm:order-3 sm:h-auto sm:flex-1">
-          <button
-            type="button"
-            disabled={!ready || !splitOk}
-            onClick={() => {
-              useEditorStore.getState().splitAtPlayhead();
-            }}
-            title={
-              splitOk
-                ? t("timeline.splitTitle")
-                : t("timeline.splitDisabled")
-            }
-            className={`flex h-7 items-center gap-1.5 rounded-lg px-2 text-xs font-medium transition ${
-              ready && splitOk
-                ? "cursor-pointer text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.97] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-                : "cursor-not-allowed text-zinc-300 dark:text-zinc-600"
-            }`}
-          >
-            <SquareSplitHorizontal size={13} />
-            <span className="hidden sm:inline">{t("timeline.split")}</span>
-            <kbd
-              className={`hidden rounded px-1 py-px text-[10px] font-normal sm:inline ${
-                ready && splitOk
-                  ? "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
-                  : "bg-zinc-100 text-zinc-300 dark:bg-zinc-800 dark:text-zinc-600"
-              }`}
-            >
-              S
-            </kbd>
-          </button>
-
-          <button
-            type="button"
-            disabled={!ready || !deleteOk}
-            onClick={() => {
-              useEditorStore.getState().deleteSelectedClip();
-            }}
-            title={
-              deleteOk
-                ? t("timeline.deleteTitle")
-                : t("timeline.deleteDisabled")
-            }
-            className={`flex h-7 items-center gap-1.5 rounded-lg px-2 text-xs font-medium transition ${
-              ready && deleteOk
-                ? "cursor-pointer text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.97] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-                : "cursor-not-allowed text-zinc-300 dark:text-zinc-600"
-            }`}
-          >
-            <Trash2 size={13} />
-            <span className="hidden sm:inline">{t("timeline.delete")}</span>
-            <kbd
-              className={`hidden rounded px-1 py-px text-[10px] font-normal sm:inline ${
-                ready && deleteOk
-                  ? "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
-                  : "bg-zinc-100 text-zinc-300 dark:bg-zinc-800 dark:text-zinc-600"
-              }`}
-            >
-              ⌫
-            </kbd>
-          </button>
-
-          <button
-            type="button"
-            disabled={!ready || !restoreOk}
-            onClick={() => {
-              const store = useEditorStore.getState();
-              if (store.selectedCutIndex != null) {
-                store.restoreSelectedCut();
-              } else if (selectedWordsAllCutOut) {
-                store.restoreWords(store.selectedWordIds);
-                store.setSelectedWords([]);
-              }
-            }}
-            title={
-              restoreOk
-                ? t("timeline.restoreTitle")
-                : t("timeline.restoreDisabled")
-            }
-            className={`flex h-7 items-center gap-1.5 rounded-lg px-2 text-xs font-medium transition ${
-              ready && restoreOk
-                ? "cursor-pointer text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.97] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-                : "cursor-not-allowed text-zinc-300 dark:text-zinc-600"
-            }`}
-          >
-            <RotateCcw size={13} />
-            <span className="hidden sm:inline">{t("timeline.restore")}</span>
-            <kbd
-              className={`hidden rounded px-1 py-px text-[10px] font-normal sm:inline ${
-                ready && restoreOk
-                  ? "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
-                  : "bg-zinc-100 text-zinc-300 dark:bg-zinc-800 dark:text-zinc-600"
-              }`}
-            >
-              ⌫
-            </kbd>
-          </button>
+          <RetranscribeSelection>{retranscribe=><ActionMenu label={f('More timeline tools')} favoritesKey="rescript.timeline-favorites.v1" defaults={['split','delete','restore']} actions={[
+            {id:'split',label:t('timeline.split'),icon:<SquareSplitHorizontal size={13}/>,shortcut:'S',disabled:!ready||!splitOk,title:t(splitOk?'timeline.splitTitle':'timeline.splitDisabled'),run:()=>useEditorStore.getState().splitAtPlayhead()},
+            {id:'delete',label:t('timeline.delete'),icon:<Trash2 size={13}/>,shortcut:'⌫',disabled:!ready||!deleteOk,title:t(deleteOk?'timeline.deleteTitle':'timeline.deleteDisabled'),run:()=>useEditorStore.getState().deleteSelectedClip()},
+            {id:'restore',label:t('timeline.restore'),icon:<RotateCcw size={13}/>,shortcut:'⌫',disabled:!ready||!restoreOk,title:t(restoreOk?'timeline.restoreTitle':'timeline.restoreDisabled'),run:()=>{const store=useEditorStore.getState();if(store.selectedCutIndex!=null)store.restoreSelectedCut();else if(selectedWordsAllCutOut){store.restoreWords(store.selectedWordIds);store.setSelectedWords([]);}}},
+            {id:'retranscribe',label:f('Retranscribe'),icon:<AudioLines size={13}/>,disabled:retranscribe.disabled,run:retranscribe.open},
+          ]}/>}</RetranscribeSelection>
 
           <div className="mx-0.5 h-4 w-px bg-zinc-200 dark:bg-zinc-700" />
 

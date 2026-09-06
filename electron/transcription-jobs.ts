@@ -15,6 +15,7 @@ export interface JobState {
   baseKey?:string;
   preferWasm?:boolean;
   replacementChunks?:number[];
+  replacementRange?:{start:number;end:number};
   model:string;
   language:string;
   transcribe:boolean;
@@ -68,6 +69,9 @@ export class TranscriptionJobs {
     const doc=await this.projects.read(id);await this.projects.mediaPath(id);
     const key=createHash('sha256').update(JSON.stringify({fingerprint:doc.media.fingerprint,model,language,task:"transcribe",version:2,chunk:JOB_CHUNK_SECONDS,transcribe})).digest('hex').slice(0,24);
     const old=await this.read(id);
+    if(old?.replacementRange && old.model===model && old.language===language && old.sourceFingerprint===doc.media.fingerprint && transcribe && old.status!=='complete'){
+      return this.write({...old,status:'running',message:'Resuming selected range'});
+    }
     const job:JobState=old&&(old.baseKey??old.key)===key?{...old,status:'running',message:'Resuming completed checkpoints'}:{projectId:id,key,model,language,transcribe,status:'preparing',message:'Preparing audio',completed:[],total:0,sampleCount:0,sourceFingerprint:doc.media.fingerprint,updatedAt:Date.now()};
     try{
       const cache=await this.cache(id);
@@ -116,6 +120,14 @@ export class TranscriptionJobs {
     // the previous valid generation; committed source chunks are never deleted.
     return this.write(job);
   });}
+  transcribeRange(id:string,start:number,end:number,model:string,language:string):Promise<JobState>{return this.serial(async()=>{
+    const old=await this.read(id),doc=await this.projects.read(id);
+    if(!old || old.status==='preparing'||old.status==='running')throw Error('Wait for audio preparation or pause processing first.');
+    if(!Number.isFinite(start)||!Number.isFinite(end)||start<0||end<=start||end>old.sampleCount/RATE)throw Error('Select a valid source range.');
+    if(old.sourceFingerprint!==doc.media.fingerprint)throw Error('Source media changed. Prepare audio again.');
+    return this.write({...old,key:randomUUID(),baseKey:undefined,model,language,transcribe:true,preferWasm:undefined,
+      replacementChunks:undefined,replacementRange:{start,end},completed:[],total:Math.ceil((end-start)/JOB_CHUNK_SECONDS),status:'running',message:'Transcribing selected range'});
+  });}
   async audioFile(id:string){return path.join(await this.cache(id),'audio.f32');}
   preparation(id:string){return this.serial(async()=>{const doc=await this.projects.read(id);const state=await beginPreparation(await this.cache(id),doc.media.fingerprint,doc.data.duration);return {index:state.index,sampleCount:state.sampleCount,finished:state.finished};});}
   prepareChunk(id:string,index:number,bytes:Uint8Array,finished:boolean){return this.serial(async()=>{const state=await commitPreparation(await this.cache(id),index,bytes,finished);const job=await this.read(id);if(job){job.sampleCount=state.sampleCount;await this.write(job);}return {index:state.index,sampleCount:state.sampleCount,finished:state.finished};});}
@@ -146,9 +158,10 @@ export class TranscriptionJobs {
     const job=await this.read(id);if(!job||job.status!=='running')return null;
     const index=Array.from({length:job.total},(_,i)=>i).find(i=>!job.completed.includes(i));
     if(index===undefined)return null;
-    const coreStart=index*JOB_CHUNK_SECONDS,coreEnd=Math.min((index+1)*JOB_CHUNK_SECONDS,job.sampleCount/RATE);
-    const from=Math.max(0,Math.round((coreStart-PAD_SECONDS)*RATE));
-    const to=Math.min(job.sampleCount,Math.round((coreEnd+PAD_SECONDS)*RATE));
+    const offset=job.replacementRange?.start??0;
+    const coreStart=offset+index*JOB_CHUNK_SECONDS,coreEnd=Math.min(offset+(index+1)*JOB_CHUNK_SECONDS,job.replacementRange?.end??job.sampleCount/RATE);
+    const from=Math.max(Math.round((job.replacementRange?.start??0)*RATE),Math.round((coreStart-PAD_SECONDS)*RATE));
+    const to=Math.min(Math.round((job.replacementRange?.end??job.sampleCount/RATE)*RATE),Math.round((coreEnd+PAD_SECONDS)*RATE));
     const buffer=Buffer.alloc((to-from)*4);const handle=await fs.open(await this.audioFile(id),'r');
     try{const {bytesRead}=await handle.read(buffer,0,buffer.length,from*4);if(bytesRead!==buffer.length)throw Error('Audio cache is incomplete; retry preparation.');}finally{await handle.close();}
     return {index,start:from/RATE,coreStart,coreEnd,audio:new Float32Array(buffer.buffer.slice(buffer.byteOffset,buffer.byteOffset+buffer.byteLength))};

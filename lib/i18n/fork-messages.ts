@@ -3,6 +3,17 @@ import {ru} from './messages/ru';
 import type {UiLocale} from './locales';
 /** Copy added by the fork. Other locales retain English until translated. */
 export const forkRussian={
+ 'Downloaded':'Скачанные',
+ 'More timeline tools':'Инструменты таймлайна','Project actions':'Действия проекта','Pin {tool}':'Закрепить {tool}','Unpin {tool}':'Открепить {tool}',
+ 'Not downloaded':'Не скачанные модели','Checking downloads…':'Проверка загрузок…','Download status unavailable':'Статус загрузки недоступен',
+ 'Retranscribe':'Заново',
+ 'Choose a model and transcription language when your audio is ready.':'Когда звук будет готов, выберите модель и язык расшифровки.',
+ 'Start transcription':'Начать расшифровку','Transcription model':'Модель расшифровки','Transcription language':'Язык расшифровки',
+ 'Retranscribe selection':'Расшифровать выделение заново','Transcribe':'Расшифровать',
+ 'Only this source range will be replaced. Timeline cuts stay unchanged.':'Будет заменена расшифровка только выделенного фрагмента. Монтажные вырезы сохранятся.',
+ '25 European languages, including Russian · automatic detection':'25 европейских языков, включая русский · автоопределение',
+ 'Multilingual, including Russian and English':'Несколько языков, включая русский и английский',
+
  'Experimental':'Экспериментальная','English only':'Только английский','Multilingual':'Несколько языков','English only. Use a multilingual model for Russian.':'Только английский. Для русского выберите многоязычную модель.','This model supports English only. Choose a multilingual model for Russian.':'Эта модель поддерживает только английский. Для русского выберите многоязычную модель.',
  'The latest project changes could not be saved.':'Не удалось сохранить последние изменения проекта.','The editor did not acknowledge its last save.':'Редактор не подтвердил последнее сохранение.','Keep working':'Продолжить работу','Quit without saving':'Выйти без сохранения',
 "Independent fork based on the original ReScript app by Wassim Gharbi and contributors. Not affiliated with or endorsed by the original project.":"Независимый форк оригинального приложения ReScript, созданного Wassim Gharbi и участниками проекта. Не связан с оригинальным проектом и не одобрен его авторами.",

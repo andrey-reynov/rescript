@@ -5,6 +5,7 @@ export interface DesktopJobs {
   start(id:string,model:string,language:string,transcribe:boolean):Promise<JobState>;
   read(id:string):Promise<(JobState&{progress?:{message:string;value:number|null}})|null>;
   pause(id:string):Promise<JobState>;
+  transcribeRange(id:string,start:number,end:number,model:string,language:string):Promise<JobState>;
   retryChunks(id:string,indices:number[]):Promise<JobState>;
   fork(sourceId:string,destinationId:string):Promise<JobState|null>;
   result(id:string):Promise<{words:Word[];waveform:StoredPeaks|null;project:ProjectDocument}>;

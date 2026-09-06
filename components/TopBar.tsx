@@ -4,19 +4,13 @@ import { useEditorStore } from "@/lib/store";
 import Image from "next/image";
 import logo from "@/assets/logo.png";
 import { useWindowChrome } from "@/hooks/useWindowChrome";
-import { useI18n } from "./I18nProvider";
-
-function truncateMiddle(value: string, maxLength = 40): string {
-  if (value.length <= maxLength) return value;
-  const ellipsis = "...";
-  const charsToShow = maxLength - ellipsis.length;
-  const frontChars = Math.ceil(charsToShow / 2);
-  const backChars = Math.floor(charsToShow / 2);
-  return `${value.slice(0, frontChars)}${ellipsis}${value.slice(value.length - backChars)}`;
-}
+import { scheduleProjectAutosave } from "@/lib/autosave";
+import { useI18n, useForkI18n } from "./I18nProvider";
 
 export default function TopBar({ children }: { children?: React.ReactNode }) {
   const { t } = useI18n();
+  const f=useForkI18n();
+  const projectName=useEditorStore(s=>s.projectName);
   const { draggable, trafficLights } = useWindowChrome();
   const videoFile = useEditorStore((s) => s.videoFile);
   const reset = () => { void import("@/lib/autosave").then(m=>m.closeCurrentProject()).catch(e=>alert(e.message)); };
@@ -41,20 +35,13 @@ export default function TopBar({ children }: { children?: React.ReactNode }) {
           className="rounded-sm"
         />
       </button>
-      <span className="text-sm font-semibold tracking-tight text-zinc-800 dark:text-zinc-100">
-        Rescript by Reynov
-      </span>
+      {videoFile ? <input aria-label={f("Project name")} title={f("Project name")} value={projectName}
+        onChange={event=>{useEditorStore.setState({projectName:event.target.value});scheduleProjectAutosave();}}
+        onBlur={()=>{if(!useEditorStore.getState().projectName.trim()){useEditorStore.setState({projectName:videoFile.name});scheduleProjectAutosave();}}}
+        className="app-no-drag min-w-24 max-w-64 flex-1 rounded border border-transparent bg-transparent px-2 py-1 text-sm font-semibold hover:border-zinc-300 focus:border-zinc-400" />
+        : <span className="text-sm font-semibold">Rescript by Reynov</span>}
 
-      {videoFile && (
-        <div
-          className="pointer-events-none absolute left-1/2 hidden -translate-x-1/2 items-center text-[13px] text-zinc-500 sm:flex dark:text-zinc-400"
-          title={videoFile.name}
-        >
-          {truncateMiddle(videoFile.name)}
-        </div>
-      )}
-
-      <div className="app-no-drag ml-auto flex items-center gap-1">
+      <div className="app-no-drag ml-auto flex min-w-0 flex-1 items-center justify-end gap-1">
         {children}
       </div>
     </header>

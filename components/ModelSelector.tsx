@@ -129,8 +129,13 @@ export default function ModelSelector({
   embedded = false,
   onClose,
   onKeepOpen,
+  value, onValueChange, languageValue, portal = true,
 }: {
   children?: ReactNode;
+  value?: TranscriptSource;
+  onValueChange?: (value: TranscriptSource) => void;
+  languageValue?: TranscriptLanguage;
+  portal?: boolean;
   groupLabel?: string;
   /** Render the option list only — for nesting inside Settings. */
   embedded?: boolean;
@@ -139,18 +144,20 @@ export default function ModelSelector({
   /** Called when an option needs the parent panel to stay open (embedded). */
   onKeepOpen?: () => void;
 }) {
-  const source = useEditorStore((s) => s.source);
-  const setSource = useEditorStore((s) => s.setSource);
-  const transcriptLanguage = useEditorStore((s) => s.transcriptLanguage);
+  const storedSource = useEditorStore((s) => s.source);
+  const storedSetSource = useEditorStore((s) => s.setSource);
+  const storedLanguage = useEditorStore((s) => s.transcriptLanguage);
+  const source=value??storedSource;
+  const setSource=onValueChange??storedSetSource;
+  const transcriptLanguage=languageValue??storedLanguage;
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [triggers, setTriggers] = useState<Record<string, OptionTrigger>>({});
   const listId = useId();
 
   useEffect(() => {
-    hydrateModelPreference();
-    hydrateTranscriptLanguagePreference();
-  }, []);
+    if(value===undefined&&!useEditorStore.getState().projectId){hydrateModelPreference();hydrateTranscriptLanguagePreference();}
+  }, [value]);
 
   const closeMenu = useCallback(() => {
     if (embedded) onClose?.();
@@ -243,8 +250,9 @@ export default function ModelSelector({
       <Popover
         open={open}
         onOpenChange={setOpen}
-        placement="bottom-end"
-        backdrop
+        placement={portal ? "bottom-end" : "bottom-start"}
+        portal={portal}
+        backdrop={portal}
       >
         <div className="relative z-30 shrink-0">
           <PopoverTrigger>
@@ -402,12 +410,14 @@ export function ModelOption({
             className={selected ? "text-zinc-700 dark:text-zinc-200" : "text-zinc-400 dark:text-zinc-500"}
           />
           <span className="min-w-0 flex-1 text-[13px] font-medium leading-tight">
-            {resolvedLabel}{isModelId(id)&&MODELS[id].experimental&&<span className="ml-1 text-[10px] text-zinc-400">{f("Experimental")}</span>}
+            {resolvedLabel}
           </span>
+          {model?.experimental&&<span className="shrink-0 text-[10px] text-zinc-400">{f("Experimental")}</span>}
           {resolvedMeta && (
             <span className="shrink-0 text-[11px] text-zinc-400 dark:text-zinc-500">{resolvedMeta}</span>
           )}
         </span>
+        {model&&<span className="pl-6 text-[11px] text-zinc-500">{f(model.englishOnly?"English only":model.backend==='parakeet'?"25 European languages, including Russian · automatic detection":"Multilingual, including Russian and English")}</span>}
         {children}
       </button>
     </OptionCtx.Provider>
@@ -443,7 +453,7 @@ export function LanguageSection() {
       {isModelId(source)&&MODELS[source].englishOnly&&<p className="px-2.5 py-1 text-xs text-zinc-500">{f('English only. Use a multilingual model for Russian.')}</p>}
       {source==='parakeet'&&<p className="px-2.5 py-1 text-xs text-zinc-500">{f('Parakeet detects language automatically. Use Whisper to force a specific language.')}</p>}
       <p className="px-2.5 pb-1 pt-1.5 text-[11px] font-medium tracking-wide text-zinc-400 dark:text-zinc-500">
-        {t("model.language")}
+        {t("model.transcriptLanguage")}
       </p>
       {/* No portal: stay in the parent panel DOM so outside-click on the model
           menu still treats this flyout as inside the floating tree. */}

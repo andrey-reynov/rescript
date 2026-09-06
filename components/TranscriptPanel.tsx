@@ -19,6 +19,7 @@ import {
 import { FloatingPortal } from "@floating-ui/react";
 import { useEditorStore } from "@/lib/store";
 import { isDisfluencyPlaceholder } from "@/lib/disfluencies";
+import TranscriptionSetup from "./TranscriptionSetup";
 import TranscriptToolsMenu from "./TranscriptToolsMenu";
 import TranscriptSearch from "./TranscriptSearch";
 import {
@@ -399,6 +400,7 @@ export default function TranscriptPanel() {
     // min-h-0 keeps this pane from growing to the transcript's full height —
     // without it the panel wrapper scrolls instead of the list below.
     <section className="relative flex min-h-0 min-w-0 overflow-y-hidden flex-1 flex-col bg-white dark:bg-zinc-900">
+      <TranscriptionSetup />
       {/* Floats above the scroller rather than sticking inside it, so the
           rubber-band overscroll only carries the transcript, not the bar. */}
       <div className="absolute inset-x-0 top-0 z-10 flex h-10 items-center gap-2 border-b border-zinc-100/80 bg-white/75 px-3 backdrop-blur-md sm:px-4 dark:border-zinc-800/80 dark:bg-zinc-900/75">
@@ -493,7 +495,7 @@ export default function TranscriptPanel() {
             </div>
           )}
 
-          {status === "ready" && words.length === 0 && (
+          {status === "ready" && words.length === 0 && useEditorStore.getState().transcriptionResultKey && (
               <p className="mt-2 flex items-center gap-1 text-sm font-medium text-zinc-500 dark:text-zinc-500">
                 <VolumeOff size={16} /> {t("transcript.noSpeech")}
               </p>

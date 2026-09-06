@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from 'react';
+import Dropdown from "./Dropdown";
 import { Settings, X, FolderOpen } from 'lucide-react';
 import { useAppearance } from '@/hooks/useAppearance';
 import { useI18n, useForkI18n } from './I18nProvider';
@@ -25,7 +26,7 @@ export default function SettingsMenu() {
           <p className="my-3 break-all rounded-lg border border-zinc-200 p-3 text-sm dark:border-zinc-700">{folder||f('Browser storage — install the desktop app to choose a folder.')}</p>
           {folder&&<button className="flex items-center gap-2 rounded-lg bg-zinc-900 px-3 py-2 text-sm text-white dark:bg-zinc-100 dark:text-zinc-900" onClick={()=>void window.rescriptDesktop!.projects.chooseFolder().then(next=>{if(next){setFolder(next);window.dispatchEvent(new Event('rescript:projects-changed'));}}).catch(e=>setError(String(e)))}><FolderOpen size={16}/>{f("Choose folder…")}</button>}
           <p className="mt-4 text-xs text-zinc-500">{f("Original media stays where it is. Projects keep source references and saved edits, plus up to 20 recovery snapshots.")}</p></>}
-        {tab==='appearance'&&<div className="space-y-4"><label className="block text-sm">{t('settings.appearance')}<select aria-label={f("Appearance")} value={appearance} onChange={e=>setAppearance(e.target.value==='dark'?'dark':'light')} className="mt-2 block w-full rounded border bg-transparent p-2"><option value="light">{t('settings.light')}</option><option value="dark">{t('settings.dark')}</option></select></label><label className="block text-sm">{t('settings.interfaceLanguage')}<select aria-label={f("Interface language")} value={preference} onChange={e=>{if(isUiLocalePreference(e.target.value))setPreference(e.target.value);}} className="mt-2 block w-full rounded border bg-transparent p-2"><option value="system">{t('common.system')}</option>{UI_LOCALES.map(locale=><option key={locale} value={locale}>{UI_LOCALE_META[locale].nativeLabel}</option>)}</select></label></div>}
+        {tab==='appearance'&&<div className="space-y-4"><div className="text-sm">{t('settings.appearance')}<Dropdown label={f('Appearance')} value={appearance} onChange={value=>setAppearance(value==='dark'?'dark':'light')} options={[{value:'light',label:t('settings.light')},{value:'dark',label:t('settings.dark')}]}/></div><div className="text-sm">{t('settings.interfaceLanguage')}<Dropdown label={f('Interface language')} value={preference} onChange={value=>{if(isUiLocalePreference(value))setPreference(value);}} options={[{value:'system',label:t('common.system')},...UI_LOCALES.map(locale=>({value:locale,label:UI_LOCALE_META[locale].nativeLabel}))]}/></div></div>}
         {tab==='about'&&<><h2 className="font-semibold">Rescript by Reynov</h2><p className="my-3 text-sm text-zinc-500">{f(FORK_NOTICE)}</p><a className="text-sm underline" href={GITHUB_REPO_URL} target="_blank" rel="noopener noreferrer">{f("Fork on GitHub")}</a></>}
         {error&&<p role="alert" className="mt-3 text-sm text-red-600">{error}</p>}
       </div>
