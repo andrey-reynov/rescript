@@ -120,6 +120,8 @@ interface EditorState {
   manualCuts: ManualCut[];
   sceneBoundaries: SceneBoundary[];
   showDeleted: boolean;
+  skipDeletions: boolean;
+  toggleSkipDeletions: () => void;
   past: EditSnapshot[];
   future: EditSnapshot[];
   /** Selected timeline clip index, or null. */
@@ -360,6 +362,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   manualCuts: [],
   sceneBoundaries: [],
   showDeleted: true,
+  skipDeletions: true,
   past: [],
   future: [],
   selectedClipIndex: null,
@@ -464,6 +467,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       manualCuts,
       sceneBoundaries,
       showDeleted: record.showDeleted,
+      skipDeletions: record.skipDeletions ?? true,
       past: [],
       future: [],
       selectedClipIndex: null,
@@ -956,6 +960,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
     bumpAutosave();
   },
+  toggleSkipDeletions: () => {set(s=>({skipDeletions:!s.skipDeletions}));bumpAutosave();},
   toggleShowDeleted: () => {
     set((s) => ({ showDeleted: !s.showDeleted }));
     bumpAutosave();
@@ -975,7 +980,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (!media) return;
     if (media.paused) {
       const cuts = getCutRanges(s.words, s.duration, s.manualCuts);
-      const cut = cutRangeAt(media.currentTime, cuts);
+      const cut = s.skipDeletions ? cutRangeAt(media.currentTime, cuts) : null;
       if (cut) media.currentTime = cut.end + PLAYHEAD_EPSILON_S;
       if (media.currentTime >= media.duration - 0.05) media.currentTime = 0;
       void media.play();

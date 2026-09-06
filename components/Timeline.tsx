@@ -113,6 +113,7 @@ export default function Timeline() {
   const status = useEditorStore((s) => s.status);
 
   const cuts = useCutRanges();
+  const skipDeletions=useEditorStore(s=>s.skipDeletions);
   const keeps = useMemo(() => getKeepRanges(cuts, duration), [cuts, duration]);
   const clips = useMemo(
     () => getClipSegments(keeps, sceneBoundaries),
@@ -696,6 +697,7 @@ export default function Timeline() {
             {id:'split',label:t('timeline.split'),icon:<SquareSplitHorizontal size={13}/>,shortcut:'S',disabled:!ready||!splitOk,title:t(splitOk?'timeline.splitTitle':'timeline.splitDisabled'),run:()=>useEditorStore.getState().splitAtPlayhead()},
             {id:'delete',label:t('timeline.delete'),icon:<Trash2 size={13}/>,shortcut:'⌫',disabled:!ready||!deleteOk,title:t(deleteOk?'timeline.deleteTitle':'timeline.deleteDisabled'),run:()=>useEditorStore.getState().deleteSelectedClip()},
             {id:'restore',label:t('timeline.restore'),icon:<RotateCcw size={13}/>,shortcut:'⌫',disabled:!ready||!restoreOk,title:t(restoreOk?'timeline.restoreTitle':'timeline.restoreDisabled'),run:()=>{const store=useEditorStore.getState();if(store.selectedCutIndex!=null)store.restoreSelectedCut();else if(selectedWordsAllCutOut){store.restoreWords(store.selectedWordIds);store.setSelectedWords([]);}}},
+            {id:'skip-deletions',label:f('Skip deletion areas'),icon:<Play size={13}/>,checked:skipDeletions,favoritable:false,run:()=>useEditorStore.getState().toggleSkipDeletions()},
             {id:'retranscribe',label:f('Retranscribe'),icon:<AudioLines size={13}/>,disabled:retranscribe.disabled,run:retranscribe.open},
           ]}/>}</RetranscribeSelection>
 

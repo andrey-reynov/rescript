@@ -1,4 +1,5 @@
 "use client";
+import Button from "./Button";
 
 import { useCallback, useEffect, useId, useRef, useState } from "react";
 import Image from "next/image";
@@ -205,7 +206,7 @@ export default function UploadScreen({
               </div>
             </div>
           )}
-          {isElectron && <div className="mb-4 flex justify-end"><button type="button" className="rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700" onClick={()=>void window.rescriptDesktop!.projects.open().then(id=>{if(id)void handleOpen(id);}).catch(e=>alert(e.message))}>{f("Open project…")}</button></div>}
+          {isElectron && <div className="mb-4 flex justify-end"><Button variant="accent" onClick={()=>void window.rescriptDesktop!.projects.open().then(id=>{if(id)void handleOpen(id);}).catch(e=>alert(e.message))}>{f("Open project…")}</Button></div>}
           {/*
             Native <label htmlFor> opens the file dialog without a synthetic
             input.click(). display:none inputs + .click() fail in some Chromium

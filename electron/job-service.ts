@@ -67,6 +67,12 @@ export function installJobService(projects:ProjectFiles,devUrl:string|null,prelo
     starting=true;
     try{progress.delete(id);const job=await jobs.transcribeRange(id,start,end,model,language);await launch(id);notify(id);return job;}finally{starting=false;}
   });
+  ui('transcribe-all',async(_event,id:string,model:string,language:string)=>{
+    if(starting||runner)throw Error('Pause active processing before retranscribing.');
+    if(typeof model!=='string'||typeof language!=='string')throw Error('Invalid transcription settings.');
+    starting=true;
+    try{progress.delete(id);const job=await jobs.transcribeAll(id,model,language);await launch(id);notify(id);return job;}finally{starting=false;}
+  });
   ui('read',async(_event,id:string)=>{const job=await jobs.read(id);return job?{...job,progress:progress.get(id)}:null;});
   ui('pause',async(_event,id:string)=>{if(activeId===id)closeRunner();const job=await jobs.setStatus(id,'paused','Paused — completed batches are saved');notify(id);return job;});
   ui('result',async(_event,id:string)=>({words:await jobs.words(id),waveform:await jobs.waveform(id),project:await projects.read(id)}));

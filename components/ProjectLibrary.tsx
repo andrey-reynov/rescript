@@ -1,8 +1,9 @@
 "use client";
 import {useI18n,useForkI18n} from "./I18nProvider";
 import {localizeRuntimeMessage} from "@/lib/i18n";
+import Button from './Button';
 import { useState } from 'react';
-import { FolderOpen, Film, Music, History } from 'lucide-react';
+import { FolderOpen, Film, Music, History, X } from 'lucide-react';
 import type { ProjectMeta } from '@/lib/projects';
 
 export default function ProjectLibrary({projects,busyId,onOpen}:{projects:ProjectMeta[];busyId:string|null;onOpen:(id:string)=>void}) {
@@ -23,17 +24,18 @@ export default function ProjectLibrary({projects,busyId,onOpen}:{projects:Projec
         </button>
         <div className="flex items-center gap-2 px-3 pb-3 pt-2"><p title={project.filePath} className="min-w-0 flex-1 truncate text-[11px] text-zinc-400">{project.filePath||(project.legacy?f('Older project · locate original media to migrate'):f('Browser storage'))}</p>
           {typeof window!=='undefined'&&window.rescriptDesktop?.projects&&!project.legacy&&<>
-            <button title={f("Show project location")} onClick={()=>void window.rescriptDesktop!.projects.show(project.id).catch(e=>setError(String(e)))}><FolderOpen size={15}/></button>
-            <button title={f("Recovery snapshots")} aria-label={f('Recovery snapshots for {name}',{name:project.name})} onClick={()=>void window.rescriptDesktop!.projects.snapshots(project.id).then(snapshots=>setRecovery({id:project.id,snapshots})).catch(e=>setError(String(e)))}><History size={15}/></button>
+            <Button variant="icon" aria-label={f("Show project location")} title={f("Show project location")} onClick={()=>void window.rescriptDesktop!.projects.show(project.id).catch(e=>setError(String(e)))}><FolderOpen size={15}/></Button>
+            <Button variant="icon" title={f("Recovery snapshots")} aria-label={f('Recovery snapshots for {name}',{name:project.name})} onClick={()=>void window.rescriptDesktop!.projects.snapshots(project.id).then(snapshots=>setRecovery({id:project.id,snapshots})).catch(e=>setError(String(e)))}><History size={15}/></Button>
           </>}
         </div>
       </article>)}
     </div>
-    {recovery&&<div role="dialog" aria-modal="true" aria-label={f("Recovery snapshots")} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6"><div className="max-h-[80vh] w-full max-w-md overflow-auto rounded-xl bg-white p-5 dark:bg-zinc-900">
-      <h2 className="font-semibold">{f("Recovery snapshots")}</h2><p className="my-2 text-sm text-zinc-500">{f("Restore a prior saved revision. The current file is retained as a recovery backup.")}</p>
+    {recovery&&<div role="dialog" aria-modal="true" aria-label={f("Recovery snapshots")} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6"><div className="flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-xl bg-white p-5 dark:bg-zinc-900">
+      <div className="flex shrink-0 items-center justify-between gap-3"><h2 className="font-semibold">{f("Recovery snapshots")}</h2><Button variant="icon" aria-label={f("Close revisions")} onClick={()=>setRecovery(null)}><X size={16}/></Button></div><p className="my-2 shrink-0 text-sm text-zinc-500">{f("Restore a prior saved revision. The current file is retained as a recovery backup.")}</p>
+      <div className="min-h-0 overflow-y-auto" aria-label={f("Revision list")}>
       {!recovery.snapshots.length&&<p className="my-4 text-sm">{f("No snapshots yet. Snapshots appear after subsequent saves.")}</p>}
       {recovery.snapshots.map((snapshot,i)=><button key={snapshot} className="my-1 block w-full rounded border p-2 text-left text-sm" onClick={()=>{void window.rescriptDesktop!.projects.restore(recovery.id,snapshot).then(()=>{setRecovery(null);onOpen(recovery.id);}).catch(e=>setError(String(e)));}}>{f('Restore {revision}',{revision:i===0?f('latest previous revision'):f('revision {number}',{number:snapshot.replace('.json','')})})}</button>)}
-      <button className="mt-4 rounded border px-4 py-2 text-sm" onClick={()=>setRecovery(null)}>{f("Cancel")}</button>
+      </div>
     </div></div>}
   </section>;
 }

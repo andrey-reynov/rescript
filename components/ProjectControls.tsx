@@ -2,8 +2,9 @@
 import {useI18n,useForkI18n} from "./I18nProvider";
 import {localizeRuntimeMessage} from "@/lib/i18n";
 import { useEffect, useState } from 'react';
-import { Save, FolderOpen, Copy, Download, FolderInput, X, Pause, Play } from 'lucide-react';
+import { Save, FolderOpen, Copy, Download, FolderInput, X, Pause, Play, AudioLines } from 'lucide-react';
 import { useEditorStore } from '@/lib/store';
+import RetranscribeSelection from './RetranscribeSelection';
 import ActionMenu from './ActionMenu';
 import { flushProjectAutosave, saveProjectAs, closeCurrentProject } from '@/lib/autosave';
 
@@ -38,7 +39,7 @@ export default function ProjectControls({mode='status'}:{mode?:'status'|'menu'})
     window.addEventListener('keydown',handler);return()=>window.removeEventListener('keydown',handler);
   },[mode]);
   if(!file)return null;
-  if(mode==='menu')return <div className="relative"><ActionMenu label={f('Project actions')} actions={[
+  if(mode==='menu')return <div className="relative"><RetranscribeSelection scope="all">{retranscribe=><ActionMenu label={f('Project actions')} actions={[
     {id:'save',label:f('Save'),icon:<Save size={14}/>,shortcut:'Ctrl/⌘ S',disabled:busy,run:()=>void act(flushProjectAutosave)},
     ...(typeof window!=='undefined'&&window.rescriptDesktop?[
      {id:'open',label:f('Open project…'),icon:<FolderInput size={14}/>,shortcut:'Ctrl/⌘ O',disabled:busy,run:()=>void act(async()=>{await flushProjectAutosave();const id=await window.rescriptDesktop!.projects.open();if(id)await useEditorStore.getState().openProject(id);})},
@@ -47,8 +48,9 @@ export default function ProjectControls({mode='status'}:{mode?:'status'|'menu'})
     ]:[]),
     {id:'close',label:f('Close Project'),icon:<X size={14}/>,disabled:busy,run:()=>void act(closeCurrentProject)},
     ...(job&&job!=='complete'?[{id:'processing',label:f(job==='running'||job==='preparing'?'Pause processing':'Resume processing'),icon:job==='running'||job==='preparing'?<Pause size={14}/>:<Play size={14}/>,disabled:busy,run:()=>void act(async()=>{await flushProjectAutosave();const s=useEditorStore.getState();if(job==='running'||job==='preparing')await window.rescriptDesktop!.jobs.pause(s.projectId!);else{const previous=await window.rescriptDesktop!.jobs.read(s.projectId!);if(previous)await window.rescriptDesktop!.jobs.start(s.projectId!,previous.model,previous.language,previous.transcribe);}})}]:[]),
+    {id:'retranscribe-all',label:f('Retranscribe all'),icon:<AudioLines size={14}/>,disabled:busy||retranscribe.disabled,run:retranscribe.open},
     {id:'export',label:t('editor.export'),icon:<Download size={14}/>,disabled:status!=='ready'&&status!=='exporting',run:()=>useEditorStore.getState().setExportOpen(true)},
-  ]}/>{actionError&&<p role="alert" className="absolute right-0 top-full z-50 w-72 rounded bg-white p-2 text-xs text-red-600 dark:bg-zinc-900">{f(localizeRuntimeMessage(actionError,t))}</p>}</div>;
+  ]}/>}</RetranscribeSelection>{actionError&&<p role="alert" className="absolute right-0 top-full z-50 w-72 rounded bg-white p-2 text-xs text-red-600 dark:bg-zinc-900">{f(localizeRuntimeMessage(actionError,t))}</p>}</div>;
   return <div className="flex min-w-0 flex-1 items-center justify-end gap-2 text-xs">
 
     <span role="status" className={state==='error'?'text-red-600':'text-zinc-500'}>{state==='saved'?f('Saved'):state==='saving'?f('Saving…'):state==='error'?f('Save failed'):f('Unsaved changes · autosave within 0.5s')}</span>

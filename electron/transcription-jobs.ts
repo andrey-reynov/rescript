@@ -128,6 +128,11 @@ export class TranscriptionJobs {
     return this.write({...old,key:randomUUID(),baseKey:undefined,model,language,transcribe:true,preferWasm:undefined,
       replacementChunks:undefined,replacementRange:{start,end},completed:[],total:Math.ceil((end-start)/JOB_CHUNK_SECONDS),status:'running',message:'Transcribing selected range'});
   });}
+  async transcribeAll(id:string,model:string,language:string):Promise<JobState>{
+    const previous=await this.read(id);
+    if(!previous?.sampleCount)throw Error('Prepare source audio before retranscribing.');
+    return this.transcribeRange(id,0,previous.sampleCount/RATE,model,language);
+  }
   async audioFile(id:string){return path.join(await this.cache(id),'audio.f32');}
   preparation(id:string){return this.serial(async()=>{const doc=await this.projects.read(id);const state=await beginPreparation(await this.cache(id),doc.media.fingerprint,doc.data.duration);return {index:state.index,sampleCount:state.sampleCount,finished:state.finished};});}
   prepareChunk(id:string,index:number,bytes:Uint8Array,finished:boolean){return this.serial(async()=>{const state=await commitPreparation(await this.cache(id),index,bytes,finished);const job=await this.read(id);if(job){job.sampleCount=state.sampleCount;await this.write(job);}return {index:state.index,sampleCount:state.sampleCount,finished:state.finished};});}

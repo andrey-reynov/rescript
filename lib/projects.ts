@@ -43,6 +43,7 @@ function projectSource(row: {
 export interface ProjectRecord extends ProjectMeta {
   words: Word[];
   showDeleted: boolean;
+  skipDeletions?: boolean;
   /** Blade/trim cuts not owned by deleted words (optional for older saves). */
   manualCuts?: ManualCut[];
   /** Scene split points in original media time (optional for older saves). */
@@ -239,6 +240,7 @@ export async function putProject(input: ProjectWrite): Promise<string> {
       : DEFAULT_TRANSCRIPT_LANGUAGE,
     words: input.words,
     showDeleted: input.showDeleted,
+    skipDeletions: input.skipDeletions ?? true,
     manualCuts: input.manualCuts ?? [],
     sceneBoundaries: input.sceneBoundaries ?? [],
     speakers: input.speakers ?? [],
