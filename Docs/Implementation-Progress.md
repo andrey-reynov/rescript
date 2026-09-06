@@ -324,3 +324,12 @@ Together with stage 30's legacy migration without retranscription and stages 34�
 ## Stage 41 — Multi-batch selected alignment publication
 
 Actual cached English CTC inference processed two source-separated batches (7,280 and 25,440 samples). Successful results updated all three selected words atomically and one Undo restored the complete original words array. A second run with unalignable `1985` in batch two completed batch one, then failed with a localized error and left all saved words unchanged. See Selected-Text-Alignment.md for scope and instrumentation. Restored the isolated fixture after stopping the process. No application code change was needed.
+
+
+## Stage 42 — Distant edits in a long virtualized transcript
+
+Created a separate synthetic 5,000-second audio project with 10,000 timed words and 120 alternating speaker labels. An earlier invalid fixture used 42-second media with out-of-range words; its rejected edits were correct and that fixture was restored. The valid project uses matching 83-minute silent audio; this stresses editing and layout, not transcription accuracy.
+
+The editor initially mounted 143 word spans. Scrolled to approximately 80%, grouped words 8088–8090, and corrected word 8093 to `Revised` at 4046.5–4046.9 seconds. Scrolling back to the start unmounted the correction and retained only 143 spans. Reloaded/reopened the project: all 10,000 words, the stable phrase ID/members, and complete correction/source provenance persisted. Returning to the distant region displayed `Revised` with 161 spans mounted. Existing stage 6 checks cover selected endpoints surviving offscreen scroll/resize; stage 38 covers shared range anchoring. Source inspection confirms useTranscriptFlow memoizes by words/layout/enabled rather than pointer or selection updates, so pointer movement does not remeasure every word.
+
+This completes the long-project virtualization checklist item. Keyboard/composition acceptance and the final current-tree audit remain open. The standalone stress fixture remains in the isolated test profile for reproducibility.

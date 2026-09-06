@@ -132,6 +132,6 @@ Evidence and remaining gates: [Transcript-Acceptance-Audit.md](Transcript-Accept
 - [x] View toggles, Hide deleted words, and Skip deletion areas remain independent and do not alter edit/export data.
 - [x] New structures, names, corrected text, and timing provenance survive undo/redo, autosave, and reopening; older projects load without retranscription or data loss.
 - [x] No floating selection toolbar remains in default clip view; any retained legacy toolbar respects viewport visibility.
-- [ ] Long-video virtualization continues to work: offscreen rendering does not lose selection, group membership, or edits, and updates do not rebuild every word on each pointer event.
+- [x] Long-video virtualization continues to work: offscreen rendering does not lose selection, group membership, or edits, and updates do not rebuild every word on each pointer event.
 
 Implementation details requiring explicit resolution during development: deterministic ownership/rendering of partially cut words, custom-name retention when clips merge, and the corrected-token timing/allocation algorithm. These must respect the invariants above and be documented with tests; do not infer precise timing or discard names silently.
