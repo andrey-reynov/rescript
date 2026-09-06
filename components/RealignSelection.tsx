@@ -17,12 +17,14 @@ export default function RealignSelection({selection,projectId,onClose}:{selectio
  const initial=selection.words[0]?.language??useEditorStore.getState().transcriptLanguage;
  const [language,setLanguage]=useState(initial),[busy,setBusy]=useState(false),[error,setError]=useState('');
  const [progress,setProgress]=useState({message:'',value:0 as number|null});
+ const submitting=useRef(false);
  const rejectPending=useRef<((error:Error)=>void)|null>(null);
  const worker=useRef<Worker|null>(null),generation=useRef(0),dialog=useRef<HTMLDivElement>(null);
  const cancel=()=>{generation.current++;rejectPending.current?.(Error('Cancelled'));rejectPending.current=null;worker.current?.terminate();worker.current=null;onClose();};
  useEffect(()=>{dialog.current?.focus();const activeGeneration=generation,activeWorker=worker,pending=rejectPending;return()=>{activeGeneration.current++;pending.current?.(Error('Cancelled'));pending.current=null;activeWorker.current?.terminate();};},[]);
  const run=async()=>{
-  if(!alignModelFor(language))return;
+  if(submitting.current||!alignModelFor(language))return;
+  submitting.current=true;dialog.current?.focus();
   const token=++generation.current;setBusy(true);setError('');setProgress({message:f('Reading audio'),value:0});
   try{
    const native=window.rescriptDesktop!;
@@ -56,7 +58,7 @@ export default function RealignSelection({selection,projectId,onClose}:{selectio
    if(useEditorStore.getState().projectId!==projectId||latest.media.fingerprint!==source.media.fingerprint)throw Error('Source media changed. Run alignment again.');
    useEditorStore.getState().applyWordAlignment(selection,result);onClose();
   }catch(cause){if(token===generation.current)setError((cause instanceof Error?cause.message:String(cause)).replace(/^Error invoking remote method '[^']+': Error: /,''));}
-  finally{if(token===generation.current){worker.current?.terminate();worker.current=null;setBusy(false);}}
+  finally{if(token===generation.current){worker.current?.terminate();worker.current=null;submitting.current=false;setBusy(false);}}
  };
  const supported=!!alignModelFor(language);
  return createPortal(<div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40" onMouseDown={event=>{if(event.target===event.currentTarget&&!busy)cancel();}}>

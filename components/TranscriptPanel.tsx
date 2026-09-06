@@ -16,9 +16,11 @@ import {
   VolumeOff,
 } from "lucide-react";
 import { FloatingPortal } from "@floating-ui/react";
+import {flushSync} from "react-dom";
 import { useEditorStore } from "@/lib/store";
 import { isDisfluencyPlaceholder } from "@/lib/disfluencies";
 import ContextMenu from './ContextMenu';
+import ClipNameInput from './ClipNameInput';
 import RealignSelection from './RealignSelection';
 import {alignmentSelection,type AlignmentSelection} from '@/lib/correction-alignment';
 import ActionMenu from './ActionMenu';
@@ -73,6 +75,7 @@ const WordSpan = memo(function WordSpan({
   const { t } = useI18n();
   const f=useForkI18n();
   const placeholder = isDisfluencyPlaceholder(word.text);
+  const emptyText = !word.text.trim();
   // The trailing space lives inside the span so that selection and deletion
   // highlights are continuous across words instead of breaking at each gap.
   return (
@@ -81,7 +84,7 @@ const WordSpan = memo(function WordSpan({
       data-sel={selected ? "" : undefined}
       data-cut={cutOut ? "" : undefined}
       data-placeholder={placeholder ? "" : undefined}
-      title={partial?f("Partially cut · source timing preserved"):word.correction?.timing==='approximate'?f("Approximate timing · corrected text"):placeholder ? t("transcript.hesitation") : undefined}
+      title={emptyText?f("Empty text · audio preserved; double-click to correct"):partial?f("Partially cut · source timing preserved"):word.correction?.timing==='approximate'?f("Approximate timing · corrected text"):placeholder ? t("transcript.hesitation") : undefined}
       onClick={(e) => {
         if(e.ctrlKey){useEditorStore.getState().seekTo(word.start);return;}
         if(e.shiftKey){e.currentTarget.closest<HTMLElement>('[data-transcript-editor]')?.focus({preventScroll:true});useEditorStore.getState().selectWordRange([word.id],true);window.getSelection()?.removeAllRanges();return;}
@@ -97,7 +100,7 @@ const WordSpan = memo(function WordSpan({
             : "text-zinc-800 hover:bg-neutral-50 dark:text-zinc-200 dark:hover:bg-neutral-800/60"
         }`}
     >
-      {word.text}{" "}
+      {emptyText?<span className="rounded border border-dashed border-current px-1 text-xs italic opacity-70">{f("Empty text")}</span>:word.text}{" "}
     </span>
   );
 });
@@ -390,7 +393,16 @@ export default function TranscriptPanel() {
 
   const contextRun=(action:()=>void)=>()=>{try{action();setEditError('');}catch(e){setEditError(e instanceof Error?e.message:String(e));}};
   const editKey=(e:React.KeyboardEvent)=>{
-    if(e.isDefaultPrevented()||isCompositionKey(e.nativeEvent)||isTypingTarget(e.target)||e.ctrlKey||e.metaKey||e.altKey||correcting||!selectedWordIds.length||status!=='ready')return;
+    if(e.isDefaultPrevented()||isTypingTarget(e.target)||e.ctrlKey||e.metaKey||e.altKey||correcting||!selectedWordIds.length||status!=='ready')return;
+    if(isCompositionKey(e.nativeEvent)){
+      // Windows sends Process/229 before composition starts. Supply its editable
+      // target before the browser handles that key; retain text if IME cancels.
+      if(!e.nativeEvent.isComposing&&e.nativeEvent.keyCode===229){
+        flushSync(()=>beginCorrection(selectedWordIds));
+        e.currentTarget.querySelector<HTMLInputElement>('[data-correction-input]')?.select();
+      }
+      return;
+    }
     if(e.key==='Enter'){e.preventDefault();e.stopPropagation();useEditorStore.getState().splitBeforeSelection();}
     else if(e.key.length===1){e.preventDefault();e.stopPropagation();beginCorrection(selectedWordIds,e.key);}
   };
@@ -499,13 +511,13 @@ export default function TranscriptPanel() {
                     {view==='clips'&&turn.first&&turn.block&&<div className="mb-2 flex items-center gap-2 text-xs text-zinc-500">
                       {turn.block.kind==='deleted'?<span className="text-red-500">{f('Deleted')} · {intervalDuration(turn.block.end-turn.block.start,f('s'))}{!showDeleted&&hiddenSelectionCount(turn.sourceWordIds,selectedIds,cutOutIds)>0&&<span role="status" className="ml-2 text-zinc-500">{f('Hidden selected words: {count}',{count:hiddenSelectionCount(turn.sourceWordIds,selectedIds,cutOutIds)})}</span>}</span>:<>
                         <button onClick={()=>{useEditorStore.getState().selectWordRange(turn.sourceWordIds);useEditorStore.getState().setSelectedClipIndex(turn.block!.clipIndex!);}}>{f('Clip {number}',{number:(turn.block.clipIndex??0)+1})}</button>
-                        <input aria-label={f('Clip name')} placeholder={f('Clip name')} value={turn.block.name??''} onChange={e=>useEditorStore.getState().renameClip((turn.block!.start+turn.block!.end)/2,e.target.value)} className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 hover:border-zinc-300"/>
+                        <ClipNameInput label={f('Clip name')} value={turn.block.name??''} onCommit={name=>useEditorStore.getState().renameClip((turn.block!.start+turn.block!.end)/2,name)}/>
                         {turn.block.splitId!==undefined&&<button title={f('Join clips')} onClick={()=>removeSceneBoundary(turn.block!.splitId!)}><Merge size={13}/></button>}
                       </>}
                     </div>}
                     <p className="select-text text-[15px] leading-8">
                       {visible.map((w) => {
-                        if(correcting?.ids.includes(w.id))return w.id===correcting.ids[0]?<input key={w.id} aria-label={f('Correct text')} autoFocus value={correctText} onChange={e=>setCorrectText(e.target.value)} onKeyDown={e=>{e.stopPropagation();if(isCompositionKey(e.nativeEvent))return;if(e.key==='Enter'){e.preventDefault();applyCorrection();}if(e.key==='Escape'){e.preventDefault();closeCorrect();}}} onBlur={applyCorrection} style={{width:`${Math.max(8,Math.min(65,correctText.length+2))}ch`}} className="max-w-full rounded border border-blue-500 bg-white px-1 text-[15px] leading-8 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"/>:null;
+                        if(correcting?.ids.includes(w.id))return w.id===correcting.ids[0]?<input key={w.id} data-correction-input aria-label={f('Correct text')} autoFocus value={correctText} onChange={e=>setCorrectText(e.target.value)} onKeyDown={e=>{e.stopPropagation();if(isCompositionKey(e.nativeEvent))return;if(e.key==='Enter'){e.preventDefault();applyCorrection();}if(e.key==='Escape'){e.preventDefault();closeCorrect();}}} onBlur={applyCorrection} style={{width:`${Math.max(8,Math.min(65,correctText.length+2))}ch`}} className="max-w-full rounded border border-blue-500 bg-white px-1 text-[15px] leading-8 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"/>:null;
                         const split = splitBeforeWordId.get(w.id);
                         return (
                           <React.Fragment key={w.id}>

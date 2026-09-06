@@ -230,3 +230,115 @@ Latest static build predates the final small tweaks for Space replacement, no-op
 - Actual Settings UI language switches left Russian transcription preferences unchanged. Fresh Base/Russian output stayed Cyrillic under English UI; Parakeet/Automatic retained both languages in the bilingual sample under Russian UI.
 - Shared dialog language choices matched fixed English, automatic-only Parakeet and explicit multilingual Whisper profiles. Unsupported native forcing rejected before changing job generation. Capability/model tests pass.
 - Item 7 moved to Completed-Plan-Items.md with original requirements/evidence. Item 8 retains installed/native-menu/migration gates. Isolated Russian and bilingual project/job/summary files restored; UI returned to Russian.
+
+
+## Stage 28 — Recoverable empty text corrections
+
+Item 13 audit found that committing an empty correction preserved its timed token but rendered only a nearly invisible space. The transcript now shows a localized, visibly selectable **Empty text** placeholder; empty timeline chips use the same label. The placeholder is presentation only: editing reopens an empty value, source timing/provenance and audio remain intact, and no placeholder text is stored or exported.
+
+Validation: TypeScript and production UI build passed, as did transcript-structure and localization tests. In an isolated runtime project, double-clicking the first word, deleting its characters, and committing showed the Russian placeholder with an 88.8 px target. Double-click reopened an empty input; typing and committing `Restored` replaced it successfully. Playback stayed at 0 throughout. The isolated fixture was restored afterward. Full item 13 acceptance, including native initial IME input and remaining migration/long-video checks, remains open.
+
+
+## Stage 29 — Model relocation recovery after process termination
+
+Item 2 now persists an in-progress flag and ownership of the current temporary copy before relocation starts copying. A restarted manager reports the interrupted operation. Retry removes only that recorded partial file, verifies and publishes copies, then removes originals through the existing cleanup journal. Successful completion clears the recovery state. The interrupted status is localized and is not shown while a live relocation is running.
+
+The new `model-storage-crash-test.ts` starts a separate process, writes a partial model copy, kills that process before its cleanup handlers can run, then creates a new storage instance. It verifies the original remains loadable, interruption is reported, retry works with all network requests forbidden, the old copy is removed only after success, the tracked partial copy is removed, and an unrelated `.part` file survives. Existing model storage regressions and both TypeScript checks pass. This covers abrupt relocation termination; download/import process-termination recovery and final installed-manager acceptance remain separate checks.
+
+
+## Stage 30 — Installed Russian UI and legacy migration acceptance
+
+Used the real NSIS-installed `RescriptAcceptance.exe`, with `isPackaged: true` and its own AppData profile. Its installer used current-at-build application code (through 8f82e7f), with only application identity and shortcut settings changed to protect the normal installation. Earlier first-launch evidence showed English native menus; selecting Russian through Settings changed both the UI and native menus. After a full process restart, Russian remained selected in localStorage, the Project Manager, editor, and File/Edit/View/Window menus. This is installed-app evidence, not a development renderer impersonating a packaged app.
+
+Seeded that isolated profile with an older IndexedDB project containing a media Blob, legacy `model` field, Russian transcription setting, four timed Russian words with deliberately different speaker IDs, a manual deletion, and an explicit split. Opened its card through the actual UI; only the native source-file chooser response was automated to supply the matching test WAV. The normal migration code verified the media fingerprint and created the project in the isolated `work/fresh-projects` folder. The migrated file preserved source model/language, all words/times/speaker IDs, deletion and split, and defaulted to clip view. The preparation job completed with `transcribe: false`, zero transcription batches, and no replacement of existing text. After another full app restart, reopening the card preserved the same data and Russian UI.
+
+Combined with stage 27's English/Russian and model-capability matrix, item 8's remaining acceptance gates are complete; the original criteria and this evidence are retained in Completed-Plan-Items.md. This does not close the separate models-manager installed acceptance or the full transcript-editing checklist.
+
+
+## Stage 31 — Partial phrase selection and context targets
+
+Item 13 audit found that a partial selection still filled the entire phrase chip and right-click tested only the phrase's first word, expanding an existing selection when a later member was selected. Full-chip highlighting now requires every member; partial selection uses only the member-time overlays. Right-click retains a selection intersecting the clicked phrase and selects the phrase only when none of its members is selected. Selection membership uses a memoized set for visible chip projection.
+
+Production UI build and TypeScript passed. Isolated runtime fixture grouped words 140–142: selecting transcript word 141 yielded `partial`, one overlay, no full-chip fill, and just word 141 selected. Opening its phrase context menu preserved that target. A real pointer click on the phrase selected 140–142 and showed `full`; the playhead stayed at 0. The disposable fixture was restored after stopping its test process. The full item 13 checklist remains open.
+
+
+## Stage 32 — Actual gameplay analysis in the installed app
+
+Ran the installed silence-analysis worker on a one-minute extraction of the user's existing gameplay VOD, in a separate test project. It completed all 1,875 frames, produced distinct RMS/VAD/overlap ranges, and added no cuts or transcript data. See Silence-Detection.md for measured durations and the explicit accuracy limits. Cached results and dialog candidates survived reopening. The installed colored-lane check exposed a hidden-window sizing/visibility issue and remains open; item 5 is not marked complete.
+
+
+## Stage 33 — Installed detector visualization and explicit deletion
+
+Confirmed the acceptance window was hidden; showing it rendered all 23 gameplay regions in the expected colors without a source change. A focused overlap Delete applied the configured source handles, and Undo restored the original edit with unchanged media reference. A controlled instrumental/silent-edge fixture completed actual installed VAD/RMS analysis, displayed ten regions, and added no cuts. Its music false positives are explicitly recorded in Silence-Detection.md rather than treated as perfect detection. Combined with existing settings, resize/restore, persistence, and background-job tests, item 5's feature acceptance is complete and retained in Completed-Plan-Items.md. Models-manager acceptance and the full transcript workflow remain open.
+
+
+## Stage 34 — Clip-name drafts and retained merge labels
+
+Item 13 audit found clip names committed and trimmed on every keystroke, preventing ordinary space-separated names and creating per-character Undo steps. ClipNameInput now holds a transient draft, commits on Enter/blur, cancels on Escape, and does not commit an unchanged display value. Composition confirmation is excluded from commit shortcuts. The source-anchored name model remains unchanged: merged labels display together and re-splitting restores each original name unless the user explicitly renames the merged clip.
+
+Runtime validation typed `First`, a separate space, and `clip`; the draft and committed value remained `First clip`. Escape discarded `Discard this`; one Undo restored the original empty name. The isolated fixture was restored afterward. Production build, TypeScript, component lint, and transcript-state tests passed. Transcript-structure regression coverage verifies merged label display, re-split ownership, and unchanged name IDs.
+
+
+## Stage 35 — Corrected phrase realignment and submission guard
+
+RealignSelection now reserves submission synchronously before any await, preventing rapid repeated activation from starting competing workers. Starting the job focuses the modal so disabling its button cannot return media shortcuts to the editor. Failure releases the reservation for retry; existing cancel/generation handling still discards stale work.
+
+Actual English CTC runtime alignment of a corrected three-word phrase published all measured word timings atomically, preserved provenance and unrelated edits, and reverted in one Undo. See Selected-Text-Alignment.md for measured ranges. The isolated project fixture was restored afterward. Production build and focused correction-alignment tests pass; the full item 13 audit remains open.
+
+
+## Stage 36 — Installed cache-import interruption and manager state
+
+In the real isolated installed app, started a 100-byte cached-artifact transfer and appended only four bytes. Storage reported busy and created one temporary file. Reloading the renderer removed that file through model-ipc's owner cleanup, released busy state, and did not mark the model available. A fresh import was accepted and cancelling it also left storage idle. The first harness retry intentionally/accidentally reached the old renderer during navigation and was correctly rejected as `Model import owner closed`; retry after the new document loaded passed. No project or existing model was removed.
+
+Opened Settings → Models in the installed Russian UI. It displayed the configured offline-model-validation folder, language capability descriptions, installed Tiny English/Base/Medium/Turbo sizes, disabled Download for available variants, and enabled Download for absent variants. Parakeet's CPU files existed but the GPU-required variant correctly remained unavailable on this GPU-capable device. Full installed download/delete/relocate actions remain a separate gate; these read-only controls and owner-reload checks do not claim those mutations were exercised.
+
+
+## Stage 37 — Installed model-manager actions
+
+Gave the isolated NSIS-installed acceptance app a disposable model registry; existing shared model files were neither moved nor deleted. Through Settings → Models, downloaded Whisper Tiny English into `work/installed-model-download`: all seven artifacts completed, totaling 122,390,002 bytes, and availability became true. Through Choose folder (only the native chooser response was automated), selected `work/installed-model-relocated`. The old files stayed available and were reported outside the default folder until the explicit Relocate models action.
+
+Relocation completed through the UI. All seven destination files matched their manifest SHA-256 digests, all original artifact paths were absent, and cleanup was empty. After fully restarting the installed executable, the new default folder and model availability persisted. Deleting the model through its Settings row changed it to Not downloaded with zero managed bytes. All three test project documents compared exactly before/after deletion. Stopped the acceptance app and restored its previous test model registry afterward.
+
+Combined with prior actual offline inference, availability-picker, active-job lock, interruption, and failure/retry checks, item 2's remaining installed-action acceptance is complete. Its original requirements and evidence are retained in Completed-Plan-Items.md. Item 13's full transcript-editing acceptance remains active.
+
+
+## Stage 38 — Cross-view ranges containing hidden deleted text
+
+In an isolated runtime fixture, hid deleted word 139 and selected transcript word 137, then Shift-clicked timeline word 142 with an actual pointer event. Visible highlights were 137,138,140,141,142; the absent word 139 remained represented by the Deleted row's `Hidden selected words: 1` summary. Replacement typing was rejected without opening a correction draft. Starting instead from timeline word 142 and Shift-clicking transcript word 138 selected the backward range; Shift-clicking 144 afterward selected 142–144, proving the original anchor stayed fixed. Playback remained at 0 throughout. The fixture was restored after stopping its test process.
+
+Together with stage 31's partial/full phrase highlight verification, this completes the detailed checklist's plain-click and cross-view Shift-selection item. Other item 13 gates remain unchecked until their complete evidence is audited.
+
+
+## Stage 39 — Explicit word seeking and context scope
+
+Actual renderer check selected words 140–142 and right-clicked middle word 141. The menu preserved the full selection, and Go to word sought to the clicked word's 1.81-second start while playback stayed paused. Right-clicking unselected word 138 selected only it and left the playhead at 1.81; its Go to word then sought to 1.26, still paused. Ctrl-click on word 142 sought to approximately 2.4125 without starting playback. Combined with stage 13's distinct waveform context behavior and stage 31's partial-phrase context fix, the detailed seek/context checklist item is verified. No transcript or cut mutation was performed.
+
+
+## Stage 40 — Combined edits, history, autosave and reopening
+
+Through the actual editor UI, replaced `Hello.` with `Greetings`, named its clip `Opening remarks`, and grouped words 140–142 while retaining the existing manual cut and explicit split. Autosave preserved the corrected word ID 182, approximate timing, original source ID 137, original text `Hello.`, and source interval 0.095–0.55. Undoing the grouping preserved the earlier correction/name; Redo restored the same phrase identity. Reloading the renderer and reopening the project preserved words, phrase IDs, clip-name IDs, cuts, boundaries, view and silence settings exactly. Rendered transcript/name/phrase checks also passed after reopening. The isolated fixture was restored afterward.
+
+Together with stage 30's legacy migration without retranscription and stages 34–35's name/correction history checks, the detailed combined persistence acceptance item is verified. Long-project edits and composition/multi-batch alignment checks remain open.
+
+
+## Stage 41 — Multi-batch selected alignment publication
+
+Actual cached English CTC inference processed two source-separated batches (7,280 and 25,440 samples). Successful results updated all three selected words atomically and one Undo restored the complete original words array. A second run with unalignable `1985` in batch two completed batch one, then failed with a localized error and left all saved words unchanged. See Selected-Text-Alignment.md for scope and instrumentation. Restored the isolated fixture after stopping the process. No application code change was needed.
+
+
+## Stage 42 — Distant edits in a long virtualized transcript
+
+Created a separate synthetic 5,000-second audio project with 10,000 timed words and 120 alternating speaker labels. An earlier invalid fixture used 42-second media with out-of-range words; its rejected edits were correct and that fixture was restored. The valid project uses matching 83-minute silent audio; this stresses editing and layout, not transcription accuracy.
+
+The editor initially mounted 143 word spans. Scrolled to approximately 80%, grouped words 8088–8090, and corrected word 8093 to `Revised` at 4046.5–4046.9 seconds. Scrolling back to the start unmounted the correction and retained only 143 spans. Reloaded/reopened the project: all 10,000 words, the stable phrase ID/members, and complete correction/source provenance persisted. Returning to the distant region displayed `Revised` with 161 spans mounted. Existing stage 6 checks cover selected endpoints surviving offscreen scroll/resize; stage 38 covers shared range anchoring. Source inspection confirms useTranscriptFlow memoizes by words/layout/enabled rather than pointer or selection updates, so pointer movement does not remeasure every word.
+
+This completes the long-project virtualization checklist item. Keyboard/composition acceptance and the final current-tree audit remain open. The standalone stress fixture remains in the isolated test profile for reproducibility.
+
+
+## Stage 43 — Initial composition target and correction routing
+
+Found and fixed initial Windows Process/229 routing: the selected transcript section was not editable, so no input existed for IME composition. The first non-composing 229 key now synchronously opens the validated correction input and selects its original text before the browser processes composition. Ongoing composition keys remain excluded from commit/media shortcuts. Retaining the original text also supports cancellation without an accidental empty correction.
+
+Runtime verification first showed focus on SECTION/no input before the fix, then INPUT after it. Chromium Input.imeSetComposition produced trusted compositionstart/update events and entered `ni`; a 229 confirmation key left the draft open. Completing to `你好` through Input.insertText and pressing normal Enter saved the correction with original `Hello.` provenance. Undo restored the exact words/cuts/splits. A second composition was cancelled and Escape restored `Hello.` with no active draft. This exercises Chromium's composition path; completion from the automation API reports isTrusted=false and is not evidence of operating a physical Windows IME candidate window.
+
+Production build/type checking, component lint (existing TanStack warning only), and keyboard tests passed. Alongside prior selection/caret/name/modal shortcut checks, the automated keyboard acceptance is complete. Final current-tree verification remains required before marking PLAN complete.

@@ -59,3 +59,20 @@ for(const projectedBlocks of [transcriptBlocks(words,[],[{id:44,time:3}],8),tran
 assert.deepEqual(persistedGroup,{id:'persistent',wordIds:[0,1,2,3,4,5]},'Projection preserves persisted group identity');
 assert.deepEqual(overlapping,unchanged);
 console.log('Phrase projection: overlap bounds, mixed attribution, split/cut membership and stable persisted identity passed.');
+
+
+const anchoredNames=[{id:'first-name',time:1,name:'First clip'},{id:'second-name',time:6,name:'Second clip'}];
+const separateNames=transcriptBlocks(words,[],[{id:71,time:4}],8,anchoredNames);
+assert.deepEqual(separateNames.map(b=>b.name),['First clip','Second clip']);
+assert.equal(transcriptBlocks(words,[],[],8,anchoredNames)[0].name,'First clip / Second clip');
+assert.deepEqual(transcriptBlocks(words,[],[{id:72,time:4}],8,anchoredNames).map(b=>b.name),['First clip','Second clip'],'Re-splitting restores each source-anchored name');
+assert.deepEqual(anchoredNames.map(n=>n.id),['first-name','second-name'],'Merge projection never rewrites persisted name identities');
+console.log('Clip names: merge retains both labels and re-splitting restores their original source ownership.');
+
+
+const noisySpeakers:Word[]=Array.from({length:120},(_,id)=>({id,text:'commentary',start:id,end:id+.8,speaker:id,deleted:false}));
+const originalSpeakers=structuredClone(noisySpeakers);
+const commentaryClips=transcriptBlocks(noisySpeakers,[{start:30,end:40}],[],120);
+assert.deepEqual(commentaryClips.map(b=>b.kind),['clip','deleted','clip'],'Diarization labels never create edit clips');
+assert.deepEqual(noisySpeakers,originalSpeakers,'Edit projection preserves every optional speaker attribution');
+console.log('Commentary structure: 120 differing speaker labels yield only edit-range boundaries and retain source metadata.');

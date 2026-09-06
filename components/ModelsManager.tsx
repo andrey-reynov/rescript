@@ -24,7 +24,7 @@ export default function ModelsManager(){
   {migration!==null&&<p role="status" className="text-xs">{f('Moving cached model')} · {Math.round(migration*100)}%</p>}
   {state?.relocation&&<p role="status" className="text-xs">{f('Relocating models')} · {state.relocation.completed}/{state.relocation.total}</p>}
   {state?.busy&&!busy&&<p className="text-xs text-zinc-500">{f('Pause processing before deleting or relocating models.')}</p>}
-  {(error||state?.error)&&<p role="alert" className="text-xs text-red-600">{error||state?.error}</p>}
+  {(error||state?.error)&&<p role="alert" className="text-xs text-red-600">{f(error||state?.error||'')}</p>}
   <div className="divide-y divide-zinc-200 dark:divide-zinc-700">{MODEL_ORDER.map(id=>{
    const model=MODELS[id],installed=state?.models[id];const download=state?.downloads.find(row=>row.model===id);const active=download?.state==='downloading';
    const percentage=download?Math.round((download.completed+(download.total?Math.min(1,download.loaded/download.total):0))/download.count*100):0;

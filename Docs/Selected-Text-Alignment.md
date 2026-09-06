@@ -15,3 +15,13 @@ Publication is atomic: all selected words must receive valid measured timing. An
 - Isolated app with actual cached English CTC model and example audio: selected `Hello.` changed from 0.095–0.55 to 0.21909–0.50864 seconds. Other words, cuts, splits and phrase membership were unchanged; Undo restored the original word data.
 - Cancel during Reading audio preserved all words. Correcting the selected word to `1985` then aligning returned the localized failure message and retained approximate timing. The isolated test project was restored afterward.
 - Modal screenshot inspected; shared dropdown/buttons, Russian labels and Escape dismissal verified. Additional multi-batch, corrected multi-word and language-specific runtime coverage remains part of the final acceptance audit.
+
+
+### Corrected phrase runtime validation
+
+Corrected three selected words to `an example video` with approximate timing over 1.65–2.85 seconds, then ran the actual cached English CTC model. All three stable corrected IDs published measured timings together: `an` 1.650–1.73136, `example` 1.93475–2.50424, and `video` 2.56525–2.82966. Source provenance, text, other words, cuts, splits, and grouping remained unchanged. One Undo restored all original approximate timing data. Two immediate clicks on Realign were guarded by a synchronous submission lock; focus stays inside the busy modal. Multi-batch and additional supported-language runtime coverage remain open.
+
+
+### Multi-batch runtime validation
+
+Selected `Hello.` and two later banana words from the original example audio, with no intervening transcript tokens in the disposable fixture. The actual English CTC worker received two bounded requests (7,280 and 25,440 samples), despite their approximately 40-second overall source span. All three measured timings published together; one Undo restored every original word. Replacing the first word in the second batch with bare digits `1985` let the first batch finish but caused the second to fail. The localized error appeared and every saved word remained byte-for-byte equal to the pre-alignment data. Worker messages were observed by a test wrapper that forwarded the original requests unchanged. This closes the multi-batch success/late-failure gate; broader language-specific accuracy remains a separate validation concern.

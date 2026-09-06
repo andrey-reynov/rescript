@@ -105,6 +105,7 @@ Distinguish **timed-word selection** from **text-caret editing**. Show a visible
 - Keep the replacement linked to the original selected source interval, from the earliest selected start to the latest selected end (including overlapping words). A changed word count has no automatically trustworthy per-word timing: mark internal replacement timing approximate until alignment is performed.
 - Preserve original source provenance separately from corrected text/timing. Group membership and selections must be updated deliberately when corrected token counts change.
 - Offer selected-range realignment as appropriate to the existing alignment roadmap; do not silently rerun the entire video for a spelling correction.
+- Committing empty text keeps a selectable **Empty text** placeholder for the retained timed token. This label is presentation only and never becomes transcript/export text; reopening correction edits an empty value. It does not delete audio.
 - Commit a correction as one meaningful undo step; keep transient caret input separate from persisted committed data. Canceling an unfinished correction must restore the prior text. Autosave committed edits and preserve them across reopening.
 - Approximate timings must not be presented as measured alignment in seeking/caption workflows. Exact corrected-word timing, including insertion/deletion cases, needs focused validation before subtitle use.
 
@@ -119,16 +120,18 @@ Full-audio retranscription (plan item 1) must invalidate/reconcile any obsolete 
 
 ## Acceptance checklist
 
-- [ ] A single-speaker VOD with many inaccurate speaker labels defaults to coherent edit clips without deleting the optional speaker metadata.
-- [ ] Delete, resize, and restore update both views; a textless deletion still displays duration and a partial word cut does not retime speech.
-- [ ] Explicit splits survive restoring an adjacent deletion; splitting at an existing boundary creates no empty clip.
-- [ ] Group/Ungroup changes timeline presentation only; words stay selectable and seek to their source positions. Cross-clip grouping is rejected.
-- [ ] Plain click selects without seeking. Shift-click extends forward/backward across both views and shows partial phrase selection correctly.
-- [ ] Ctrl-click and Go to word move the playhead without starting playback. Word right-click preserves the selected action target; waveform right-click retains its separate behavior.
-- [ ] Typing replaces one or multiple selected words. Double-click permits character corrections. Backspace cuts in timed selection but edits characters with a caret; Enter splits in timed selection but commits with a caret.
-- [ ] View toggles, Hide deleted words, and Skip deletion areas remain independent and do not alter edit/export data.
-- [ ] New structures, names, corrected text, and timing provenance survive undo/redo, autosave, and reopening; older projects load without retranscription or data loss.
-- [ ] No floating selection toolbar remains in default clip view; any retained legacy toolbar respects viewport visibility.
-- [ ] Long-video virtualization continues to work: offscreen rendering does not lose selection, group membership, or edits, and updates do not rebuild every word on each pointer event.
+Evidence and remaining gates: [Transcript-Acceptance-Audit.md](Transcript-Acceptance-Audit.md). Checked items have focused tests and/or recorded runtime evidence; unchecked items retain their full scope.
+
+- [x] A single-speaker VOD with many inaccurate speaker labels defaults to coherent edit clips without deleting the optional speaker metadata.
+- [x] Delete, resize, and restore update both views; a textless deletion still displays duration and a partial word cut does not retime speech.
+- [x] Explicit splits survive restoring an adjacent deletion; splitting at an existing boundary creates no empty clip.
+- [x] Group/Ungroup changes timeline presentation only; words stay selectable and seek to their source positions. Cross-clip grouping is rejected.
+- [x] Plain click selects without seeking. Shift-click extends forward/backward across both views and shows partial phrase selection correctly. Verified in Implementation-Progress.md stages 31 and 38, including hidden deleted selection scope.
+- [x] Ctrl-click and Go to word move the playhead without starting playback. Word right-click preserves the selected action target; waveform right-click retains its separate behavior.
+- [x] Typing replaces one or multiple selected words. Double-click permits character corrections. Backspace cuts in timed selection but edits characters with a caret; Enter splits in timed selection but commits with a caret.
+- [x] View toggles, Hide deleted words, and Skip deletion areas remain independent and do not alter edit/export data.
+- [x] New structures, names, corrected text, and timing provenance survive undo/redo, autosave, and reopening; older projects load without retranscription or data loss.
+- [x] No floating selection toolbar remains in default clip view; any retained legacy toolbar respects viewport visibility.
+- [x] Long-video virtualization continues to work: offscreen rendering does not lose selection, group membership, or edits, and updates do not rebuild every word on each pointer event.
 
 Implementation details requiring explicit resolution during development: deterministic ownership/rendering of partially cut words, custom-name retention when clips merge, and the corrected-token timing/allocation algorithm. These must respect the invariants above and be documented with tests; do not infer precise timing or discard names silently.

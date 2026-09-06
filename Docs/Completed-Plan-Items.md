@@ -293,3 +293,68 @@ Verified 2026-09-06 in the isolated production-built Electron app using actual r
 - Runtime language menu matrix: Parakeet v3 exposes only Automatic; Tiny English exposes fixed English/English and disables Russian; Base exposes Automatic/Russian/English and its supported UI subset. Existing grouped model menu and localized descriptions retained.
 - Real managed Whisper Base/Russian inference under English UI kept the Russian text (“Неэронной сети. Это хорошо.”). Real Parakeet v3/Automatic CPU inference retained English and Russian in the bilingual fixture (“Hello. This is an example…” and “Нейронные сети это хорошо.”). These checks establish source-language retention, not perfect recognition accuracy.
 - Switched UI language through Settings in both directions; saved Russian transcription preference remained Russian. Restored test project/job files afterward. Fresh-install/native-menu/migration acceptance remains explicitly in item 8.
+
+
+### 8. Russian support and independent language settings: remaining verification
+
+**Status:** Existing UI and transcription language controls are separate and Russian UI exists; verify the remaining end-to-end acceptance criteria rather than reimplementing those controls.
+
+**Tracking:** [#4 — Add Russian language support](https://github.com/andrey-reynov/rescript/issues/4), [#7 — Separate UI language from transcription language and verify Russian UI](https://github.com/andrey-reynov/rescript/issues/7). Issue #4 has no description; use #7 and the agreed source-language requirements to define verification.
+
+**Remaining work / acceptance criteria:**
+
+- Verify English UI with Russian transcription and Russian UI with English transcription; changing either setting must not change the other.
+- Verify Russian speech stays Russian instead of being translated to English, with a compatible model.
+- Verify Russian localization in the editor, Project Manager, and native menus in a freshly installed build, including preference persistence after restart.
+- Verify migration preserves existing project language and UI locale preferences.
+- Apply item 7's model-specific Automatic/forced-language limitations consistently; fix only failures uncovered by these checks.
+
+
+**Completion evidence (2026-09-06):** Stage 27 records the independent UI/transcription language matrix, Cyrillic Whisper output under English UI, bilingual Parakeet output under Russian UI, and model-specific language restrictions. Stage 30 completes installed Russian editor/manager/native-menu checks, restart persistence, and older-project migration without retranscription. Original acceptance criteria above are retained for traceability.
+
+
+### 5. Silence blocks with separate detectors
+
+**Status:** Implemented; see [Silence-Detection.md](Silence-Detection.md) for behavior and evidence. Retain representative gameplay/music and final installed-build validation.
+
+**Tracking:** [#3 — Add silence blocks](https://github.com/andrey-reynov/rescript/issues/3).
+
+**Expected behavior:**
+
+- Distinguish no-speech regions from amplitude-below-threshold silence. A gap between recognized words is not proof of acoustic silence.
+- Detect/display no-speech regions and low-amplitude regions separately. Allow amplitude settings such as an absolute threshold or a configurable fraction of average level; 5–10% is an example from the issue, not a fixed requirement.
+- Default legend: yellow for no speech, blue for amplitude silence, green for overlap. Keep the mapping configurable as agreed in the roadmap.
+- Let the user choose whether to delete detected regions and adjust the resulting deletion boundaries. Detection alone must not delete content.
+
+**Acceptance criteria:**
+
+- Gameplay/music without speech can be distinguished from low-amplitude silence; overlap is shown in green.
+- Detector settings and the legend are understandable, and selecting/deleting/resizing regions preserves original media and extendable handles.
+
+
+**Completion evidence:** Silence-Detection.md records independent detector/settings/handles tests, persistence and background processing tests, actual gameplay and controlled instrumental analysis in the installed app, the three-color lane, and explicit deletion/Undo with source preservation. Stage 33 resolves the hidden-window visual gate. VAD's false speech detections on music are documented as an accuracy limitation; detection never promises or performs unconditional automatic removal.
+
+
+### 2. Models manager in Settings
+
+**Status:** Implemented; native/runtime checks recorded in [Implementation-Progress.md](Implementation-Progress.md). Parakeet CPU inference/relocation and interruption recovery are verified (stages 25–26, 29, 36); retain final installed download/delete/relocate action acceptance.
+
+**Expected behavior:**
+
+- Add a Models section to Settings for downloading and deleting transcription models. Show installed availability, model sizes, download progress, and actionable errors.
+- Show the default model storage location and let the user choose a new default location for future downloads.
+- Provide an explicit option to relocate already downloaded models to the new default location. Distinguish changing the download destination from moving existing files.
+- Keep model loading, the manager, and model-picker availability checks consistent with the configured location; relocated models must remain usable without downloading them again.
+- Verify relocated files before removing the old copies. A failed or interrupted relocation must preserve usable models and report what remains to be done.
+- Prevent deletion or relocation of model files while an active job is using them. Model removal must not remove project media, transcripts, or edits.
+
+**Acceptance criteria:**
+
+- Downloading a model makes it available in the model selectors; deleting it moves it to Not downloaded.
+- Future downloads use the chosen default location, which persists after restarting the app.
+- Relocating installed models allows transcription from the new location without a fresh download. Failure leaves a recoverable, clearly reported state.
+
+**Tracking:** No issue assigned yet.
+
+
+**Completion evidence:** Stages 25–26 verify actual CPU Parakeet inference and offline use after relocation/restart; stages 29 and 36 verify killed-relocation and renderer-import recovery. Stage 37 verifies Settings-driven download, folder change, relocation, restart availability, and deletion in the real installed app, including file hashes and unchanged project documents. Existing model-storage tests cover active-job mutation guards, failure preservation, retry, and deletion isolation.
