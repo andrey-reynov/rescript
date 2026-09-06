@@ -128,7 +128,7 @@ Evidence and remaining gates: [Transcript-Acceptance-Audit.md](Transcript-Accept
 - [x] Group/Ungroup changes timeline presentation only; words stay selectable and seek to their source positions. Cross-clip grouping is rejected.
 - [x] Plain click selects without seeking. Shift-click extends forward/backward across both views and shows partial phrase selection correctly. Verified in Implementation-Progress.md stages 31 and 38, including hidden deleted selection scope.
 - [x] Ctrl-click and Go to word move the playhead without starting playback. Word right-click preserves the selected action target; waveform right-click retains its separate behavior.
-- [ ] Typing replaces one or multiple selected words. Double-click permits character corrections. Backspace cuts in timed selection but edits characters with a caret; Enter splits in timed selection but commits with a caret.
+- [x] Typing replaces one or multiple selected words. Double-click permits character corrections. Backspace cuts in timed selection but edits characters with a caret; Enter splits in timed selection but commits with a caret.
 - [x] View toggles, Hide deleted words, and Skip deletion areas remain independent and do not alter edit/export data.
 - [x] New structures, names, corrected text, and timing provenance survive undo/redo, autosave, and reopening; older projects load without retranscription or data loss.
 - [x] No floating selection toolbar remains in default clip view; any retained legacy toolbar respects viewport visibility.

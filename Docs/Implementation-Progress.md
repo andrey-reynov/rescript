@@ -333,3 +333,12 @@ Created a separate synthetic 5,000-second audio project with 10,000 timed words 
 The editor initially mounted 143 word spans. Scrolled to approximately 80%, grouped words 8088–8090, and corrected word 8093 to `Revised` at 4046.5–4046.9 seconds. Scrolling back to the start unmounted the correction and retained only 143 spans. Reloaded/reopened the project: all 10,000 words, the stable phrase ID/members, and complete correction/source provenance persisted. Returning to the distant region displayed `Revised` with 161 spans mounted. Existing stage 6 checks cover selected endpoints surviving offscreen scroll/resize; stage 38 covers shared range anchoring. Source inspection confirms useTranscriptFlow memoizes by words/layout/enabled rather than pointer or selection updates, so pointer movement does not remeasure every word.
 
 This completes the long-project virtualization checklist item. Keyboard/composition acceptance and the final current-tree audit remain open. The standalone stress fixture remains in the isolated test profile for reproducibility.
+
+
+## Stage 43 — Initial composition target and correction routing
+
+Found and fixed initial Windows Process/229 routing: the selected transcript section was not editable, so no input existed for IME composition. The first non-composing 229 key now synchronously opens the validated correction input and selects its original text before the browser processes composition. Ongoing composition keys remain excluded from commit/media shortcuts. Retaining the original text also supports cancellation without an accidental empty correction.
+
+Runtime verification first showed focus on SECTION/no input before the fix, then INPUT after it. Chromium Input.imeSetComposition produced trusted compositionstart/update events and entered `ni`; a 229 confirmation key left the draft open. Completing to `你好` through Input.insertText and pressing normal Enter saved the correction with original `Hello.` provenance. Undo restored the exact words/cuts/splits. A second composition was cancelled and Escape restored `Hello.` with no active draft. This exercises Chromium's composition path; completion from the automation API reports isTrusted=false and is not evidence of operating a physical Windows IME candidate window.
+
+Production build/type checking, component lint (existing TanStack warning only), and keyboard tests passed. Alongside prior selection/caret/name/modal shortcut checks, the automated keyboard acceptance is complete. Final current-tree verification remains required before marking PLAN complete.
