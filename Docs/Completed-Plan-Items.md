@@ -65,3 +65,36 @@ Verified 2026-09-06 with actual media playback in the isolated production-built 
 
 **Tracking:** No issue assigned yet.
 
+
+## Item 9 — Offscreen word-selection toolbar
+
+Verified across two isolated runtime passes using a 10,000-word transcript and the optional By speaker view. This fixes visibility through Floating UI's reference clipping rather than simply lowering z-index.
+
+- Selected word 150 and scrolled it above and below the transcript viewport: the toolbar became `visibility:hidden` with `pointer-events:none`, while word selection persisted. Returning the word to view restored the toolbar at its anchor. Extending selection to words 150–153 and scrolling offscreen also hid the toolbar.
+- Resized to 900×440, allowed virtualized row measurements to settle, then scrolled the selection outside the reduced viewport. The toolbar was hidden/noninteractive and the word remained selected. Restoring the viewport and returning the word onscreen restored the toolbar.
+- Used the restored toolbar's Cut: only the selected timed word became deleted. Undo restored it. Correct opened the selected word and committed a two-word replacement; Undo restored the source text. Speaker opened its picker, created an attribution label, and assigned only the selected word without modifying cuts or explicit splits.
+- Switched to default By clip and selected a word: no legacy floating toolbar remained. Test fixture data was restored afterward.
+
+### Original requirements
+
+**Status:** Complete; verified above.
+
+**Related specification:** [Transcript editing workflow](Transcript-Editing-Workflow.md).
+
+**Observed bug:** Selecting a transcript word opens the Cut / Correct / Speaker toolbar. After scrolling the selected text out of view, the toolbar remains visible above other content.
+
+**Expected behavior:**
+
+- Keep the toolbar anchored to the visible word selection within the transcript scroll viewport.
+- Hide it when its selection anchor leaves that viewport; scrolling alone must not clear the selection or change the transcript.
+- Show it again when the selected anchor returns to view, provided the selection is still active.
+- Investigate positioning, portal placement, scroll-container clipping, and visibility tracking as well as z-index. A z-index issue is a hypothesis, not a confirmed cause; lowering z-index alone must not leave a detached toolbar visible or interactive.
+
+**Acceptance criteria:**
+
+- Select a word and scroll it above or below the transcript viewport: the toolbar disappears and cannot intercept clicks while hidden.
+- Scroll back: the toolbar returns at the selection, with Cut, Correct, and Speaker working normally.
+- Check both viewport edges, resizing, and multi-word selections. The toolbar must not float over the transcript header, timeline, or unrelated panels when its anchor is offscreen.
+
+**Tracking:** No issue assigned yet.
+

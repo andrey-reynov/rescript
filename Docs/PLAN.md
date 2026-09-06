@@ -163,29 +163,6 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 - Verify migration preserves existing project language and UI locale preferences.
 - Apply item 7's model-specific Automatic/forced-language limitations consistently; fix only failures uncovered by these checks.
 
-### 9. Hide offscreen word-selection toolbar
-
-**Status:** Implemented for the optional speaker toolbar. Runtime hiding above/below the viewport, returning, and multi-word selection pass; retain resizing and action checks.
-
-**Related specification:** [Transcript editing workflow](Transcript-Editing-Workflow.md).
-
-**Observed bug:** Selecting a transcript word opens the Cut / Correct / Speaker toolbar. After scrolling the selected text out of view, the toolbar remains visible above other content.
-
-**Expected behavior:**
-
-- Keep the toolbar anchored to the visible word selection within the transcript scroll viewport.
-- Hide it when its selection anchor leaves that viewport; scrolling alone must not clear the selection or change the transcript.
-- Show it again when the selected anchor returns to view, provided the selection is still active.
-- Investigate positioning, portal placement, scroll-container clipping, and visibility tracking as well as z-index. A z-index issue is a hypothesis, not a confirmed cause; lowering z-index alone must not leave a detached toolbar visible or interactive.
-
-**Acceptance criteria:**
-
-- Select a word and scroll it above or below the transcript viewport: the toolbar disappears and cannot intercept clicks while hidden.
-- Scroll back: the toolbar returns at the selection, with Cut, Correct, and Speaker working normally.
-- Check both viewport edges, resizing, and multi-word selections. The toolbar must not float over the transcript header, timeline, or unrelated panels when its anchor is offscreen.
-
-**Tracking:** No issue assigned yet.
-
 ### 11. Waveform context menus
 
 **Status:** Implemented and shipped in 1.3.0; retain zoom/scroll, source-edge, overlapping deletion and menu keyboard runtime audit.

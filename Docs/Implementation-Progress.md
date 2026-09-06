@@ -111,3 +111,9 @@ Latest static build predates the final small tweaks for Space replacement, no-op
 
 - Item 12 passed integrated real-playback checks, including enabling skip during playback within a deletion, visible checkbox states, independent Hide deleted words in all three layouts, preserved saved edit data, and preference persistence after reopening.
 - Added regression coverage for unchanged exported NLE timeline output across preview/visibility toggle combinations. Removed only item 12 from the pending plan; its requirements and evidence remain in Completed-Plan-Items.md. Other transcript menu/import acceptance work remains under item 3.
+
+
+## Stage ten: optional toolbar acceptance complete
+
+- Completed item 9's remaining viewport-resize and restored-action checks on the isolated 10,000-word fixture. Hidden toolbar could not intercept clicks; selection persisted. Cut, Correct, and Speaker targeted the selection correctly after return. Speaker reassignment left cut/split data unchanged; By clip had no legacy toolbar.
+- Combined with stage six's above/below-edge and multi-word checks, the item's full acceptance scope is verified. Removed item 9 from the pending plan and retained its original requirements/evidence in Completed-Plan-Items.md. Test data restored, and no application changes were necessary in this pass.
