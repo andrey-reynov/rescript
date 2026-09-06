@@ -1,6 +1,7 @@
+"use client";
+import {transcriptBlocks,groupPhrase,replaceTimedText,selectedRange,type PhraseGroup,type ClipName,type TranscriptView} from './transcript-structure';
 import type { SourceAudioLayout } from './audio-export';
 import { isReferencedMedia, type MediaInput } from './media-input';
-"use client";
 
 import { create } from "zustand";
 import type {
@@ -119,6 +120,16 @@ interface EditorState {
   speakers: SpeakerInfo[];
   manualCuts: ManualCut[];
   sceneBoundaries: SceneBoundary[];
+  phrases: PhraseGroup[];
+  clipNames: ClipName[];
+  transcriptView: TranscriptView;
+  selectionAnchor: number|null;
+  setTranscriptView: (view:TranscriptView)=>void;
+  selectWordRange: (ids:number[],extend?:boolean)=>void;
+  groupSelectedPhrase: ()=>void;
+  ungroupSelectedPhrase: ()=>void;
+  renameClip: (time:number,name:string)=>void;
+  splitBeforeSelection: ()=>boolean;
   showDeleted: boolean;
   skipDeletions: boolean;
   toggleSkipDeletions: () => void;
@@ -278,8 +289,10 @@ function snapshotOf(s: {
   speakers: SpeakerInfo[];
   manualCuts: ManualCut[];
   sceneBoundaries: SceneBoundary[];
+  phrases:PhraseGroup[];clipNames:ClipName[];
 }): EditSnapshot {
   return {
+    phrases:s.phrases,clipNames:s.clipNames,
     words: s.words,
     speakers: s.speakers,
     manualCuts: s.manualCuts,
@@ -289,6 +302,7 @@ function snapshotOf(s: {
 
 function snapshotsEqual(a: EditSnapshot, b: EditSnapshot): boolean {
   return (
+    a.phrases === b.phrases && a.clipNames === b.clipNames &&
     a.words === b.words &&
     a.speakers === b.speakers &&
     a.manualCuts === b.manualCuts &&
@@ -310,6 +324,8 @@ function pushEdit(
   next: Partial<
     Pick<
       EditorState,
+      | "phrases"
+      | "clipNames"
       | "words"
       | "speakers"
       | "manualCuts"
@@ -361,6 +377,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   speakers: [],
   manualCuts: [],
   sceneBoundaries: [],
+      phrases: [],clipNames: [],selectionAnchor:null,transcriptView:"clips",
   showDeleted: true,
   skipDeletions: true,
   past: [],
@@ -413,6 +430,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       speakers,
       manualCuts: [],
       sceneBoundaries: [],
+      phrases: [],clipNames: [],selectionAnchor:null,transcriptView:"clips",
       past: [],
       future: [],
       selectedClipIndex: null,
@@ -466,6 +484,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       speakers,
       manualCuts,
       sceneBoundaries,
+      phrases: record.phrases??[],clipNames:record.clipNames??[],selectionAnchor:null,transcriptView:record.transcriptView??"clips",
       showDeleted: record.showDeleted,
       skipDeletions: record.skipDeletions ?? true,
       past: [],
@@ -529,6 +548,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       speakers: speakersFromWords(words, speakers ?? []),
       manualCuts: [],
       sceneBoundaries: [],
+      phrases: [],clipNames: [],selectionAnchor:null,transcriptView:"clips",
       past: [],
       future: [],
       selectedClipIndex: null,
@@ -554,6 +574,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       speakers: speakersFromWords(words, speakers ?? []),
       manualCuts: [],
       sceneBoundaries: [],
+      phrases: [],clipNames: [],selectionAnchor:null,transcriptView:"clips",
       past: [],
       future: [],
       selectedClipIndex: null,
@@ -758,61 +779,18 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       selectedCutIndex: null,
     });
   },
-  correctWords: (ids, text) => {
-    const { words } = get();
-    const tokens = text.split(/\s+/).filter(Boolean);
-    if (ids.length === 0 || tokens.length === 0) return;
-    const idSet = new Set(ids);
-    const indices = words.reduce<number[]>((acc, w, i) => {
-      if (idSet.has(w.id)) acc.push(i);
-      return acc;
-    }, []);
-    if (indices.length === 0) return;
-    // Replace the whole contiguous slice covered by the selection.
-    const from = indices[0];
-    const to = indices[indices.length - 1];
-    const selected = words.slice(from, to + 1);
-    if (selected.map((w) => w.text).join(" ") === tokens.join(" ")) return;
-
-    // Distribute the original time span across the new words in proportion
-    // to their character length.
-    const spanStart = selected[0].start;
-    const spanEnd = selected[selected.length - 1].end;
-    const span = Math.max(0.02, spanEnd - spanStart);
-    const totalChars = tokens.reduce((acc, t) => acc + t.length, 0);
-    let nextId = words.reduce((m, w) => Math.max(m, w.id), 0) + 1;
-    let cursor = spanStart;
-    const replacement: Word[] = tokens.map((t) => {
-      const dur = (span * t.length) / totalChars;
-      const word: Word = {
-        id: nextId++,
-        text: t,
-        start: cursor,
-        end: Math.min(spanEnd, cursor + dur),
-        speaker: selected[0].speaker,
-        // A correction implies the words are wanted, unless the whole
-        // selection was already cut.
-        deleted: selected.every((w) => w.deleted),
-      };
-      cursor = word.end;
-      return word;
-    });
-    replacement[replacement.length - 1].end = spanEnd;
-
-    pushEdit(get, set, {
-      words: [...words.slice(0, from), ...replacement, ...words.slice(to + 1)],
-      // The corrected span is new words with new ids; nothing to stay selected.
-      selectedWordIds: [],
-    });
+  correctWords: (ids,text)=>{
+    const s=get();const blocks=transcriptBlocks(s.words,getCutRanges(s.words,s.duration,s.manualCuts),s.sceneBoundaries,s.duration);
+    const words=replaceTimedText(s.words,ids,text,blocks);const valid=new Set(words.map(w=>w.id));
+    pushEdit(get,set,{words,phrases:s.phrases.map(g=>({...g,wordIds:g.wordIds.filter(id=>valid.has(id))})).filter(g=>g.wordIds.length>1),selectedWordIds:[]});
   },
-
-  adjustWordBounds: (id, start, end) => {
-    const { words, duration } = get();
-    const next = applyWordBounds(words, id, start, end, duration);
-    if (!next) return;
-    pushEdit(get, set, { words: next });
-  },
-
+  setTranscriptView:transcriptView=>{set({transcriptView});bumpAutosave();},
+  selectWordRange:(ids,extend=false)=>{const s=get();const anchor=extend?s.selectionAnchor??ids[0]:ids[0];set({selectionAnchor:anchor??null,selectedWordIds:extend?selectedRange(s.words,anchor,ids):ids,selectedClipIndex:null,selectedCutIndex:null});},
+  groupSelectedPhrase:()=>{const s=get();const blocks=transcriptBlocks(s.words,getCutRanges(s.words,s.duration,s.manualCuts),s.sceneBoundaries,s.duration);pushEdit(get,set,{phrases:groupPhrase(s.words,s.phrases,s.selectedWordIds,blocks,crypto.randomUUID())});},
+  ungroupSelectedPhrase:()=>{const s=get();const selected=new Set(s.selectedWordIds);pushEdit(get,set,{phrases:s.phrases.filter(g=>!g.wordIds.some(id=>selected.has(id)))});},
+  renameClip:(time,name)=>{const s=get();const block=transcriptBlocks(s.words,getCutRanges(s.words,s.duration,s.manualCuts),s.sceneBoundaries,s.duration).find(b=>b.kind==='clip'&&b.start<=time&&b.end>time);if(!block)return;const retained=s.clipNames.filter(n=>n.time<block.start||n.time>=block.end);pushEdit(get,set,{clipNames:name.trim()?[...retained,{id:crypto.randomUUID(),time:(block.start+block.end)/2,name:name.trim()}]:retained});},
+  splitBeforeSelection:()=>{const s=get();const selected=new Set(s.selectedWordIds);const first=s.words.find(w=>selected.has(w.id));if(!first)return false;const cuts=getCutRanges(s.words,s.duration,s.manualCuts);if(!canSplitAt(first.start,s.duration,cuts,s.sceneBoundaries))return false;pushEdit(get,set,{sceneBoundaries:[...s.sceneBoundaries,{id:s.nextBoundaryId,time:first.start}].sort((a,b)=>a.time-b.time),nextBoundaryId:s.nextBoundaryId+1});return true;},
+  adjustWordBounds: (id,start,end)=>{const s=get();const words=applyWordBounds(s.words,id,start,end,s.duration);if(words)pushEdit(get,set,{words});},
   splitAtPlayhead: () => {
     const s = get();
     const t = s.currentTime;
@@ -920,18 +898,19 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   },
 
   undo: () => {
-    const { past, future, words, speakers, manualCuts, sceneBoundaries } =
+    const { past, future, words, speakers, manualCuts, sceneBoundaries,phrases,clipNames } =
       get();
     if (past.length === 0) return;
     const prev = past[past.length - 1];
     set({
+      phrases:prev.phrases??[],clipNames:prev.clipNames??[],selectionAnchor:null,
       words: prev.words,
       speakers: prev.speakers,
       manualCuts: prev.manualCuts,
       sceneBoundaries: prev.sceneBoundaries,
       past: past.slice(0, -1),
       future: [
-        { words, speakers, manualCuts, sceneBoundaries },
+        { words, speakers, manualCuts, sceneBoundaries,phrases,clipNames },
         ...future,
       ],
       selectedClipIndex: null,
@@ -942,17 +921,18 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     bumpAutosave();
   },
   redo: () => {
-    const { past, future, words, speakers, manualCuts, sceneBoundaries } =
+    const { past, future, words, speakers, manualCuts, sceneBoundaries,phrases,clipNames } =
       get();
     if (future.length === 0) return;
     const next = future[0];
     set({
+      phrases:next.phrases??[],clipNames:next.clipNames??[],selectionAnchor:null,
       words: next.words,
       speakers: next.speakers,
       manualCuts: next.manualCuts,
       sceneBoundaries: next.sceneBoundaries,
       future: future.slice(1),
-      past: pushHistory(past, { words, speakers, manualCuts, sceneBoundaries }),
+      past: pushHistory(past, { words, speakers, manualCuts, sceneBoundaries,phrases,clipNames }),
       selectedClipIndex: null,
       selectedCutIndex: null,
       selectedWordIds: [],
@@ -1018,6 +998,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       speakers: [],
       manualCuts: [],
       sceneBoundaries: [],
+      phrases: [],clipNames: [],selectionAnchor:null,transcriptView:"clips",
       past: [],
       future: [],
       selectedClipIndex: null,

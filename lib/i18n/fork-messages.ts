@@ -7,6 +7,7 @@ export const forkRussian={
  'More timeline tools':'Инструменты таймлайна','Project actions':'Действия проекта','Pin {tool}':'Закрепить {tool}','Unpin {tool}':'Открепить {tool}',
  'Retranscribe all':'Расшифровать всё заново','Full audio':'Всё аудио','The full transcript will be replaced. Timeline cuts stay unchanged.':'Вся расшифровка будет заменена. Монтаж останется без изменений.','Close revisions':'Закрыть версии','Revision list':'Список версий',
  'Skip deletion areas':'Пропускать удалённые области',
+ 'Transcript options':'Настройки текста','Visibility':'Видимость','Hide deleted words':'Скрывать удалённые слова','Text layout':'Представление текста','By clip':'По клипам','By speaker':'По участникам','Continuous text':'Сплошной текст','Deleted':'Удалено','Clip {number}':'Клип {number}','Clip name':'Название клипа','Join clips':'Объединить клипы',
  'Not downloaded':'Не скачанные модели','Checking downloads…':'Проверка загрузок…','Download status unavailable':'Статус загрузки недоступен',
  'Retranscribe':'Заново',
  'Choose a model and transcription language when your audio is ready.':'Когда звук будет готов, выберите модель и язык расшифровки.',

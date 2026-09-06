@@ -19,6 +19,8 @@ import {
 import { FloatingPortal } from "@floating-ui/react";
 import { useEditorStore } from "@/lib/store";
 import { isDisfluencyPlaceholder } from "@/lib/disfluencies";
+import ActionMenu from './ActionMenu';
+import {transcriptBlocks,type TranscriptBlock} from '@/lib/transcript-structure';
 import TranscriptionSetup from "./TranscriptionSetup";
 import TranscriptToolsMenu from "./TranscriptToolsMenu";
 import TranscriptSearch from "./TranscriptSearch";
@@ -45,7 +47,7 @@ import { useWordAnchorFloating } from "@/hooks/useWordAnchorFloating";
 import { useCutRanges } from "@/hooks/useCutRanges";
 import { findActiveWordId, groupWordsBySpeaker } from "@/lib/transcript";
 import { isTypingTarget } from "@/lib/keyboard";
-import { useI18n } from "./I18nProvider";
+import { useI18n, useForkI18n } from "./I18nProvider";
 import { localizeRuntimeMessage } from "@/lib/i18n";
 
 const WordSpan = memo(function WordSpan({
@@ -74,12 +76,8 @@ const WordSpan = memo(function WordSpan({
       data-placeholder={placeholder ? "" : undefined}
       title={placeholder ? t("transcript.hesitation") : undefined}
       onClick={(e) => {
-        if(e.shiftKey) {
-          const state=useEditorStore.getState();const anchor=state.selectedWordIds[0]??word.id;
-          const a=state.words.findIndex(w=>w.id===anchor),b=state.words.findIndex(w=>w.id===word.id);
-          state.setSelectedWords(state.words.slice(Math.min(a,b),Math.max(a,b)+1).map(w=>w.id));
-          window.getSelection()?.removeAllRanges();return;
-        }
+        if(e.ctrlKey){useEditorStore.getState().seekTo(word.start);return;}
+        if(e.shiftKey){useEditorStore.getState().selectWordRange([word.id],true);window.getSelection()?.removeAllRanges();return;}
         onClick(word,e.currentTarget);
       }}
       className={`py-0.5 cursor-pointer transition-colors duration-75 ${cutOut
@@ -127,6 +125,8 @@ const SplitMarker = memo(function SplitMarker({
 });
 
 export default function TranscriptPanel() {
+  const f=useForkI18n();
+  const view=useEditorStore(s=>s.transcriptView),clipNames=useEditorStore(s=>s.clipNames);
   const { t } = useI18n();
   const words = useEditorStore((s) => s.words);
   const sceneBoundaries = useEditorStore((s) => s.sceneBoundaries);
@@ -170,15 +170,15 @@ export default function TranscriptPanel() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   // Bound even a single-speaker monologue to small rendering rows; source data is unchanged.
-  const turns=useMemo(()=>groupWordsBySpeaker(words).flatMap(turn=>{
-    const sourceWordIds=turn.words.map(word=>word.id),sourceStart=turn.words[0].id;
-    const rows:Array<typeof turn & {sourceWordIds:number[];sourceStart:number}>=[];
-    for(let i=0;i<turn.words.length;i+=80){
-      const rowWords=turn.words.slice(i,i+80);
-      if(showDeleted||rowWords.some(word=>!cutOutIds.has(word.id)))rows.push({...turn,words:rowWords,sourceWordIds,sourceStart});
-    }
-    return rows;
-  }),[words,showDeleted,cutOutIds]);
+  const blocks=useMemo(()=>transcriptBlocks(words,cuts,sceneBoundaries,duration,clipNames),[words,cuts,sceneBoundaries,duration,clipNames]);
+  const turns=useMemo(()=>{
+    const groups:Array<{speaker:number;words:Word[];block?:TranscriptBlock}>=view==='speakers'?groupWordsBySpeaker(words):view==='continuous'?[{speaker:-1,words}]:blocks.map(block=>({speaker:-1,words:block.words,block}));
+    return groups.flatMap((turn,groupIndex)=>{
+      const sourceWordIds=turn.words.map(word=>word.id),sourceStart=turn.words[0]?.id??-1;
+      const rows:Array<typeof turn & {key:string;sourceWordIds:number[];sourceStart:number;first:boolean}>=[];
+      for(let i=0;i<Math.max(1,turn.words.length);i+=80){const rowWords=turn.words.slice(i,i+80);if(view==='clips'||showDeleted||rowWords.some(word=>!cutOutIds.has(word.id)))rows.push({...turn,key:`${view}:${turn.block?.id??groupIndex}:${i}`,words:rowWords,sourceWordIds,sourceStart,first:i===0});}return rows;
+    });
+  },[words,showDeleted,cutOutIds,blocks,view]);
   const rowByWord=useMemo(()=>{const index=new Map<number,number>();turns.forEach((turn,row)=>turn.words.forEach(word=>index.set(word.id,row)));return index;},[turns]);
   const [dragAnchor,setDragAnchor]=useState<number|null>(null);
   const dragAnchorRef=useRef<number|null>(null),lastDragAt=useRef(0);
@@ -186,7 +186,7 @@ export default function TranscriptPanel() {
   const selectedIds=useMemo(()=>new Set(selectedWordIds),[selectedWordIds]);
   const pinnedRows=useMemo(()=>[selectedWordIds[0],selectedWordIds[selectedWordIds.length-1],dragAnchor??-1].map(id=>rowByWord.get(id)).filter((row):row is number=>row!==undefined),[selectedWordIds,rowByWord,dragAnchor]);
   const virtualizer=useVirtualizer({count:turns.length,getScrollElement:()=>scrollRef.current,estimateSize:()=>180,overscan:3,scrollMargin:72,
-    getItemKey:useCallback((index:number)=>turns[index].words[0].id,[turns]),
+    getItemKey:useCallback((index:number)=>turns[index].key,[turns]),
     rangeExtractor:useCallback((range: Parameters<typeof defaultRangeExtractor>[0])=>Array.from(new Set([...defaultRangeExtractor(range),...pinnedRows])).sort((a,b)=>a-b),[pinnedRows]),
   });
   const virtualRows=virtualizer.getVirtualItems();
@@ -254,7 +254,7 @@ export default function TranscriptPanel() {
     [handleWordClick, resumeFollowPlayhead]
   );
 
-  const toolbarOpen = !!(selection && !correcting && !assigningSpeaker);
+  const toolbarOpen = view==='speakers' && !!(selection && !correcting && !assigningSpeaker);
   const { setFloating: setToolbarFloating, floatingStyles: toolbarStyles } =
     useWordAnchorFloating({
       open: toolbarOpen,
@@ -419,37 +419,13 @@ export default function TranscriptPanel() {
             </span>
           )}
           {status === "ready" && <TranscriptToolsMenu />}
-          {(status === "ready" || status === "error" || status === "transcribing") && (
-            <>
-              <label
-                title={t("transcript.replace")}
-                className="flex cursor-pointer h-7 items-center gap-1.5 rounded-lg px-2 text-xs text-zinc-500 transition hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-              >
-                <ArrowUpFromLine size={14} />
-                <span className="hidden sm:inline">{t("common.import")}</span>
-                <input
-                  ref={importInputRef}
-                  type="file"
-                  accept={TRANSCRIPT_ACCEPT}
-                  // Keep in the layout tree — display:none can block the OS picker.
-                  className="sr-only"
-                  onChange={(e) => {
-                    const files = e.target.files;
-                    e.target.value = "";
-                    void handleImportTranscript(files);
-                  }}
-                />
-              </label>
-            </>
-          )}
           {status === "ready" && <TranscriptSearch />}
-          <button
-            onClick={toggleShowDeleted}
-            title={showDeleted ? t("transcript.hideDeleted") : t("transcript.showDeleted")}
-            className="flex cursor-pointer h-7 items-center gap-1.5 rounded-lg px-2 text-xs text-zinc-500 transition hover:bg-zinc-100 dark:text-zinc-400 dark:hover:bg-zinc-800"
-          >
-            {showDeleted ? <Eye size={14} /> : <EyeOff size={14} />}
-          </button>
+          <input ref={importInputRef} type="file" accept={TRANSCRIPT_ACCEPT} className="sr-only" onChange={e=>{const files=e.target.files;e.target.value='';void handleImportTranscript(files);}}/>
+          <ActionMenu label={f('Transcript options')} actions={[
+            {id:'visibility',group:f('Visibility'),label:f('Hide deleted words'),icon:<EyeOff size={14}/>,checked:!showDeleted,run:toggleShowDeleted},
+            ...(['clips','speakers','continuous'] as const).map(mode=>({id:mode,group:f('Text layout'),label:f(mode==='clips'?'By clip':mode==='speakers'?'By speaker':'Continuous text'),icon:<Eye size={14}/>,checked:view===mode,radio:true,run:()=>useEditorStore.getState().setTranscriptView(mode)})),
+            {id:'import',group:t('common.import'),label:t('common.import'),icon:<ArrowUpFromLine size={14}/>,disabled:!['ready','error','transcribing'].includes(status),run:()=>importInputRef.current?.click()},
+          ]}/>
         </div>
       </div>
 
@@ -508,23 +484,31 @@ export default function TranscriptPanel() {
                 const visible = showDeleted
                   ? turn.words
                   : turn.words.filter((w) => !cutOutIds.has(w.id));
-                if (visible.length === 0) return null;
+                if (visible.length === 0 && view!=='clips') return null;
                 // First turn in the full word list has no previous speaker to borrow from.
                 const canMove = turn.sourceStart !== words[0]?.id;
                 return (
                   <div key={virtualRow.key} ref={virtualizer.measureElement} data-index={virtualRow.index} className="pb-7" style={{position:"absolute",top:0,left:0,width:"100%",transform:`translateY(${virtualRow.start-72}px)`}}>
-                    <SpeakerLabel
+                    {view==='speakers'&&turn.first&&<>                    <SpeakerLabel
                       speakerId={turn.speaker}
                       turnWordIds={turn.sourceWordIds}
                       turnStartWordId={turn.sourceStart}
                       canMove={canMove}
                     />
+</>}
+                    {view==='clips'&&turn.first&&turn.block&&<div className="mb-2 flex items-center gap-2 text-xs text-zinc-500">
+                      {turn.block.kind==='deleted'?<span className="text-red-500">{f('Deleted')} · {(turn.block.end-turn.block.start).toFixed(1)} s</span>:<>
+                        <button onClick={()=>{useEditorStore.getState().selectWordRange(turn.sourceWordIds);useEditorStore.getState().setSelectedClipIndex(turn.block!.clipIndex!);}}>{f('Clip {number}',{number:(turn.block.clipIndex??0)+1})}</button>
+                        <input aria-label={f('Clip name')} placeholder={f('Clip name')} value={turn.block.name??''} onChange={e=>useEditorStore.getState().renameClip((turn.block!.start+turn.block!.end)/2,e.target.value)} className="min-w-0 flex-1 rounded border border-transparent bg-transparent px-1 hover:border-zinc-300"/>
+                        {turn.block.splitId!==undefined&&<button title={f('Join clips')} onClick={()=>removeSceneBoundary(turn.block!.splitId!)}><Merge size={13}/></button>}
+                      </>}
+                    </div>}
                     <p className="select-text text-[15px] leading-8">
                       {visible.map((w) => {
                         const split = splitBeforeWordId.get(w.id);
                         return (
                           <React.Fragment key={w.id}>
-                            {split && (
+                            {view==='speakers' && split && (
                               <SplitMarker boundaryId={split.id} onJoin={removeSceneBoundary} />
                             )}
                             <WordSpan

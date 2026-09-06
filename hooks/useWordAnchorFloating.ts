@@ -3,6 +3,7 @@
 import {
   autoUpdate,
   flip,
+  hide,
   offset,
   shift,
   useFloating,
@@ -56,7 +57,7 @@ export function useWordAnchorFloating({
   offsetMain?: number;
   padding?: number;
 }) {
-  const { refs, floatingStyles } = useFloating({
+  const { refs, floatingStyles,middlewareData } = useFloating({
     open,
     placement,
     strategy: "fixed",
@@ -66,6 +67,7 @@ export function useWordAnchorFloating({
     whileElementsMounted: autoUpdate,
     middleware: [
       offset(offsetMain),
+      hide({padding:{top:40}}),
       flip({ padding }),
       shift({ padding }),
     ],
@@ -88,5 +90,5 @@ export function useWordAnchorFloating({
     // eslint-disable-next-line react-hooks/exhaustive-deps -- idsKey stands in for wordIds
   }, [open, idsKey, containerRef, setPositionReference]);
 
-  return { setFloating, floatingStyles };
+  return { setFloating, floatingStyles: {...floatingStyles,...(middlewareData.hide?.referenceHidden?{visibility: "hidden" as const,pointerEvents: "none" as const}:{})} };
 }

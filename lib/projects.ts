@@ -42,6 +42,9 @@ function projectSource(row: {
 
 export interface ProjectRecord extends ProjectMeta {
   words: Word[];
+  phrases?: import("./transcript-schema").PhraseGroup[];
+  clipNames?: import("./transcript-schema").ClipName[];
+  transcriptView?: import("./transcript-schema").TranscriptView;
   showDeleted: boolean;
   skipDeletions?: boolean;
   /** Blade/trim cuts not owned by deleted words (optional for older saves). */
@@ -239,6 +242,7 @@ export async function putProject(input: ProjectWrite): Promise<string> {
       ? input.transcriptLanguage
       : DEFAULT_TRANSCRIPT_LANGUAGE,
     words: input.words,
+    phrases:input.phrases??[],clipNames:input.clipNames??[],transcriptView:input.transcriptView??"clips",
     showDeleted: input.showDeleted,
     skipDeletions: input.skipDeletions ?? true,
     manualCuts: input.manualCuts ?? [],
