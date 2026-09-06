@@ -130,3 +130,9 @@ Latest static build predates the final small tweaks for Space replacement, no-op
 
 - Real pointer drags selected/resized dedicated start/end handles, produced expected source-time ranges, and respected both source edges. Undo/Redo operated once per full drag. Native save/reopen retained the resized ranges; word timings and explicit splits stayed unchanged.
 - Combined with the existing focused resizing tests, item 4 is complete and moved to Completed-Plan-Items.md. No application change was needed in this audit; initial harness failures came from clicking before native window resize settled. The final checks waited for layout and used live timeline coordinates. Test fixture restored afterward.
+
+
+## Stage thirteen: waveform context-menu acceptance complete
+
+- Completed zoom/scroll source-position, keyboard Split/Add, overlap merging, clicked-target Restore, source-end clamping, undo/redo/save persistence, viewport bounds, Escape/outside dismissal and unchanged left/Alt-click behavior checks.
+- Item 11 moved to Completed-Plan-Items.md with its original requirements and evidence. No application change was needed. Final fixture data restored; remaining plan work remains active.

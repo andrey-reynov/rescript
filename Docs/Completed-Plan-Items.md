@@ -167,3 +167,39 @@ Verified 2026-09-06 in the isolated production-built Electron app, using real po
 - Selecting a deletion region exposes clear, usable controls for its start/end instead of requiring tiny inactive neighboring grabbers.
 - Resizing updates the deletion range and adjacent retained ranges consistently, including source-edge cases; undo/redo and save/reopen preserve the result.
 
+
+## Item 11 — Waveform context menus
+
+Verified 2026-09-06 in the isolated production-built Electron app using actual right-click events, zoom/scroll controls, keyboard menu actions and saved project data.
+
+- Ordinary waveform right-click opened Split/Add deletion and sought to the clicked source position. A requested 5.25-second position measured 5.245 seconds at fit zoom and 5.238 seconds after two zoom steps and horizontal scrolling, within pointer-pixel resolution. Home then Enter activated Split at that position.
+- Adding at 8.5 seconds created the normal three-second requested range. It overlapped an existing 10–12-second deletion and merged into 8.499–12; the combined range became selected with resize handles. Right-clicking a different 20–22-second deletion and choosing Restore removed that target while retaining the previously selected deletion.
+- Near source end, a request starting about 0.7 seconds before the end was clamped to 42.4 seconds and selected/resizable. End then Enter activated Add deletion. Undo removed that operation; Redo restored it; native save/reopen retained its data. Dedicated resizing acceptance is recorded under item 4.
+- Menu bounds stayed inside the viewport, including near the bottom-right source edge. Escape and outside click dismissed it. Opening/dismissing alone left words/cuts/splits unchanged. Ordinary left-click and Alt-left-click still sought to source time 6 seconds.
+- Source inspection confirms the waveform container prevents the native context menu, shared menu icons/real shortcut badges and disabled states are retained, and an empty action array renders a disabled `No actions yet` row. All normal loaded-source waveform targets currently have implemented actions; the empty fallback is retained for targets without actions.
+- Test fixture data restored. Existing deletion/state and timeline serialization tests cover edit preservation and undo independently of menu presentation. No application change was needed in this audit.
+
+### Original requirements
+
+**Status:** Complete; verified above.
+
+**Expected behavior:**
+
+- Right-click anywhere inside the waveform container opens the app's context menu, replacing the native browser menu there. If no actions have been implemented for that target, show a non-actionable **No actions yet** entry instead of displaying nothing.
+- Right-clicking the waveform places the playhead at the clicked source time and opens the menu at the pointer. Use the current timeline zoom and horizontal scroll when converting the pointer position to source time.
+- On a deletion area (red stripes), offer **Restore deletion area** (final wording may be shortened). It removes that clicked deletion range and restores its source audio/video to the edit; it does not remove original media or act on a different prior selection.
+- On ordinary waveform content, offer **Split** at the clicked playhead position and **Add deletion area**.
+- Add deletion area creates an approximately three-second deletion range starting at the clicked source time, clamped to the source end. Make the new range selected and resizable using item 4's deletion-boundary controls.
+- Reuse shared menu styling, icons, and real shortcut badges. Preserve disabled-state rules when an implemented action cannot currently run; the empty placeholder is for targets with no implemented actions.
+- Opening or dismissing the menu alone must not split, delete, or restore anything. Preserve normal left-click and Alt-click behavior.
+
+**Acceptance criteria:**
+
+- Right-click consistently opens the appropriate app menu throughout the waveform container; unsupported targets show No actions yet.
+- At different zoom/scroll positions, right-click places the playhead at the expected source time and Split operates there.
+- Right-clicking a red-striped region restores that region when its restore command is chosen.
+- Add deletion area creates a bounded, resizable range of about three seconds (shorter near the source end), handles overlaps consistently with existing deletion logic, and supports undo/redo and save/reopen.
+- Context menus remain within the viewport, support keyboard navigation/Escape, and close on outside click or action selection.
+
+**Tracking:** No issue assigned yet. Depends on item 4 for deletion-range resizing.
+

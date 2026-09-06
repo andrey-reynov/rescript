@@ -119,30 +119,6 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 - Verify migration preserves existing project language and UI locale preferences.
 - Apply item 7's model-specific Automatic/forced-language limitations consistently; fix only failures uncovered by these checks.
 
-### 11. Waveform context menus
-
-**Status:** Implemented and shipped in 1.3.0; retain zoom/scroll, source-edge, overlapping deletion and menu keyboard runtime audit.
-
-**Expected behavior:**
-
-- Right-click anywhere inside the waveform container opens the app's context menu, replacing the native browser menu there. If no actions have been implemented for that target, show a non-actionable **No actions yet** entry instead of displaying nothing.
-- Right-clicking the waveform places the playhead at the clicked source time and opens the menu at the pointer. Use the current timeline zoom and horizontal scroll when converting the pointer position to source time.
-- On a deletion area (red stripes), offer **Restore deletion area** (final wording may be shortened). It removes that clicked deletion range and restores its source audio/video to the edit; it does not remove original media or act on a different prior selection.
-- On ordinary waveform content, offer **Split** at the clicked playhead position and **Add deletion area**.
-- Add deletion area creates an approximately three-second deletion range starting at the clicked source time, clamped to the source end. Make the new range selected and resizable using item 4's deletion-boundary controls.
-- Reuse shared menu styling, icons, and real shortcut badges. Preserve disabled-state rules when an implemented action cannot currently run; the empty placeholder is for targets with no implemented actions.
-- Opening or dismissing the menu alone must not split, delete, or restore anything. Preserve normal left-click and Alt-click behavior.
-
-**Acceptance criteria:**
-
-- Right-click consistently opens the appropriate app menu throughout the waveform container; unsupported targets show No actions yet.
-- At different zoom/scroll positions, right-click places the playhead at the expected source time and Split operates there.
-- Right-clicking a red-striped region restores that region when its restore command is chosen.
-- Add deletion area creates a bounded, resizable range of about three seconds (shorter near the source end), handles overlaps consistently with existing deletion logic, and supports undo/redo and save/reopen.
-- Context menus remain within the viewport, support keyboard navigation/Escape, and close on outside click or action selection.
-
-**Tracking:** No issue assigned yet. Depends on item 4 for deletion-range resizing.
-
 ### 13. Clip-based transcript editing and phrase grouping
 
 **Status:** Implemented baseline, with continuous-flow and selection-scope refinements. Selected correction realignment is implemented; see [Selected-Text-Alignment.md](Selected-Text-Alignment.md). The full detailed acceptance audit remains open.
