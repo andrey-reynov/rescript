@@ -29,7 +29,7 @@ export function useDesktopJob() {
           const data=result.project.data;
           if(job.transcribe&&data.transcriptionResultKey===job.key){
             const words=data.words as Word[];
-            useEditorStore.setState({words,speakers:speakersFromWords(words,latest.speakers),
+            useEditorStore.setState({words,phrases:data.phrases??[],selectedWordIds:[],selectionAnchor:null,speakers:speakersFromWords(words,latest.speakers),
               transcriptionResultKey:job.key,transcriptionChunks:data.transcriptionChunks??[],
               skipTranscription:job.status==='complete',
               past:(job.replacementChunks||job.replacementRange)?[]:extendTranscriptHistory(latest.past,latest.words,words),

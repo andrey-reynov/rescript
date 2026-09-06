@@ -7,7 +7,6 @@ import {
   useState,
   type RefObject,
 } from "react";
-import { PLAYHEAD_EPSILON_S } from "@/lib/edits";
 import { useEditorStore } from "@/lib/store";
 import type { Word } from "@/lib/types";
 
@@ -179,17 +178,13 @@ export function useTranscriptSelection({
     window.getSelection()?.removeAllRanges();
   }, []);
 
-  const seekToWord = useCallback((word: Word) => {
-    useEditorStore.getState().seekTo(word.start + PLAYHEAD_EPSILON_S);
-  }, []);
-
   const handleWordClick = useCallback(
     (word: Word, el: HTMLElement) => {
       if(dragClickRef.current?.id===word.id&&Date.now()<dragClickRef.current.until)return;
       const nativeSel = window.getSelection();
       // Drag ends with a click on the word under the cursor — leave the range alone.
       if (nativeSel && !nativeSel.isCollapsed) return;
-      seekToWord(word);
+
       const container = containerRef.current;
       if (!container) return;
       applyMarks([el]);
@@ -200,9 +195,9 @@ export function useTranscriptSelection({
         anyDeleted: cutOut,
         anyKept: !cutOut,
       });
-      setSelectedWords([word.id]);
+      useEditorStore.getState().selectWordRange([word.id]);
     },
-    [seekToWord, applyMarks, containerRef, setSelectedWords]
+    [applyMarks, containerRef]
   );
 
   // Paint marks on selectionchange; commit to React only when the mouse is up.

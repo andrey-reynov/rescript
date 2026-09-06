@@ -16,6 +16,7 @@ contextBridge.exposeInMainWorld("rescriptDesktop", {
     start: (id:string,model:string,language:string,transcribe:boolean) => ipcRenderer.invoke('job:start',id,model,language,transcribe),
     read: (id:string) => ipcRenderer.invoke('job:read',id),
     pause: (id:string) => ipcRenderer.invoke('job:pause',id),
+    transcribeAll: (id:string,model:string,language:string) => ipcRenderer.invoke('job:transcribe-all',id,model,language),
     transcribeRange: (id:string,start:number,end:number,model:string,language:string) => ipcRenderer.invoke('job:transcribe-range',id,start,end,model,language),
     retryChunks: (id:string,indices:number[]) => ipcRenderer.invoke('job:retry-chunks',id,indices),
     fork: (sourceId:string,destinationId:string) => ipcRenderer.invoke('job:fork',sourceId,destinationId),

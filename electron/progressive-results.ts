@@ -12,7 +12,8 @@ export function publishTranscriptionProgress(data:ProjectData,job:JobState,gener
     const keep=existing.filter(word=>word.end<=start||word.start>=end);
     let id=existing.reduce((max,word)=>Math.max(max,word.id),-1)+1;
     const replacement=generated.map(word=>({...word,id:id++,start:Math.max(start,word.start),end:Math.min(end,word.end)})).filter(word=>word.end>word.start);
-    return {...data,words:[...keep,...replacement].sort((a,b)=>a.start-b.start),transcriptionResultKey:job.key,transcriptionChunks:job.completed,transcriptionComplete:true};
+    const keepIds=new Set(keep.map(w=>w.id));
+    return {...data,phrases:(data.phrases??[]).map(g=>({...g,wordIds:g.wordIds.filter(id=>keepIds.has(id))})).filter(g=>g.wordIds.length>1),words:[...keep,...replacement].sort((a,b)=>a.start-b.start),transcriptionResultKey:job.key,transcriptionChunks:job.completed,transcriptionComplete:true};
   }
   if(data.source==='import')return data;
   const applied=data.transcriptionResultKey===job.key?data.transcriptionChunks??[]:[];

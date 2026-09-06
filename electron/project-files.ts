@@ -18,6 +18,9 @@ export interface ProjectData {
   source: string;
   transcriptLanguage: string;
   words: unknown[];
+  phrases?: import("../lib/transcript-schema").PhraseGroup[];
+  clipNames?: import("../lib/transcript-schema").ClipName[];
+  transcriptView?: import("../lib/transcript-schema").TranscriptView;
   showDeleted: boolean;
   manualCuts?: unknown[];
   sceneBoundaries?: unknown[];

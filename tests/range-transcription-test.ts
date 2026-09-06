@@ -30,6 +30,11 @@ async function main(){
   job=await jobs.transcribeRange(id,10,15,'base','ru');chunk=(await jobs.next(id))!;job=await jobs.checkpoint(id,job.key,chunk,[]);
   assert.equal(publishTranscriptionProgress(result,job,[]).words.length,2,'Empty result replaces only selected range');
   await assert.rejects(jobs.transcribeRange(id,-1,2,'base','en'));
+  const oldKey=job.key;
+  job=await jobs.transcribeAll(id,'turbo','ru');assert.notEqual(job.key,oldKey);assert.deepEqual(job.completed,[]);assert.deepEqual(job.replacementRange,{start:0,end:125});assert.equal(job.total,3);
+  assert.equal(publishTranscriptionProgress(result,job,[]),result,'Full replacement is also atomic');
+  while(job.status!=='complete'){chunk=(await jobs.next(id))!;job=await jobs.checkpoint(id,job.key,chunk,[]);}
+  const full=publishTranscriptionProgress(result,job,[]);assert.equal(full.words.length,0);assert.deepEqual(full.manualCuts,data.manualCuts);
   console.log('Range transcription: preparation-only, exact bounds, model/language, resume, atomic publication and edit preservation passed.');
  }finally{await fs.rm(root,{recursive:true,force:true});}
 }

@@ -1,0 +1,13 @@
+import assert from 'node:assert/strict';
+import {useEditorStore as store} from '../lib/store';
+import {getCutRanges} from '../lib/edits';
+import type {Word} from '../lib/types';
+const words:Word[]=Array.from({length:10},(_,id)=>({id,text:'word'+id,start:id,end:id+.8,speaker:0,deleted:false}));
+store.setState({words,duration:10,manualCuts:[],sceneBoundaries:[{id:1,time:5}],phrases:[],clipNames:[],past:[],future:[],nextManualCutId:1});
+store.getState().cutRanges([{start:2,end:5}]);const original=store.getState();
+store.getState().beginGesture();store.getState().resizeDeletion({start:2,end:5},{start:2.4,end:5});store.getState().resizeDeletion({start:2.4,end:5},{start:3,end:5});store.getState().endGesture();
+let s=store.getState();assert.deepEqual(getCutRanges(s.words,10,s.manualCuts),[{start:3,end:5}]);assert.deepEqual(s.words.map(w=>[w.start,w.end]),words.map(w=>[w.start,w.end]));assert.deepEqual(s.sceneBoundaries,[{id:1,time:5}]);
+s.undo();s=store.getState();assert.deepEqual(s.words,original.words);assert.deepEqual(s.manualCuts,original.manualCuts);s.redo();s=store.getState();assert.deepEqual(getCutRanges(s.words,10,s.manualCuts),[{start:3,end:5}]);
+s.resizeDeletion({start:3,end:5},{start:-2,end:12});s=store.getState();assert.deepEqual(getCutRanges(s.words,10,s.manualCuts),[{start:0,end:10}]);
+s.restoreRanges([{start:0,end:10}]);s=store.getState();assert.deepEqual(getCutRanges(s.words,10,s.manualCuts),[]);
+console.log('Deletion resizing: bounds, source timestamps, explicit splits, coalesced undo and restore passed.');

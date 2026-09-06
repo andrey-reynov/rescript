@@ -1,5 +1,6 @@
 /** A single transcribed word, timed against the original media. */
 export interface Word {
+  correction?: import("./transcript-schema").CorrectionProvenance;
   /** Spoken language detected or requested for this speech region, when available. */
   language?: string;
   id: number;
@@ -48,6 +49,8 @@ export interface SpeakerInfo {
 
 /** Snapshot of all edit state for undo/redo. */
 export interface EditSnapshot {
+  phrases?: import("./transcript-schema").PhraseGroup[];
+  clipNames?: import("./transcript-schema").ClipName[];
   words: Word[];
   manualCuts: ManualCut[];
   sceneBoundaries: SceneBoundary[];

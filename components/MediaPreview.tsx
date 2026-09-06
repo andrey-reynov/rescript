@@ -41,7 +41,7 @@ export default function MediaPreview() {
       const media = mediaRef.current;
       if (media) {
         let t = media.currentTime;
-        if (!media.paused) {
+        if (!media.paused && useEditorStore.getState().skipDeletions) {
           const cut = cutRangeAt(t, cutsRef.current);
           if (cut) {
             const target = cut.end + PLAYHEAD_EPSILON_S;
