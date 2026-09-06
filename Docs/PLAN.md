@@ -6,27 +6,6 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 
 ## Features
 
-### 2. Models manager in Settings
-
-**Status:** Implemented; native/runtime checks recorded in [Implementation-Progress.md](Implementation-Progress.md). Parakeet CPU inference/relocation and interruption recovery are verified (stages 25–26, 29, 36); retain final installed download/delete/relocate action acceptance.
-
-**Expected behavior:**
-
-- Add a Models section to Settings for downloading and deleting transcription models. Show installed availability, model sizes, download progress, and actionable errors.
-- Show the default model storage location and let the user choose a new default location for future downloads.
-- Provide an explicit option to relocate already downloaded models to the new default location. Distinguish changing the download destination from moving existing files.
-- Keep model loading, the manager, and model-picker availability checks consistent with the configured location; relocated models must remain usable without downloading them again.
-- Verify relocated files before removing the old copies. A failed or interrupted relocation must preserve usable models and report what remains to be done.
-- Prevent deletion or relocation of model files while an active job is using them. Model removal must not remove project media, transcripts, or edits.
-
-**Acceptance criteria:**
-
-- Downloading a model makes it available in the model selectors; deleting it moves it to Not downloaded.
-- Future downloads use the chosen default location, which persists after restarting the app.
-- Relocating installed models allows transcription from the new location without a fresh download. Failure leaves a recoverable, clearly reported state.
-
-**Tracking:** No issue assigned yet.
-
 ### 13. Clip-based transcript editing and phrase grouping
 
 **Status:** Implemented baseline, with continuous-flow and selection-scope refinements. Selected correction realignment is implemented; see [Selected-Text-Alignment.md](Selected-Text-Alignment.md). The full detailed acceptance audit remains open.

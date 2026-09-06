@@ -333,3 +333,28 @@ Verified 2026-09-06 in the isolated production-built Electron app using actual r
 
 
 **Completion evidence:** Silence-Detection.md records independent detector/settings/handles tests, persistence and background processing tests, actual gameplay and controlled instrumental analysis in the installed app, the three-color lane, and explicit deletion/Undo with source preservation. Stage 33 resolves the hidden-window visual gate. VAD's false speech detections on music are documented as an accuracy limitation; detection never promises or performs unconditional automatic removal.
+
+
+### 2. Models manager in Settings
+
+**Status:** Implemented; native/runtime checks recorded in [Implementation-Progress.md](Implementation-Progress.md). Parakeet CPU inference/relocation and interruption recovery are verified (stages 25–26, 29, 36); retain final installed download/delete/relocate action acceptance.
+
+**Expected behavior:**
+
+- Add a Models section to Settings for downloading and deleting transcription models. Show installed availability, model sizes, download progress, and actionable errors.
+- Show the default model storage location and let the user choose a new default location for future downloads.
+- Provide an explicit option to relocate already downloaded models to the new default location. Distinguish changing the download destination from moving existing files.
+- Keep model loading, the manager, and model-picker availability checks consistent with the configured location; relocated models must remain usable without downloading them again.
+- Verify relocated files before removing the old copies. A failed or interrupted relocation must preserve usable models and report what remains to be done.
+- Prevent deletion or relocation of model files while an active job is using them. Model removal must not remove project media, transcripts, or edits.
+
+**Acceptance criteria:**
+
+- Downloading a model makes it available in the model selectors; deleting it moves it to Not downloaded.
+- Future downloads use the chosen default location, which persists after restarting the app.
+- Relocating installed models allows transcription from the new location without a fresh download. Failure leaves a recoverable, clearly reported state.
+
+**Tracking:** No issue assigned yet.
+
+
+**Completion evidence:** Stages 25–26 verify actual CPU Parakeet inference and offline use after relocation/restart; stages 29 and 36 verify killed-relocation and renderer-import recovery. Stage 37 verifies Settings-driven download, folder change, relocation, restart availability, and deletion in the real installed app, including file hashes and unchanged project documents. Existing model-storage tests cover active-job mutation guards, failure preservation, retry, and deletion isolation.
