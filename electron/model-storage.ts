@@ -6,7 +6,7 @@ import {MODELS,MODEL_ORDER,isModelId,type ModelId} from '../lib/models';
 import {requiredModelFiles,modelFileUrl,modelFileFromUrl} from '../lib/model-files';
 import type {ModelFileRecord,ModelStorageStatus,ModelDownload} from '../types/model-api';
 
-interface Manifest {relocationError?:string|null;version:1;folder:string;files:Record<string,ModelFileRecord>;cleanup:{url:string;root:string}[];}
+interface Manifest {relocationInProgress?:boolean;relocationTemp?:{url:string;root:string;token:string};relocationError?:string|null;version:1;folder:string;files:Record<string,ModelFileRecord>;cleanup:{url:string;root:string}[];}
 interface Transfer {url:string;temp:string;size:number;offset:number;root:string;}
 export class ModelStorage {
  private manifest:Manifest|null=null;
@@ -54,7 +54,7 @@ export class ModelStorage {
   for(const id of MODEL_ORDER){const files:string[]=[];let bytes=0,outsideDefault=false;for(const file of new Set([...requiredModelFiles(id,false),...requiredModelFiles(id,true)])){const url=modelFileUrl(id,file);if(await this.existing(url)){files.push(file);bytes+=state.files[url].size;outsideDefault ||= state.files[url].root!==state.folder;}}
    models[id]={available:requiredModelFiles(id,gpu).every(file=>files.includes(file)),files,bytes,outsideDefault};
   }
-  return {folder:state.folder,busy:this.changing||this.inUse()||this.pending.size>0||this.startingImports.size>0||this.transfers.size>0||[...this.downloads.values()].some(item=>item.state==='downloading'),relocating:!!this.relocation,relocation:this.relocation,error:this.error??state.relocationError??(state.cleanup.length?'Relocation cleanup pending. Retry relocation to remove original copies.':null),models,downloads:[...this.downloads.values()]};
+  return {folder:state.folder,busy:this.changing||this.inUse()||this.pending.size>0||this.startingImports.size>0||this.transfers.size>0||[...this.downloads.values()].some(item=>item.state==='downloading'),relocating:!!this.relocation,relocation:this.relocation,error:this.error??state.relocationError??(state.relocationInProgress&&!this.changing?'Model relocation was interrupted. Retry relocation to finish remaining files.':null)??(state.cleanup.length?'Relocation cleanup pending. Retry relocation to remove original copies.':null),models,downloads:[...this.downloads.values()]};
  }
  private assertIdle(){if(this.inUse()||this.changing||this.pending.size||this.startingImports.size||this.transfers.size||[...this.downloads.values()].some(item=>item.state==='downloading'))throw Error('Wait for model downloads or pause processing before changing model files.');}
  async setFolder(parent:string){this.assertIdle();this.changing=true;try{if(!path.isAbsolute(parent))throw Error('Choose an absolute model folder.');const state=await this.state();const folder=path.join(await fs.realpath(parent),'Rescript Models');await this.file(folder,modelFileUrl('tiny','config.json'),true);state.folder=folder;await this.save();return folder;}finally{this.changing=false;}}
@@ -95,19 +95,25 @@ export class ModelStorage {
  }
  async relocate(){
   this.assertIdle();this.changing=true;this.error=null;
-  try{const state=await this.state();state.relocationError=null;await this.save();const entries=Object.entries(state.files).filter(([,record])=>record.root!==state.folder);this.relocation={completed:0,total:entries.length};
+  try{const state=await this.state();state.relocationError=null;state.relocationInProgress=true;await this.save();
+   // Only remove the exact temporary copy recorded before an interrupted copy.
+   // The managed-path checks also reject symlinked model directories.
+   if(state.relocationTemp){const pending=state.relocationTemp;if(!/^[0-9a-f-]{36}$/.test(pending.token))throw Error('Invalid relocation checkpoint.');const temp=(await this.file(pending.root,pending.url))+'.'+pending.token+'.part';await fs.unlink(temp).catch(error=>{if(error.code!=='ENOENT')throw error;});delete state.relocationTemp;await this.save();}
+   const entries=Object.entries(state.files).filter(([,record])=>record.root!==state.folder);this.relocation={completed:0,total:entries.length};
    for(const [url,record] of entries){
     const source=await this.file(record.root,url);if(await this.digest(source)!==record.sha256)throw Error('A model file is damaged. Download it again before relocating: '+this.artifact(url).file);
-    const target=await this.file(state.folder,url,true);const temp=target+'.'+randomUUID()+'.part';
+    const target=await this.file(state.folder,url,true);const token=randomUUID();const temp=target+'.'+token+'.part';
+    state.relocationTemp={url,root:state.folder,token};await this.save();
     try{
       await fs.copyFile(source,temp);if((await fs.stat(temp)).size!==record.size||await this.digest(temp)!==record.sha256)throw Error('Relocation verification failed. Original models are preserved.');
       const handle=await fs.open(temp,'r+');try{await handle.sync();}finally{await handle.close();}
       await fs.rename(temp,target);
     }finally{await fs.unlink(temp).catch(error=>{if(error.code!=='ENOENT')throw error;});}
     // The manifest commit switches loading only after the complete copy verifies.
-    state.cleanup.push({url,root:record.root});state.files[url]={...record,root:state.folder};await this.save();this.relocation.completed++;
+    state.cleanup.push({url,root:record.root});state.files[url]={...record,root:state.folder};delete state.relocationTemp;await this.save();this.relocation.completed++;
    }
    for(const old of [...state.cleanup]){const record=state.files[old.url];if(!record||record.root===old.root)continue;const current=await this.file(record.root,old.url);if(await this.digest(current)!==record.sha256)throw Error('Relocated model needs verification. Original copy preserved.');const previous=await this.file(old.root,old.url);await fs.unlink(previous).catch(error=>{if(error.code!=='ENOENT')throw error;});state.cleanup.splice(state.cleanup.indexOf(old),1);await this.save();}
+   state.relocationInProgress=false;await this.save();
   }catch(error){this.error=String(error)+' Retry relocation to finish remaining files.';const state=await this.state();state.relocationError=this.error;await this.save();throw error;}finally{this.changing=false;this.relocation=null;}
  }
  async importStart(id:ModelId,file:string,size:number){

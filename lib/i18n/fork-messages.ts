@@ -63,6 +63,7 @@ export const forkRussian={
  'Transcript options':'Настройки текста','Visibility':'Видимость','Hide deleted words':'Скрывать удалённые слова','Text layout':'Представление текста','By clip':'По клипам','By speaker':'По участникам','Continuous text':'Сплошной текст','Deleted':'Удалено','Clip {number}':'Клип {number}','Clip name':'Название клипа','Join clips':'Объединить клипы',
  'No actions yet':'Пока нет действий','Go to word':'Перейти к слову','Group into phrase':'Объединить во фразу','Ungroup':'Разгруппировать','Restore deletion area':'Восстановить удалённую область','Add deletion area':'Добавить удалённую область','Deletion start':'Начало удаления','Deletion end':'Конец удаления','Timeline actions':'Действия таймлайна',
  'Correct text':'Исправить текст','Text actions':'Действия с текстом','Split clip':'Разделить клип',
+ 'Model relocation was interrupted. Retry relocation to finish remaining files.':'Перенос моделей прерван. Повторите перенос оставшихся файлов.',
  'Empty text':'Пустой текст','Empty text · audio preserved; double-click to correct':'Пустой текст · звук сохранён; двойной щелчок для исправления',
  'Partially cut · source timing preserved':'Частично удалено · исходное время сохранено','Approximate timing · corrected text':'Приблизительное время · исправленный текст',
  'Not downloaded':'Не скачанные модели','Checking downloads…':'Проверка загрузок…','Download status unavailable':'Статус загрузки недоступен',
