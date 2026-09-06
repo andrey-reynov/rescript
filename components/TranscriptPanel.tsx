@@ -24,7 +24,7 @@ import RealignSelection from './RealignSelection';
 import {alignmentSelection,type AlignmentSelection} from '@/lib/correction-alignment';
 import ActionMenu from './ActionMenu';
 import {intervalDuration,hiddenSelectionCount} from '@/lib/transcript-presentation';
-import {transcriptBlocks,correctionSelection,type TranscriptBlock} from '@/lib/transcript-structure';
+import {transcriptBlocks,projectPhrases,correctionSelection,type TranscriptBlock} from '@/lib/transcript-structure';
 import TranscriptionSetup from "./TranscriptionSetup";
 import TranscriptToolsMenu from "./TranscriptToolsMenu";
 import TranscriptSearch from "./TranscriptSearch";
@@ -62,6 +62,8 @@ const WordSpan = memo(function WordSpan({
   selected,
   partial=false,
   onClick,
+  onRangeClick,
+  groupIds,
 }: {
   word: Word;
   /** True when the word is removed from the edited media (deleted or covered by a cut). */
@@ -69,7 +71,9 @@ const WordSpan = memo(function WordSpan({
   active: boolean;
   selected: boolean;
   partial?:boolean;
-  onClick: (word: Word, el: HTMLElement) => void;
+  onClick: (word: Word, el: HTMLElement, individual:boolean) => void;
+  groupIds:number[];
+  onRangeClick: (ids:number[])=>void;
 }) {
   const { t } = useI18n();
   const f=useForkI18n();
@@ -80,17 +84,19 @@ const WordSpan = memo(function WordSpan({
   return (
     <span
       data-wid={word.id}
+      data-phrase={groupIds.length>1?groupIds[0]:undefined}
       data-sel={selected ? "" : undefined}
       data-cut={cutOut ? "" : undefined}
       data-placeholder={placeholder ? "" : undefined}
       title={emptyText?f("Empty text · audio preserved; double-click to correct"):partial?f("Partially cut · source timing preserved"):word.correction?.timing==='approximate'?f("Approximate timing · corrected text"):placeholder ? t("transcript.hesitation") : undefined}
+      onMouseDown={e=>{if(e.shiftKey)e.preventDefault();}}
       onClick={(e) => {
-        if(e.ctrlKey||e.metaKey||e.altKey)return;
-        if(e.shiftKey){e.currentTarget.closest<HTMLElement>('[data-transcript-editor]')?.focus({preventScroll:true});useEditorStore.getState().selectWordRange([word.id],true);window.getSelection()?.removeAllRanges();return;}
+        if(e.metaKey||e.altKey)return;
+        if(e.shiftKey){e.currentTarget.closest<HTMLElement>('[data-transcript-editor]')?.focus({preventScroll:true});onRangeClick(e.ctrlKey?[word.id]:groupIds);return;}
         e.currentTarget.closest<HTMLElement>('[data-transcript-editor]')?.focus({preventScroll:true});
-        onClick(word,e.currentTarget);
+        onClick(word,e.currentTarget,e.ctrlKey);
       }}
-      className={`${partial?'underline decoration-dotted decoration-amber-500':''} py-0.5 cursor-pointer transition-colors duration-75 ${cutOut
+      className={`${groupIds.length>1?'border-b-2 border-indigo-300 bg-indigo-50/50 dark:border-indigo-600 dark:bg-indigo-950/30 '+(groupIds[0]===word.id?'rounded-l ':'')+(groupIds.at(-1)===word.id?'rounded-r ':''):''} ${partial?'underline decoration-dotted decoration-amber-500':''} py-0.5 cursor-pointer transition-colors duration-75 ${cutOut
         ? "word-deleted bg-red-50 text-red-600 line-through decoration-red-300 dark:bg-red-950/40 dark:text-red-400 dark:decoration-red-800"
         : active
           ? "bg-neutral-200/80 text-zinc-900 dark:bg-neutral-700/80 dark:text-zinc-50"
@@ -183,7 +189,9 @@ export default function TranscriptPanel() {
   const scrollRef = useRef<HTMLDivElement>(null);
   const importInputRef = useRef<HTMLInputElement>(null);
   // Bound even a single-speaker monologue to small rendering rows; source data is unchanged.
+  const phrases=useEditorStore(s=>s.phrases);
   const blocks=useMemo(()=>transcriptBlocks(words,cuts,sceneBoundaries,duration,clipNames),[words,cuts,sceneBoundaries,duration,clipNames]);
+  const phraseByWord=useMemo(()=>{const map=new Map<number,number[]>();for(const group of projectPhrases(phrases,blocks))for(const id of group.wordIds)map.set(id,group.wordIds);return map;},[phrases,blocks]);
   const continuousWords=useMemo(()=>showDeleted?words:words.filter(word=>!cutOutIds.has(word.id)),[words,showDeleted,cutOutIds]);
   const flowLines=useTranscriptFlow(continuousWords,view==='continuous',containerRef);
   const turns=useMemo(()=>{
@@ -239,6 +247,7 @@ export default function TranscriptPanel() {
     clearSelection,
     clearMarks,
     handleWordClick,
+    handleRangeClick,
     releaseToolbar,
   } = useTranscriptSelection({
     containerRef,
@@ -263,11 +272,11 @@ export default function TranscriptPanel() {
 
   // Plain clicks select and seek; drag/Shift selection remains separate.
   const onWordClick = useCallback(
-    (word: Word, el: HTMLElement) => {
+    (word: Word, el: HTMLElement, individual:boolean) => {
       resumeFollowPlayhead();
-      handleWordClick(word, el);
+      handleWordClick(word, el,individual?[word.id]:phraseByWord.get(word.id)??[word.id]);
     },
-    [handleWordClick, resumeFollowPlayhead]
+    [handleWordClick, resumeFollowPlayhead,phraseByWord]
   );
 
   const toolbarOpen = view==='speakers' && !!(selection && !correcting && !assigningSpeaker);
@@ -401,7 +410,7 @@ export default function TranscriptPanel() {
   return (
     // min-h-0 keeps this pane from growing to the transcript's full height —
     // without it the panel wrapper scrolls instead of the list below.
-    <section data-transcript-editor tabIndex={-1} onKeyDown={editKey} onContextMenu={e=>{const el=(e.target as HTMLElement).closest<HTMLElement>('[data-wid]');if(!el)return;e.preventDefault();const id=Number(el.dataset.wid);if(!useEditorStore.getState().selectedWordIds.includes(id))useEditorStore.getState().selectWordRange([id]);setWordContext({x:e.clientX,y:e.clientY,id});}} onDoubleClick={e=>{const el=(e.target as HTMLElement).closest<HTMLElement>('[data-wid]');if(el)beginCorrection([Number(el.dataset.wid)]);}} className="outline-none relative flex min-h-0 min-w-0 overflow-y-hidden flex-1 flex-col bg-white dark:bg-zinc-900">
+    <section data-transcript-editor tabIndex={-1} onKeyDown={editKey} onContextMenu={e=>{const el=(e.target as HTMLElement).closest<HTMLElement>('[data-wid]');if(!el)return;e.preventDefault();const id=Number(el.dataset.wid);if(!useEditorStore.getState().selectedWordIds.includes(id))useEditorStore.getState().selectWordRange(e.ctrlKey?[id]:phraseByWord.get(id)??[id]);setWordContext({x:e.clientX,y:e.clientY,id});}} onDoubleClick={e=>{const el=(e.target as HTMLElement).closest<HTMLElement>('[data-wid]');if(el){const id=Number(el.dataset.wid);beginCorrection(e.ctrlKey?[id]:phraseByWord.get(id)??[id]);}}} className="outline-none relative flex min-h-0 min-w-0 overflow-y-hidden flex-1 flex-col bg-white dark:bg-zinc-900">
       <TranscriptionSetup />
       {/* Floats above the scroller rather than sticking inside it, so the
           rubber-band overscroll only carries the transcript, not the bar. */}
@@ -426,6 +435,8 @@ export default function TranscriptPanel() {
           <ActionMenu label={f('Transcript options')} actions={[
             {id:'visibility',group:f('Visibility'),label:f('Hide deleted words'),icon:<EyeOff size={14}/>,checked:!showDeleted,run:toggleShowDeleted},
             ...(['clips','speakers','continuous'] as const).map(mode=>({id:mode,group:f('Text layout'),label:f(mode==='clips'?'By clip':mode==='speakers'?'By speaker':'Continuous text'),icon:<Eye size={14}/>,checked:view===mode,radio:true,run:()=>useEditorStore.getState().setTranscriptView(mode)})),
+            {id:'correct',group:f('Text editing'),label:f('Correct text'),icon:<Pencil size={14}/>,disabled:status!=='ready'||!selectedWordIds.length,run:()=>beginCorrection(selectedWordIds)},
+            {id:'realign',group:f('Text editing'),label:f('Realign selected text'),icon:<RotateCcw size={14}/>,disabled:status!=='ready'||!selectedWordIds.length||!useEditorStore.getState().projectId||['running','preparing'].includes(useEditorStore.getState().jobState??''),run:contextRun(()=>{const state=useEditorStore.getState();setRealignment({selection:alignmentSelection(words,selectedWordIds,blocks),projectId:state.projectId!});})},
             {id:'import',group:t('common.import'),label:t('common.import'),icon:<ArrowUpFromLine size={14}/>,disabled:!['ready','error','transcribing'].includes(status),run:()=>importInputRef.current?.click()},
           ]}/>
         </div>
@@ -521,6 +532,8 @@ export default function TranscriptPanel() {
                               active={w.id === activeWordId}
                               selected={selectedIds.has(w.id)}
                               onClick={onWordClick}
+                              onRangeClick={handleRangeClick}
+                              groupIds={phraseByWord.get(w.id)??[w.id]}
                             />
                           </React.Fragment>
                         );
@@ -598,7 +611,7 @@ export default function TranscriptPanel() {
       )}
       {editError&&<div role="alert" className="absolute bottom-4 left-4 z-50 rounded bg-white p-2 text-sm text-red-600 shadow dark:bg-zinc-900" onClick={()=>setEditError('')}>{f(editError)}</div>}
       {wordContext&&<ContextMenu label={f('Text actions')} point={wordContext} onClose={()=>setWordContext(null)} actions={[
-        {id:'seek',label:f('Go to word'),icon:<ArrowDown size={13}/>,shortcut:'Ctrl+Click',run:()=>{const word=words.find(w=>w.id===wordContext.id);if(word)useEditorStore.getState().seekTo(word.start);}},
+        {id:'seek',label:f('Go to word'),icon:<ArrowDown size={13}/>,run:()=>{const word=words.find(w=>w.id===wordContext.id);if(word)useEditorStore.getState().seekTo(word.start);}},
         {id:'cut',label:t('transcript.cut'),icon:<Scissors size={13}/>,shortcut:'Delete',disabled:status!=='ready',run:()=>deleteWords(selectedWordIds)},
         {id:'restore',label:t('common.restore'),icon:<RotateCcw size={13}/>,disabled:!selectedWordIds.some(id=>cutOutIds.has(id)),run:()=>restoreWords(selectedWordIds)},
         {id:'correct',label:t('transcript.correct'),icon:<Pencil size={13}/>,disabled:status!=='ready',run:()=>beginCorrection(selectedWordIds)},

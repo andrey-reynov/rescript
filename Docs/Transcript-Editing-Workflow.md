@@ -4,15 +4,12 @@ Status: implemented and acceptance audit complete. See [Transcript-Acceptance-Au
 
 ## Current interaction revision
 
-The user revised the original gestures after testing release 1.5.2. This section supersedes conflicting historical gesture descriptions below and in earlier acceptance records:
+The current contract is [Timeline-Selection-and-Snapping.md](Timeline-Selection-and-Snapping.md), revised for 1.5.4. It supersedes historical gestures and acceptance records below.
 
-- Plain word/phrase click selects and seeks to its source start. It does not start playback; Space plays/pauses from that position.
-- Ctrl-click is no longer a special transcript or timeline-word action. Ctrl+Z and Ctrl+Shift+Z remain history shortcuts outside text inputs.
-- Typing while timed words are selected does not begin correction. Double-click enters word correction; the Correct context command remains available for a selected phrase. Inside correction, typing/Space edits text, Enter commits, and Escape cancels.
-- Shift-click and drag still select ranges without seeking. Enter still splits selected timed text; Delete/Backspace still cuts it outside correction.
-- Clip headings use `number · name · menu`. The name defaults to Clip N and enters inline editing on click or Rename clip from its menu. There is no permanent separate empty name field. The fixed number selects the clip interval; existing Join remains available at explicit boundaries.
-
-Earlier runtime records describe the gestures at the time they were tested. Implementation-Progress.md records the updated checks.
+- Transcript click selects a phrase and seeks to the clicked word; Ctrl-click selects one member. Double-click edits a phrase; Ctrl-double-click edits one member. Space controls playback outside correction.
+- Timeline text clicks and marquee selection do not seek. Ruler and waveform interactions seek. Shift-click ranges share one selection across both views and retain the full anchor phrase in either direction.
+- Typing does not replace selected words until correction is opened. Enter commits correction, Escape cancels; outside correction Enter splits and Delete/Backspace cuts.
+- Clip headings remain `number · name · menu`, with inline renaming and the explicit-boundary Join action.
 
 ## Goal
 

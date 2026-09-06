@@ -29,3 +29,14 @@ assert.deepEqual(store.getState().selectedWordIds,[0,1]);
 assert.equal(store.getState().currentTime,6,'Selection must not seek');
 assert.equal(store.getState().words[3].deleted,true,'Selecting hidden text must not restore it');
 console.log('Drag selection: full hidden range, forward/backward anchor, Shift continuation and unchanged playhead passed.');
+
+// Extending backwards from a phrase must retain all of its anchor members.
+store.getState().selectWordRange([5,6,7]);
+store.getState().selectWordRange([2,3],true);
+assert.deepEqual(store.getState().selectedWordIds,[2,3,4,5,6,7]);
+store.getState().selectWordRange([4],true);
+assert.deepEqual(store.getState().selectedWordIds,[4,5,6,7]);
+store.getState().selectWordRange([1,2]);
+store.getState().selectWordRange([5,6],true);
+assert.deepEqual(store.getState().selectedWordIds,[1,2,3,4,5,6]);
+console.log('Full anchor phrase survives bidirectional Shift ranges.');

@@ -1,5 +1,6 @@
 "use client";
 import SilenceControls from './SilenceControls';
+import {snapTime,useTimelinePreferences,setTimelinePreferences} from '@/lib/timeline-tools';
 import {silenceDetections,detectionCuts,type DetectionRange} from '@/lib/silence-analysis';
 
 import {
@@ -15,6 +16,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Maximize2,
+  Magnet,
   Merge,
   Pause,
   Play,
@@ -52,16 +54,16 @@ import { useIsDark } from "@/hooks/useIsDark";
 import { useI18n, useForkI18n } from "./I18nProvider";
 
 const RULER_H = 18;
-const WORDBAR_H = 28;
+
 /** Share of the waveform lane a full-scale (±1) signal fills, leaving a margin. */
 const WAVE_LANE_FILL = 0.9;
-const TICK_STEPS = [0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600];
+const TICK_STEPS = [0.001, 0.002, 0.005, 0.01, 0.02, 0.05, 0.1, 0.25, 0.5, 1, 2, 5, 10, 15, 30, 60, 120, 300, 600];
 /** Pixels-per-second below which the timeline is considered "small". */
 const SMALL_PPS = 22;
 /** Pixels-per-second above which edge handles appear on words. */
 const HANDLE_VIS_PPS = 40;
 const MIN_ZOOM = 1;
-const MAX_ZOOM = 256;
+
 /** Wheel-zoom sensitivity (higher = faster zoom per scroll tick). */
 const ZOOM_SPEED = 0.0028;
 /** How close (px) the pointer must be to a split marker to reveal its join button. */
@@ -95,6 +97,8 @@ function roundRectPath(
 
 type DragKind =
   | { type: "seek" }
+  | {type:"marquee";startX:number;startY:number;baseIds:number[]}
+  | {type:"lane-height";startY:number;height:number}
   | {type:"deletion";edge:"start"|"end";start:number;end:number;lo:number;hi:number}
   | { type: "word"; wordId: number; edge: "start" | "end"; origStart: number; origEnd: number }
   /**
@@ -105,14 +109,16 @@ type DragKind =
   | { type: "trim"; edge: "in" | "out"; time: number; lo: number; hi: number };
 
 function DeletionHandles({cuts,selected,duration,pps,onStart}:{cuts:Array<{start:number;end:number}>;selected:number|null;duration:number;pps:number;onStart:(e:ReactPointerEvent,index:number,edge:'start'|'end')=>void}){
+ const {laneHeight:WORDBAR_H}=useTimelinePreferences();
  const f=useForkI18n();if(selected===null||!cuts[selected])return null;const index=selected,cut=cuts[index];
  return <>{(['start','end'] as const).map(edge=><div key={edge} role="slider" tabIndex={0} aria-label={f(edge==='start'?'Deletion start':'Deletion end')} aria-valuemin={edge==='start'?(cuts[index-1]?.end??0):cut.start+.02} aria-valuemax={edge==='end'?(cuts[index+1]?.start??duration):cut.end-.02} aria-valuenow={cut[edge]} data-tl-interactive
- className="tl-trim-handle absolute z-20 -translate-x-1/2 cursor-ew-resize focus-visible:outline-2 focus-visible:outline-indigo-500" style={{left:cut[edge]*pps,top:RULER_H+WORDBAR_H+4,bottom:4}}
+ className="tl-trim-handle absolute z-20 -translate-x-1/2 cursor-ew-resize focus-visible:outline-2 focus-visible:outline-red-500" style={{left:cut[edge]*pps,top:RULER_H+WORDBAR_H+4,bottom:4}}
  onKeyDown={e=>{if(!['ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();e.stopPropagation();const delta=(e.key==='ArrowLeft'?-1:1)*(e.shiftKey?.1:.01);const lo=edge==='start'?(cuts[index-1]?.end??0):cut.start+.02,hi=edge==='end'?(cuts[index+1]?.start??duration):cut.end-.02;const next={...cut,[edge]:Math.max(lo,Math.min(hi,cut[edge]+delta))};useEditorStore.getState().resizeDeletion(cut,next);}}
- onPointerDown={e=>onStart(e,index,edge)}><div className="h-full w-1 rounded-full bg-indigo-500 shadow-[0_0_0_3px_rgba(99,102,241,0.2)] transition-all duration-150"/></div>)}</>;
+ onPointerDown={e=>onStart(e,index,edge)}><div className="h-full w-1 rounded-full bg-red-500 shadow-[0_0_0_3px_rgba(239,68,68,0.2)] transition-all duration-150"/></div>)}</>;
 }
 
 export default function Timeline() {
+  const preferences=useTimelinePreferences();const WORDBAR_H=preferences.laneHeight;
   const [context,setContext]=useState<{x:number;y:number;time:number;wordId?:number;detection?:DetectionRange}|null>(null);
   const [contextError,setContextError]=useState('');
   const acoustic=useEditorStore(s=>s.acousticAnalysis),silenceSettings=useEditorStore(s=>s.silenceSettings);
@@ -160,6 +166,8 @@ export default function Timeline() {
   const [height, setHeight] = useState(0);
   const [scrollLeft, setScrollLeft] = useState(0);
   const [zoom, setZoom] = useState(1);
+  const MAX_ZOOM=Math.max(1,Math.min(65536,16000000/Math.max(width,1),duration*20000/Math.max(width,1)));
+  const [marquee,setMarquee]=useState<{left:number;top:number;width:number;height:number}|null>(null);
   const [hoveredWordId, setHoveredWordId] = useState<number | null>(null);
   const [hoveredClipIndex, setHoveredClipIndex] = useState<number | null>(null);
   const [hoveredCutIndex, setHoveredCutIndex] = useState<number | null>(null);
@@ -168,7 +176,7 @@ export default function Timeline() {
   const dark = useIsDark();
 
   const fitPps = duration > 0 && width > 0 ? width / duration : 50;
-  const pps = fitPps * zoom;
+  const pps = fitPps * Math.min(zoom,MAX_ZOOM);
   const totalWidth = Math.max(width, duration * pps);
   const ready = status === "ready" && duration > 0;
   // Clip delete is for a clip-body click (no word selection). Clicking a word
@@ -234,7 +242,7 @@ export default function Timeline() {
       const h=Math.max(1,peak*trackH*WAVE_LANE_FILL);ctx.fillRect(x,midY-h/2,1,h);
     }
     return bitmap;
-  },[waveform,width,height,duration,pps,scrollLeft,cuts]);
+  },[waveform,width,height,duration,pps,scrollLeft,cuts,WORDBAR_H]);
 
   // Composite the cached waveform with interaction overlays.
   useEffect(() => {
@@ -266,7 +274,7 @@ export default function Timeline() {
       ctx.fillStyle = dark ? "#3f3f46" : "#e4e4e7";
       ctx.fillRect(x, RULER_H - 6, 1, 6);
       ctx.fillStyle = dark ? "#71717a" : "#a1a1aa";
-      ctx.fillText(formatTime(t), x + 4, 3);
+      ctx.fillText(pps>1000?`${Math.floor(t/60)}:${(t%60).toFixed(3).padStart(6,'0')}`:formatTime(t), x + 4, 3);
     }
     ctx.strokeStyle = dark ? "#27272a" : "#f0f0f2";
     ctx.beginPath();
@@ -380,6 +388,7 @@ export default function Timeline() {
     selectedCutIndex,
     hoveredCutIndex,
     dark,
+    WORDBAR_H,
   ]);
 
   // Panning or zooming during playback hands the window to the user until the
@@ -443,7 +452,7 @@ export default function Timeline() {
     };
     surface.addEventListener("wheel", onWheel, { passive: false });
     return () => surface.removeEventListener("wheel", onWheel);
-  }, []);
+  }, [MAX_ZOOM]);
 
   // Apply the anchor-preserving scroll once wheel-zoom has re-rendered.
   useLayoutEffect(() => {
@@ -476,6 +485,7 @@ export default function Timeline() {
       useEditorStore.getState().endGesture();
       dragRef.current = null;
       setDragging(false);
+      setMarquee(null);
     }
   }, []);
 
@@ -489,10 +499,28 @@ export default function Timeline() {
     };
   }, [endDrag]);
 
+  const timelineWords=useMemo(()=>{
+    return timelineWordBlocks(words,phrases,transcriptBlocks(words,cuts,sceneBoundaries,duration));
+  },[phrases,words,cuts,sceneBoundaries,duration]);
+  const snapCandidates=useMemo(()=>Array.from(new Set([0,duration,...words.flatMap(w=>[w.start,w.end]),...cuts.flatMap(c=>[c.start,c.end]),...splits.map(s=>s.time)])).sort((a,b)=>a-b),[words,cuts,splits,duration]);
   const onPointerMove = useCallback(
     (e: ReactPointerEvent) => {
-      const t = timeFromClientX(e.clientX);
+      let t = timeFromClientX(e.clientX);
       const drag = dragRef.current;
+      if(drag?.type==='lane-height'){setTimelinePreferences({laneHeight:Math.max(28,Math.min(160,drag.height+e.clientY-drag.startY))});return;}
+      if(drag?.type==='marquee'){
+        const rect=e.currentTarget.getBoundingClientRect(),x=e.clientX-rect.left+e.currentTarget.scrollLeft,y=Math.max(RULER_H,Math.min(RULER_H+WORDBAR_H,e.clientY-rect.top));
+        const box={left:Math.min(x,drag.startX),top:Math.min(y,drag.startY),width:Math.abs(x-drag.startX),height:Math.abs(y-drag.startY)};setMarquee(box);
+        const ids=timelineWords.filter(word=>word.end*pps>=box.left&&word.start*pps<=box.left+box.width&&box.top<=RULER_H+WORDBAR_H-5&&box.top+box.height>=RULER_H+5).flatMap(word=>word.memberIds);
+        useEditorStore.getState().selectWordRange([...new Set([...drag.baseIds,...ids])]);return;
+      }
+      if(drag&&drag.type!=="seek"&&preferences.snapping){
+        const ownWord=drag.type==='word'?useEditorStore.getState().words.find(word=>word.id===drag.wordId):null;
+        const excluded=drag.type==='word'?[ownWord?.start??drag.origStart,ownWord?.end??drag.origEnd]:drag.type==='deletion'?[drag.start,drag.end]:[drag.time];
+        const lo=drag.type==='word'?(drag.edge==='start'?0:drag.origStart+.02):drag.lo;
+        const hi=drag.type==='word'?(drag.edge==='end'?duration:drag.origEnd-.02):drag.hi;
+        t=snapTime(t,snapCandidates,pps,lo,hi,excluded);
+      }
       if (!drag) {
         // Hover clip or cut under cursor (waveform area)
         const clip = clips.find((c) => t >= c.start && t < c.end);
@@ -533,7 +561,7 @@ export default function Timeline() {
         return;
       }
     },
-    [clips, cuts, pps, seekTo, splits, timeFromClientX]
+    [clips, cuts, pps, seekTo, splits, timeFromClientX,preferences.snapping,snapCandidates,duration,timelineWords,WORDBAR_H]
   );
 
   const onPointerLeave = useCallback(() => {
@@ -569,6 +597,13 @@ export default function Timeline() {
       const target = e.target as HTMLElement;
       if (target.closest("[data-tl-interactive]")) return;
 
+      const rect=e.currentTarget.getBoundingClientRect(),y=e.clientY-rect.top;
+      if(y>=RULER_H&&y<RULER_H+WORDBAR_H){
+        e.preventDefault();e.stopPropagation();const startX=e.clientX-rect.left+e.currentTarget.scrollLeft;
+        const baseIds=e.shiftKey?useEditorStore.getState().selectedWordIds:[];
+        dragRef.current={type:'marquee',startX,startY:y,baseIds};setMarquee({left:startX,top:y,width:0,height:0});setDragging(true);e.currentTarget.setPointerCapture(e.pointerId);
+        if(!e.shiftKey)useEditorStore.getState().selectWordRange([]);return;
+      }
       const t = timeFromClientX(e.clientX);
       const clip = clips.find((c) => t >= c.start && t < c.end);
       const cutIdx = cuts.findIndex((c) => t >= c.start && t < c.end);
@@ -586,7 +621,7 @@ export default function Timeline() {
       e.currentTarget.setPointerCapture(e.pointerId);
       seekTo(t);
     },
-    [clips, cuts, seekTo, timeFromClientX]
+    [clips, cuts, seekTo, timeFromClientX,WORDBAR_H]
   );
 
   const startWordDrag = useCallback(
@@ -665,7 +700,7 @@ export default function Timeline() {
   if(context&&duration>0){
     if(context.wordId!==undefined){
       const word=words.find(w=>w.id===context.wordId);
-      contextActions.push({id:'seek',label:f('Go to word'),icon:<Play size={13}/>,shortcut:'Ctrl+Click',disabled:!word,run:()=>word&&seekTo(word.start)},
+      contextActions.push({id:'seek',label:f('Go to word'),icon:<Play size={13}/>,disabled:!word,run:()=>word&&seekTo(word.start)},
         {id:'group',label:f('Group into phrase'),icon:<Merge size={13}/>,disabled:!ready||selectedWordIds.length<2,run:safeAction(()=>useEditorStore.getState().groupSelectedPhrase())},
         {id:'ungroup',label:f('Ungroup'),icon:<SquareSplitHorizontal size={13}/>,disabled:!ready,run:()=>useEditorStore.getState().ungroupSelectedPhrase()});
     }else{
@@ -677,16 +712,13 @@ export default function Timeline() {
   }
 
   // Word labels for the visible window
-  const timelineWords=useMemo(()=>{
-    return timelineWordBlocks(words,phrases,transcriptBlocks(words,cuts,sceneBoundaries,duration));
-  },[phrases,words,cuts,sceneBoundaries,duration]);
   const visibleWords=useMemo(()=>{const start=scrollLeft/pps-1,end=(scrollLeft+width)/pps+1;return timelineWords.filter(w=>w.end>=start&&w.start<=end);},[timelineWords,pps,scrollLeft,width]);
 
   const playheadX = currentTime * pps - scrollLeft;
   const showHandles = pps >= HANDLE_VIS_PPS;
 
   return (
-    <footer ref={timelineRef} aria-label={f("Timeline")} className="flex h-48 shrink-0 flex-col border-t border-zinc-200 bg-white sm:h-52 dark:border-zinc-800 dark:bg-zinc-900">
+    <footer ref={timelineRef} aria-label={f("Timeline")} style={{height:208+WORDBAR_H-36}} className="flex h-48 shrink-0 flex-col border-t border-zinc-200 bg-white sm:h-52 dark:border-zinc-800 dark:bg-zinc-900">
       {/* Mobile wraps the transport onto its own row; from `sm` up it is
           absolutely centred so it stays put as the side groups change width. */}
       <div className="relative flex shrink-0 flex-wrap items-center gap-x-2 border-b border-zinc-100 px-2.5 sm:h-10 sm:flex-nowrap dark:border-zinc-800">
@@ -747,6 +779,9 @@ export default function Timeline() {
             {id:'split',label:t('timeline.split'),icon:<SquareSplitHorizontal size={13}/>,shortcut:'S',disabled:!ready||!splitOk,title:t(splitOk?'timeline.splitTitle':'timeline.splitDisabled'),run:()=>useEditorStore.getState().splitAtPlayhead()},
             {id:'delete',label:t('timeline.delete'),icon:<Trash2 size={13}/>,shortcut:'⌫',disabled:!ready||!deleteOk,title:t(deleteOk?'timeline.deleteTitle':'timeline.deleteDisabled'),run:()=>useEditorStore.getState().deleteSelectedClip()},
             {id:'restore',label:t('timeline.restore'),icon:<RotateCcw size={13}/>,shortcut:'⌫',disabled:!ready||!restoreOk,title:t(restoreOk?'timeline.restoreTitle':'timeline.restoreDisabled'),run:()=>{const store=useEditorStore.getState();if(store.selectedCutIndex!=null)store.restoreSelectedCut();else if(selectedWordsAllCutOut){store.restoreWords(store.selectedWordIds);store.setSelectedWords([]);}}},
+            {id:'snapping',label:f('Snapping'),icon:<Magnet size={13}/>,checked:preferences.snapping,favoritable:false,run:()=>setTimelinePreferences({snapping:!preferences.snapping})},
+            {id:'group',label:f('Group into phrase'),icon:<Merge size={13}/>,disabled:!ready||selectedWordIds.length<2,run:safeAction(()=>useEditorStore.getState().groupSelectedPhrase())},
+            {id:'ungroup',label:f('Ungroup'),icon:<SquareSplitHorizontal size={13}/>,disabled:!ready||!selectedWordIds.length,run:()=>useEditorStore.getState().ungroupSelectedPhrase()},
             {id:'skip-deletions',label:f('Skip deletion areas'),icon:<Play size={13}/>,checked:skipDeletions,favoritable:false,run:()=>useEditorStore.getState().toggleSkipDeletions()},
             {id:'silence',label:f('Silence detection'),icon:<AudioLines size={13}/>,run:openSilence},
             {id:'retranscribe',label:f('Retranscribe'),icon:<AudioLines size={13}/>,disabled:retranscribe.disabled,run:retranscribe.open},
@@ -786,7 +821,7 @@ export default function Timeline() {
         </div>
       </div>
 
-      <div ref={outerRef} className="relative min-h-0 flex-1">
+      <div ref={outerRef} className="relative min-h-0 flex-1" style={{minHeight:WORDBAR_H+RULER_H+96}}>
         <canvas
           ref={canvasRef}
           className="pointer-events-none absolute inset-0 h-full w-full"
@@ -810,6 +845,9 @@ export default function Timeline() {
           style={{ cursor: dragging ? "col-resize" : "default" }}
         >
           <div className="relative h-full" style={{ width: totalWidth }}>
+            <div role="separator" aria-label={f('Text lane height')} aria-orientation="horizontal" aria-valuemin={28} aria-valuemax={160} aria-valuenow={WORDBAR_H} tabIndex={0} data-tl-interactive className="absolute z-30 h-1 w-full cursor-row-resize bg-zinc-200/60 hover:bg-indigo-400 focus:bg-indigo-400 dark:bg-zinc-700/60" style={{top:RULER_H+WORDBAR_H-2}} onKeyDown={e=>{if(e.key==='ArrowUp'||e.key==='ArrowDown'){e.preventDefault();e.stopPropagation();setTimelinePreferences({laneHeight:Math.max(28,Math.min(160,WORDBAR_H+(e.key==='ArrowUp'?-4:4)))});}}} onPointerDown={e=>{if(e.button!==0)return;e.preventDefault();e.stopPropagation();dragRef.current={type:'lane-height',startY:e.clientY,height:WORDBAR_H};setDragging(true);e.currentTarget.setPointerCapture(e.pointerId);}}/>
+            {marquee&&<div data-marquee className="pointer-events-none absolute z-30 border border-indigo-500 bg-indigo-400/15" style={marquee}/>}
+
             {silenceSettings.visible&&detected.filter(range=>range.end*pps>=scrollLeft&&range.start*pps<=scrollLeft+width).map(range=><button key={range.start+':'+range.kind} data-tl-interactive data-detection-start={range.start} type="button" aria-label={f(range.kind==='amplitude'?'Amplitude silence':range.kind==='noSpeech'?'No speech':'Overlap')+' '+range.start.toFixed(2)+'–'+range.end.toFixed(2)} title={f('Select a detected region. Right-click for actions.')} onPointerDown={event=>event.stopPropagation()} onClick={()=>{useEditorStore.setState({selectedClipIndex:null,selectedCutIndex:null,selectedWordIds:[]});}} onKeyDown={event=>{if(event.key==='Delete'||event.key==='Backspace'){event.preventDefault();event.stopPropagation();useEditorStore.getState().cutRanges(detectionCuts([range],silenceSettings,duration));}}} className="absolute z-[5] h-2 rounded-sm opacity-75 hover:opacity-100 focus:outline-2 focus:outline-offset-1 focus:outline-zinc-900 dark:focus:outline-white" style={{left:range.start*pps,width:Math.max(2,(range.end-range.start)*pps),top:RULER_H+WORDBAR_H+1,backgroundColor:silenceSettings.colors[range.kind]}}/>)}
             {/* Split markers between touching clips — hover to reveal "join" */}
             {splits.map((b) => {
@@ -840,7 +878,7 @@ export default function Timeline() {
             {/* Selected cut/silence outline */}
             {selectedCutIndex != null && cuts[selectedCutIndex] && (
               <div
-                className="pointer-events-none absolute z-[4] rounded-sm ring-1 ring-indigo-400/55 dark:ring-indigo-300/50"
+                className="pointer-events-none absolute z-[4] rounded-sm ring-1 ring-red-400/55 dark:ring-red-300/50"
                 style={{
                   left: cuts[selectedCutIndex].start * pps,
                   width: Math.max(
@@ -969,7 +1007,7 @@ export default function Timeline() {
                   }
                   onPointerDown={(e) => {
                     if(e.button!==0||(e.target as HTMLElement).dataset.edge)return;e.stopPropagation();
-                    const store=useEditorStore.getState();if(e.ctrlKey||e.metaKey||e.altKey)return;store.selectWordRange(w.memberIds,e.shiftKey);if(!e.shiftKey)seekTo(w.start);
+                    const store=useEditorStore.getState();if(e.ctrlKey||e.metaKey||e.altKey)return;store.selectWordRange(w.memberIds,e.shiftKey);
                   }}
                 >
                   {partiallySelected&&selectedMembers.map(member=><span key={member.id} className="pointer-events-none absolute inset-y-0 bg-indigo-400/25" style={{left:`${100*(member.start-w.start)/(w.end-w.start)}%`,width:`${100*(member.end-member.start)/(w.end-w.start)}%`}}/>)}

@@ -182,7 +182,7 @@ export function useTranscriptSelection({
   }, []);
 
   const handleWordClick = useCallback(
-    (word: Word, el: HTMLElement) => {
+    (word: Word, el: HTMLElement, ids:number[]=[word.id]) => {
       if(dragClickRef.current?.id===word.id&&Date.now()<dragClickRef.current.until)return;
       const nativeSel = window.getSelection();
       // Drag ends with a click on the word under the cursor — leave the range alone.
@@ -190,19 +190,28 @@ export function useTranscriptSelection({
 
       const container = containerRef.current;
       if (!container) return;
-      applyMarks([el]);
+      const members=new Set(ids);
+      applyMarks(Array.from(container.querySelectorAll<HTMLElement>("[data-wid]")).filter(node=>members.has(Number(node.dataset.wid))));
       clickSelectionRef.current = true;
-      const cutOut = cutOutIdsRef.current.has(word.id);
       setSelection({
-        ids: [word.id],
-        anyDeleted: cutOut,
-        anyKept: !cutOut,
+        ids,
+        anyDeleted: ids.some(id=>cutOutIdsRef.current.has(id)),
+        anyKept: ids.some(id=>!cutOutIdsRef.current.has(id)),
       });
-      useEditorStore.getState().selectWordRange([word.id]);
+      useEditorStore.getState().selectWordRange(ids);
       useEditorStore.getState().seekTo(word.start);
     },
     [applyMarks, containerRef]
   );
+
+  // Own Shift-click before collapsing the browser selection: selectionchange is
+  // asynchronous and must not replace this committed range with an empty range.
+  const handleRangeClick = useCallback((ids:number[])=>{
+    clickSelectionRef.current=true;
+    mouseDownRef.current=false;
+    useEditorStore.getState().selectWordRange(ids,true);
+    window.getSelection()?.removeAllRanges();
+  },[]);
 
   // Paint marks on selectionchange; commit to React only when the mouse is up.
   useEffect(() => {
@@ -251,11 +260,14 @@ export function useTranscriptSelection({
     };
 
     const onSelectionChange = () => {
+      if(clickSelectionRef.current&&!mouseDownRef.current)return;
       updateFromNativeSelection(mouseDownRef.current ? "paint" : "commit");
     };
 
     const onMouseDown = (event:MouseEvent) => {
       if(freezeSelectionRef.current||event.button!==0||event.ctrlKey||event.metaKey||event.shiftKey||event.altKey)return;
+      if(!containerRef.current?.contains(event.target as Node))return;
+      clickSelectionRef.current=false;
       mouseDownRef.current = true;
       const target=(event.target as HTMLElement|null)?.closest<HTMLElement>('[data-wid]');
       dragStartRef.current=target&&containerRef.current?.contains(target)?Number(target.dataset.wid):null;
@@ -357,6 +369,7 @@ export function useTranscriptSelection({
     clearSelection,
     clearMarks,
     handleWordClick,
+    handleRangeClick,
     releaseToolbar,
   };
 }

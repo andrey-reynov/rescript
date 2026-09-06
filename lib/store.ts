@@ -133,6 +133,7 @@ interface EditorState {
   clipNames: ClipName[];
   transcriptView: TranscriptView;
   selectionAnchor: number|null;
+  selectionAnchorIds: number[];
   setTranscriptView: (view:TranscriptView)=>void;
   selectWordRange: (ids:number[],extend?:boolean)=>void;
   selectWordSpan: (anchor:number,target:number)=>void;
@@ -389,7 +390,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   speakers: [],
   manualCuts: [],
   sceneBoundaries: [],
-      phrases: [],clipNames: [],selectionAnchor:null,transcriptView:"clips",
+      phrases: [],clipNames: [],selectionAnchor:null,selectionAnchorIds:[],transcriptView:"clips",
   showDeleted: true,
   skipDeletions: true,
   past: [],
@@ -442,7 +443,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       speakers,
       manualCuts: [],
       sceneBoundaries: [],
-      phrases: [],clipNames: [],selectionAnchor:null,transcriptView:"clips",
+      phrases: [],clipNames: [],selectionAnchor:null,selectionAnchorIds:[],transcriptView:"clips",
       past: [],
       future: [],
       selectedClipIndex: null,
@@ -496,7 +497,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       speakers,
       manualCuts,
       sceneBoundaries,
-      phrases: record.phrases??[],clipNames:record.clipNames??[],selectionAnchor:null,transcriptView:record.transcriptView??"clips",
+      phrases: record.phrases??[],clipNames:record.clipNames??[],selectionAnchor:null,selectionAnchorIds:[],transcriptView:record.transcriptView??"clips",
       showDeleted: record.showDeleted,
       skipDeletions: record.skipDeletions ?? true,
       past: [],
@@ -561,7 +562,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       speakers: speakersFromWords(words, speakers ?? []),
       manualCuts: [],
       sceneBoundaries: [],
-      phrases: [],clipNames: [],selectionAnchor:null,transcriptView:"clips",
+      phrases: [],clipNames: [],selectionAnchor:null,selectionAnchorIds:[],transcriptView:"clips",
       past: [],
       future: [],
       selectedClipIndex: null,
@@ -593,7 +594,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       transcriptImportId: crypto.randomUUID(),
       manualCuts: preservedCuts,
       nextManualCutId: nextCutId,
-      phrases: [],selectionAnchor:null,
+      phrases: [],selectionAnchor:null,selectionAnchorIds:[],
       past: [],
       future: [],
       selectedClipIndex: null,
@@ -806,8 +807,8 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   applyWordAlignment:(selection,result)=>{const s=get();const blocks=transcriptBlocks(s.words,getCutRanges(s.words,s.duration,s.manualCuts),s.sceneBoundaries,s.duration);const words=applyAlignment(s.words,selection,result,blocks);pushEdit(get,set,{words});},
   setSilenceSettings:value=>{set({silenceSettings:normalizeSilenceSettings({...get().silenceSettings,...value})});bumpAutosave();},
   setTranscriptView:transcriptView=>{set({transcriptView});bumpAutosave();},
-  selectWordSpan:(anchor,target)=>{const s=get();set({selectionAnchor:anchor,selectedWordIds:selectedRange(s.words,anchor,[target]),selectedClipIndex:null,selectedCutIndex:null});},
-  selectWordRange:(ids,extend=false)=>{const s=get();const anchor=extend?s.selectionAnchor??ids[0]:ids[0];set({selectionAnchor:anchor??null,selectedWordIds:extend?selectedRange(s.words,anchor,ids):ids,selectedClipIndex:null,selectedCutIndex:null});},
+  selectWordSpan:(anchor,target)=>{const s=get();set({selectionAnchor:anchor,selectionAnchorIds:[anchor],selectedWordIds:selectedRange(s.words,anchor,[target]),selectedClipIndex:null,selectedCutIndex:null});},
+  selectWordRange:(ids,extend=false)=>{const s=get();const anchor=extend?s.selectionAnchor??ids[0]:ids[0];const anchorIds=extend&&s.selectionAnchor!==null?(s.selectionAnchorIds.includes(anchor)?s.selectionAnchorIds:[anchor]):ids;set({selectionAnchor:anchor??null,selectionAnchorIds:anchorIds,selectedWordIds:extend?selectedRange(s.words,anchor,[...anchorIds,...ids]):ids,selectedClipIndex:null,selectedCutIndex:null});},
   groupSelectedPhrase:()=>{const s=get();const blocks=transcriptBlocks(s.words,getCutRanges(s.words,s.duration,s.manualCuts),s.sceneBoundaries,s.duration);pushEdit(get,set,{phrases:groupPhrase(s.words,s.phrases,s.selectedWordIds,blocks,crypto.randomUUID())});},
   ungroupSelectedPhrase:()=>{const s=get();const selected=new Set(s.selectedWordIds);pushEdit(get,set,{phrases:s.phrases.filter(g=>!g.wordIds.some(id=>selected.has(id)))});},
   renameClip:(time,name)=>{const s=get();const block=transcriptBlocks(s.words,getCutRanges(s.words,s.duration,s.manualCuts),s.sceneBoundaries,s.duration).find(b=>b.kind==='clip'&&b.start<=time&&b.end>time);if(!block)return;const retained=s.clipNames.filter(n=>n.time<block.start||n.time>=block.end);pushEdit(get,set,{clipNames:name.trim()?[...retained,{id:crypto.randomUUID(),time:(block.start+block.end)/2,name:name.trim()}]:retained});},
@@ -932,7 +933,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (past.length === 0) return;
     const prev = past[past.length - 1];
     set({
-      phrases:prev.phrases??[],clipNames:prev.clipNames??[],selectionAnchor:null,
+      phrases:prev.phrases??[],clipNames:prev.clipNames??[],selectionAnchor:null,selectionAnchorIds:[],
       words: prev.words,
       speakers: prev.speakers,
       manualCuts: prev.manualCuts,
@@ -955,7 +956,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     if (future.length === 0) return;
     const next = future[0];
     set({
-      phrases:next.phrases??[],clipNames:next.clipNames??[],selectionAnchor:null,
+      phrases:next.phrases??[],clipNames:next.clipNames??[],selectionAnchor:null,selectionAnchorIds:[],
       words: next.words,
       speakers: next.speakers,
       manualCuts: next.manualCuts,
@@ -1027,7 +1028,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       speakers: [],
       manualCuts: [],
       sceneBoundaries: [],
-      phrases: [],clipNames: [],selectionAnchor:null,transcriptView:"clips",
+      phrases: [],clipNames: [],selectionAnchor:null,selectionAnchorIds:[],transcriptView:"clips",
       past: [],
       future: [],
       selectedClipIndex: null,
