@@ -1,6 +1,6 @@
 # Clip-based transcript editing specification
 
-Status: implementation in progress; the acceptance checklist is not yet complete. See [Implementation-Progress.md](Implementation-Progress.md) for verified behavior. This document records the agreed workflow and guides implementation of [PLAN.md item 13](PLAN.md#13-clip-based-transcript-editing-and-phrase-grouping). It refines plan items 3, 4, 6, 9, 11, and 12; it does not mark them complete. Follow [UI-Rules.md](UI-Rules.md) for shared controls.
+Status: implemented and acceptance audit complete. See [Transcript-Acceptance-Audit.md](Transcript-Acceptance-Audit.md) and Implementation-Progress.md stage 44 for evidence and verification limits. This document retains the agreed workflow for [completed plan item 13](Completed-Plan-Items.md#13-clip-based-transcript-editing-and-phrase-grouping) and refines completed items 3, 4, 6, 9, 11, and 12. Follow [UI-Rules.md](UI-Rules.md) for shared controls.
 
 ## Goal
 
@@ -134,4 +134,4 @@ Evidence and remaining gates: [Transcript-Acceptance-Audit.md](Transcript-Accept
 - [x] No floating selection toolbar remains in default clip view; any retained legacy toolbar respects viewport visibility.
 - [x] Long-video virtualization continues to work: offscreen rendering does not lose selection, group membership, or edits, and updates do not rebuild every word on each pointer event.
 
-Implementation details requiring explicit resolution during development: deterministic ownership/rendering of partially cut words, custom-name retention when clips merge, and the corrected-token timing/allocation algorithm. These must respect the invariants above and be documented with tests; do not infer precise timing or discard names silently.
+Resolved implementation details (see the audit and structure tests): deterministic ownership/rendering of partially cut words, custom-name retention when clips merge, and the corrected-token timing/allocation algorithm. These must respect the invariants above and be documented with tests; do not infer precise timing or discard names silently.

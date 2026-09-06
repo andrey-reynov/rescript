@@ -14,12 +14,12 @@ Publication is atomic: all selected words must receive valid measured timing. An
 - Native range tests: exact 1.25–2.75-second PCM range, fingerprint propagation, unchanged transcription manifest, negative/nonfinite/oversized/out-of-source rejection.
 - Isolated app with actual cached English CTC model and example audio: selected `Hello.` changed from 0.095–0.55 to 0.21909–0.50864 seconds. Other words, cuts, splits and phrase membership were unchanged; Undo restored the original word data.
 - Cancel during Reading audio preserved all words. Correcting the selected word to `1985` then aligning returned the localized failure message and retained approximate timing. The isolated test project was restored afterward.
-- Modal screenshot inspected; shared dropdown/buttons, Russian labels and Escape dismissal verified. Additional multi-batch, corrected multi-word and language-specific runtime coverage remains part of the final acceptance audit.
+- Modal screenshot inspected; shared dropdown/buttons, Russian labels and Escape dismissal verified. Corrected multi-word and multi-batch runtime checks are recorded below. This evidence does not claim an accuracy benchmark for every supported language.
 
 
 ### Corrected phrase runtime validation
 
-Corrected three selected words to `an example video` with approximate timing over 1.65–2.85 seconds, then ran the actual cached English CTC model. All three stable corrected IDs published measured timings together: `an` 1.650–1.73136, `example` 1.93475–2.50424, and `video` 2.56525–2.82966. Source provenance, text, other words, cuts, splits, and grouping remained unchanged. One Undo restored all original approximate timing data. Two immediate clicks on Realign were guarded by a synchronous submission lock; focus stays inside the busy modal. Multi-batch and additional supported-language runtime coverage remain open.
+Corrected three selected words to `an example video` with approximate timing over 1.65–2.85 seconds, then ran the actual cached English CTC model. All three stable corrected IDs published measured timings together: `an` 1.650–1.73136, `example` 1.93475–2.50424, and `video` 2.56525–2.82966. Source provenance, text, other words, cuts, splits, and grouping remained unchanged. One Undo restored all original approximate timing data. Two immediate clicks on Realign were guarded by a synchronous submission lock; focus stays inside the busy modal. The subsequent multi-batch check is recorded below; language-wide accuracy is not implied by this English fixture.
 
 
 ### Multi-batch runtime validation
