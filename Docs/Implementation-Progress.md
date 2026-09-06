@@ -203,3 +203,10 @@ Latest static build predates the final small tweaks for Space replacement, no-op
 - Dialog model/language submission and conflict acceptance passed with real cached Base inference. Full generation covered the original 42.4106875-second source despite a one-word selection and timeline cut, and published 45 words with Base/Automatic preferences.
 - Existing fixture's cut had no recognized speech, so the initial output-overlap assertion was inconclusive. Repeated with a known spoken word deleted; recognition included it while its exact deletion survived. This establishes the requested behavior directly instead of assuming speech inside the first cut.
 - Together with the previous modal cancellation/error, atomic job/recovery and source-edit preservation evidence, item 1 is complete. Moved original requirements/evidence to Completed-Plan-Items.md. Test fixture restored; overall goal remains active.
+
+## Stage twenty-four: model transfer failure recovery
+
+- Cache import reserves its URL before asynchronous validation, preventing two simultaneous transfers of the same file. Reservations contribute to busy/status and block relocation/default-folder mutation; cancellation releases the lock.
+- Relocation removes its owned partial copy on copy, verification, sync or rename failure. The manifest still points to the usable original until a verified copy is committed.
+- Native test injects a disk-full error after writing partial bytes: original lookup retained, no .part residue, actionable retry status, successful verified relocation on retry and offline reopen. Tests also cover simultaneous import ownership, truncation cleanup/retry, cancellation and reserved-import locking.
+- Model storage tests and both type checks pass. Item 2 remains open for installed-build and Parakeet acceptance; abrupt process death/orphan cleanup has not been established by these injected failure tests.

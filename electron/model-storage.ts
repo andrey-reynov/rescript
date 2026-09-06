@@ -13,13 +13,14 @@ export class ModelStorage {
  private initializing:Promise<Manifest>|null=null;
  private saving:Promise<unknown>=Promise.resolve();
  private pending=new Map<string,Promise<string>>();
+ private startingImports=new Set<string>();
  private transfers=new Map<string,Transfer>();
  private downloads=new Map<ModelId,ModelDownload>();
  private changing=false;
  private relocation:{completed:number;total:number}|null=null;
  private error:string|null=null;
  constructor(private stateFile:string,private initialFolder:string,private inUse:()=>boolean,private fetcher:typeof fetch=fetch){}
- get busy(){return this.changing||this.transfers.size>0;}
+ get busy(){return this.changing||this.startingImports.size>0||this.transfers.size>0;}
  private async state():Promise<Manifest>{
   if(this.initializing)return this.initializing;
   const loading=this.loadState();this.initializing=loading;try{return await loading;}catch(error){this.initializing=null;throw error;}
@@ -53,13 +54,13 @@ export class ModelStorage {
   for(const id of MODEL_ORDER){const files:string[]=[];let bytes=0,outsideDefault=false;for(const file of new Set([...requiredModelFiles(id,false),...requiredModelFiles(id,true)])){const url=modelFileUrl(id,file);if(await this.existing(url)){files.push(file);bytes+=state.files[url].size;outsideDefault ||= state.files[url].root!==state.folder;}}
    models[id]={available:requiredModelFiles(id,gpu).every(file=>files.includes(file)),files,bytes,outsideDefault};
   }
-  return {folder:state.folder,busy:this.changing||this.inUse()||this.pending.size>0||this.transfers.size>0||[...this.downloads.values()].some(item=>item.state==='downloading'),relocating:!!this.relocation,relocation:this.relocation,error:this.error??state.relocationError??(state.cleanup.length?'Relocation cleanup pending. Retry relocation to remove original copies.':null),models,downloads:[...this.downloads.values()]};
+  return {folder:state.folder,busy:this.changing||this.inUse()||this.pending.size>0||this.startingImports.size>0||this.transfers.size>0||[...this.downloads.values()].some(item=>item.state==='downloading'),relocating:!!this.relocation,relocation:this.relocation,error:this.error??state.relocationError??(state.cleanup.length?'Relocation cleanup pending. Retry relocation to remove original copies.':null),models,downloads:[...this.downloads.values()]};
  }
- private assertIdle(){if(this.inUse()||this.changing||this.pending.size||this.transfers.size||[...this.downloads.values()].some(item=>item.state==='downloading'))throw Error('Wait for model downloads or pause processing before changing model files.');}
+ private assertIdle(){if(this.inUse()||this.changing||this.pending.size||this.startingImports.size||this.transfers.size||[...this.downloads.values()].some(item=>item.state==='downloading'))throw Error('Wait for model downloads or pause processing before changing model files.');}
  async setFolder(parent:string){this.assertIdle();this.changing=true;try{if(!path.isAbsolute(parent))throw Error('Choose an absolute model folder.');const state=await this.state();const folder=path.join(await fs.realpath(parent),'Rescript Models');await this.file(folder,modelFileUrl('tiny','config.json'),true);state.folder=folder;await this.save();return folder;}finally{this.changing=false;}}
  async ensure(url:string):Promise<string>{
   this.artifact(url);if(this.changing)throw Error('Model storage is being changed. Try again when it finishes.');
-  if([...this.transfers.values()].some(item=>item.url===url))throw Error('Wait for cached model transfer to finish.');
+  if(this.startingImports.has(url)||[...this.transfers.values()].some(item=>item.url===url))throw Error('Wait for cached model transfer to finish.');
   const pending=this.pending.get(url);if(pending)return pending;
   const task=this.fetchFile(url);this.pending.set(url,task);try{return await task;}finally{this.pending.delete(url);}
  }
@@ -82,7 +83,7 @@ export class ModelStorage {
  }
  async download(id:ModelId,gpu:boolean){
   if(!isModelId(id))throw Error('Unknown transcription model.');
-  if(this.transfers.size)throw Error('Wait for cached model transfer to finish.');
+  if(this.startingImports.size||this.transfers.size)throw Error('Wait for cached model transfer to finish.');
   if(this.downloads.get(id)?.state==='downloading')return;
   if(this.changing)throw Error('Wait for model relocation to finish.');
   const files=requiredModelFiles(id,gpu);const progress:ModelDownload={model:id,file:'',loaded:0,total:null,completed:0,count:files.length,state:'downloading'};this.downloads.set(id,progress);
@@ -98,9 +99,11 @@ export class ModelStorage {
    for(const [url,record] of entries){
     const source=await this.file(record.root,url);if(await this.digest(source)!==record.sha256)throw Error('A model file is damaged. Download it again before relocating: '+this.artifact(url).file);
     const target=await this.file(state.folder,url,true);const temp=target+'.'+randomUUID()+'.part';
-    await fs.copyFile(source,temp);if((await fs.stat(temp)).size!==record.size||await this.digest(temp)!==record.sha256){await fs.unlink(temp);throw Error('Relocation verification failed. Original models are preserved.');}
-    const handle=await fs.open(temp,'r+');try{await handle.sync();}finally{await handle.close();}
-    await fs.rename(temp,target);
+    try{
+      await fs.copyFile(source,temp);if((await fs.stat(temp)).size!==record.size||await this.digest(temp)!==record.sha256)throw Error('Relocation verification failed. Original models are preserved.');
+      const handle=await fs.open(temp,'r+');try{await handle.sync();}finally{await handle.close();}
+      await fs.rename(temp,target);
+    }finally{await fs.unlink(temp).catch(error=>{if(error.code!=='ENOENT')throw error;});}
     // The manifest commit switches loading only after the complete copy verifies.
     state.cleanup.push({url,root:record.root});state.files[url]={...record,root:state.folder};await this.save();this.relocation.completed++;
    }
@@ -108,9 +111,14 @@ export class ModelStorage {
   }catch(error){this.error=String(error)+' Retry relocation to finish remaining files.';const state=await this.state();state.relocationError=this.error;await this.save();throw error;}finally{this.changing=false;this.relocation=null;}
  }
  async importStart(id:ModelId,file:string,size:number){
-  const url=modelFileUrl(id,file);this.artifact(url);if(this.changing)throw Error('Wait for relocation.');if(this.pending.has(url))await this.pending.get(url);if([...this.transfers.values()].some(item=>item.url===url))throw Error('This model file is already being transferred.');if(await this.existing(url))return null;
-  if(!Number.isSafeInteger(size)||size<=0||size>8*1024**3)throw Error('Invalid cached model size.');
-  const root=(await this.state()).folder;const temp=(await this.file(root,url,true))+'.'+randomUUID()+'.part';await fs.writeFile(temp,'',{flag:'wx'});const token=randomUUID();this.transfers.set(token,{url,temp,size,offset:0,root});return token;
+  const url=modelFileUrl(id,file);this.artifact(url);if(this.changing)throw Error('Wait for relocation.');
+  if(this.startingImports.has(url)||[...this.transfers.values()].some(item=>item.url===url))throw Error('This model file is already being transferred.');
+  this.startingImports.add(url);
+  try{
+    if(this.pending.has(url))await this.pending.get(url);if(await this.existing(url))return null;
+    if(!Number.isSafeInteger(size)||size<=0||size>8*1024**3)throw Error('Invalid cached model size.');
+    const root=(await this.state()).folder;const temp=(await this.file(root,url,true))+'.'+randomUUID()+'.part';await fs.writeFile(temp,'',{flag:'wx'});const token=randomUUID();this.transfers.set(token,{url,temp,size,offset:0,root});return token;
+  }finally{this.startingImports.delete(url);}
  }
  async importAppend(token:string,offset:number,bytes:Uint8Array){const transfer=this.transfers.get(token);if(!transfer||offset!==transfer.offset||!(bytes instanceof Uint8Array)||bytes.length>4*1024**2||offset+bytes.length>transfer.size)throw Error('Invalid model transfer chunk.');await fs.appendFile(transfer.temp,bytes);transfer.offset+=bytes.length;}
  async importFinish(token:string){const transfer=this.transfers.get(token);if(!transfer||transfer.offset!==transfer.size)throw Error('Incomplete model transfer.');const handle=await fs.open(transfer.temp,'r+');try{await handle.sync();}finally{await handle.close();}await this.publish(transfer.url,transfer.temp,transfer.root,transfer.size);this.transfers.delete(token);}

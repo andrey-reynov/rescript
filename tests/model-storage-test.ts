@@ -19,6 +19,13 @@ async function main(){
   const destination=path.join(root,'new');await fs.mkdir(destination);await store.setFolder(destination);
   assert.equal((await store.status(false)).models.tinyEn.outsideDefault,true,'changing folder keeps old files usable');
   const old=await store.existing(url);assert.ok(old?.startsWith(initial));
+  const copy=fs.copyFile;
+  fs.copyFile=async(_source,target)=>{await fs.writeFile(target,'partial');throw Object.assign(Error('Disk full'),{code:'ENOSPC'});};
+  try{await assert.rejects(store.relocate(),/Disk full/);}finally{fs.copyFile=copy;}
+  assert.equal(await store.existing(url),old,'Failed copy must retain original lookup');
+  const pendingFiles=await fs.readdir(path.join(destination,'Rescript Models','tinyEn'));
+  assert.equal(pendingFiles.some(file=>file.endsWith('.part')),false,'Failed copy must clean its partial file');
+  assert.match((await store.status(false)).error??'',/Retry relocation/);
   await store.relocate();const moved=await store.existing(url);assert.ok(moved?.startsWith(destination));await assert.rejects(fs.stat(old!),{code:'ENOENT'});
   const restarted=new ModelStorage(stateFile,'ignored',()=>false,async()=>{throw Error('Network must not be used');});
   assert.equal(await restarted.ensure(url),moved,'reopen from relocated storage offline');
@@ -28,7 +35,11 @@ async function main(){
   await assert.rejects(restarted.relocate(),/damaged/);assert.ok(await fs.stat(moved!),'failed relocation preserves source');
   await fs.writeFile(moved!,bytes);await restarted.relocate();assert.equal((await restarted.status(false)).error,null);
   await restarted.remove('tinyEn');assert.equal((await restarted.status(false)).models.tinyEn.available,false);
-  const token=await restarted.importStart('tiny','config.json',bytes.length);assert.ok(token);
+  const imports=await Promise.allSettled([restarted.importStart('tiny','config.json',bytes.length),restarted.importStart('tiny','config.json',bytes.length)]);
+  assert.equal(imports.filter(result=>result.status==='fulfilled').length,1,'Concurrent cache imports must have one owner');
+  assert.equal(imports.filter(result=>result.status==='rejected').length,1);
+  const success=imports.find(result=>result.status==='fulfilled') as PromiseFulfilledResult<string|null>;
+  const token=success.value;assert.ok(token);
   await assert.rejects(restarted.importAppend(token!,1,bytes),/Invalid/);
   await assert.rejects(restarted.importFinish(token!),/Incomplete/);
   await restarted.importAppend(token!,0,bytes);await restarted.importFinish(token!);
@@ -36,6 +47,18 @@ async function main(){
   await assert.rejects(restarted.ensure('https://example.com/secret'),/Unknown/);
   await assert.rejects(restarted.importStart('tiny','../../project.rescript',1),/Unknown/);
   const project=path.join(third,'my-project.rescript');await fs.writeFile(project,'untouched');await restarted.remove('tiny');assert.equal(await fs.readFile(project,'utf8'),'untouched');
+  const pendingImport=restarted.importStart('tiny','config.json',bytes.length);
+  assert.equal(restarted.busy,true,'Import reservation is busy before its first async check finishes');
+  await assert.rejects(restarted.setFolder(destination),/pause processing/);
+  const canceledToken=await pendingImport;assert.ok(canceledToken);await restarted.importCancel(canceledToken!);
+  assert.equal(restarted.busy,false);assert.equal(await restarted.existing(modelFileUrl('tiny','config.json')),null);
+  let truncated=true;
+  const interrupted=new ModelStorage(path.join(root,'interrupted.json'),path.join(root,'interrupted'),()=>false,async()=>new Response(bytes,{headers:{'content-length':String(bytes.length+(truncated?10:0))}}));
+  await assert.rejects(interrupted.ensure(url),/Incomplete model download/);
+  assert.equal(await interrupted.existing(url),null);
+  assert.equal((await fs.readdir(path.join(root,'interrupted','tinyEn'))).some(file=>file.endsWith('.part')),false);
+  truncated=false;const retried=await interrupted.ensure(url);assert.equal(await fs.readFile(retried,'utf8'),'model-fixture');
+  console.log('Interrupted transfers: truncation cleanup/retry, reserved-import locking and cancel recovery passed.');
   console.log('Model storage: deduplicated downloads, availability, locked mutations, verified offline relocation/restart, failed-copy preservation, import bounds and project isolation passed.');
  }finally{await fs.rm(root,{recursive:true,force:true});}
 }
