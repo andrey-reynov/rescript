@@ -210,3 +210,10 @@ Latest static build predates the final small tweaks for Space replacement, no-op
 - Relocation removes its owned partial copy on copy, verification, sync or rename failure. The manifest still points to the usable original until a verified copy is committed.
 - Native test injects a disk-full error after writing partial bytes: original lookup retained, no .part residue, actionable retry status, successful verified relocation on retry and offline reopen. Tests also cover simultaneous import ownership, truncation cleanup/retry, cancellation and reserved-import locking.
 - Model storage tests and both type checks pass. Item 2 remains open for installed-build and Parakeet acceptance; abrupt process death/orphan cleanup has not been established by these injected failure tests.
+
+## Stage twenty-five: managed Parakeet v3 inference
+
+- Checked installed parakeet.js fromUrls argument names and worker/native artifact mapping. Downloaded the CPU artifact set through the actual native Models API: encoder-model.int8.onnx, decoder_joint-model.fp16.onnx, vocab.txt, nemo128.onnx; 688,689,912 bytes, four of four completed and CPU availability true.
+- Used the isolated prepared sample with a paused test job explicitly preferring WASM to avoid downloading a separate GPU set. Native resume launched the real processing worker and Parakeet v3/Automatic completed all 42.4106875 seconds with 44 words, beginning “Hello. This is an example video for your…”. Published generation matched the job and source became parakeet.
+- Test project, job manifest and summary restored after closing the app. Model files remain in the isolated test model directory for subsequent offline/relocation and bilingual validation.
+- This proves English sample inference via managed CPU artifacts, not GPU, Russian, or offline relocation. Those acceptance checks and installed-build work remain open; no application code change was needed in this pass.
