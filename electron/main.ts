@@ -1,3 +1,5 @@
+import {installModelIpc} from './model-ipc';
+import type {ModelStorage} from './model-storage';
 import { mediaRange } from './media-range';
 import {
   app,
@@ -31,6 +33,7 @@ import {
 } from "./locale";
 
 let projectFiles: ProjectFiles;
+let modelStorage:ModelStorage;
 
 const isDev = !app.isPackaged;
 const DEV_SERVER_URL = process.env.ELECTRON_START_URL ?? "http://localhost:3000";
@@ -117,6 +120,14 @@ function resolveStaticPath(urlPath: string): string | null {
 function registerAppProtocol(): void {
   protocol.handle("app", async (request) => {
     const { pathname } = new URL(request.url);
+    if(pathname==='/__model'){
+      const headers={'Access-Control-Allow-Origin':isDev?new URL(DEV_SERVER_URL).origin:'app://localhost','Cross-Origin-Resource-Policy':'cross-origin'};
+      if(request.method!=='GET'&&request.method!=='HEAD')return new Response(null,{status:405,headers});
+      try{const url=new URL(request.url).searchParams.get('url')!;const file=request.method==='HEAD'?await modelStorage.existing(url):await modelStorage.ensure(url);if(!file)return new Response(null,{status:404,headers});
+       const stat=statSync(file);if(request.method==='HEAD')return new Response(null,{headers:{...headers,'Content-Length':String(stat.size)}});
+       const response=await net.fetch(pathToFileURL(file).toString());return new Response(response.body,{headers:{...headers,'Content-Length':String(stat.size),'Content-Type':'application/octet-stream'}});
+      }catch(error){return new Response(String(error),{status:503,headers});}
+    }
     if (pathname.startsWith("/__media/")) {
       try {
         const id = decodeURIComponent(pathname.slice("/__media/".length));
@@ -393,10 +404,11 @@ if (!gotLock) {
       const trusted = isDev ? url.startsWith(DEV_SERVER_URL + "/") : url.startsWith("app://localhost/");
       return owner && trusted ? owner : null;
     });
-    installJobService(projectFiles, isDev ? DEV_SERVER_URL : null, join(__dirname,"preload.js"), event => {
+    const jobService=installJobService(projectFiles, isDev ? DEV_SERVER_URL : null, join(__dirname,"preload.js"), event => {
       const url=event.senderFrame?.url??"";
       return Boolean(BrowserWindow.fromWebContents(event.sender)) && (isDev ? url.startsWith(DEV_SERVER_URL+"/") : url.startsWith("app://localhost/"));
-    });
+    },()=>modelStorage?.busy??false);
+    modelStorage=installModelIpc(event=>{const url=event.senderFrame?.url??'';return Boolean(BrowserWindow.fromWebContents(event.sender))&&(isDev?url.startsWith(DEV_SERVER_URL+'/'):url.startsWith('app://localhost/'));},()=>jobService.active());
     setDesktopLocale(resolveDesktopLocale(app.getLocale()));
     registerAppProtocol();
     buildAppMenu(dispatchMenuCommand);

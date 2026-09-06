@@ -1,10 +1,9 @@
 "use client";
 import {useState} from 'react';
 import {useEditorStore} from '@/lib/store';
-import {isModelId,modelSupportsLanguage} from '@/lib/models';
+import {assertModelLanguage,isModelId,modelSupportsLanguage} from '@/lib/models';
 import ModelPicker from './ModelPicker';
-import Dropdown from './Dropdown';
-import {TRANSCRIPT_LANGUAGE_ORDER,TRANSCRIPT_LANGUAGES,type TranscriptLanguage} from '@/lib/languages';
+import TranscriptionLanguagePicker from './TranscriptionLanguagePicker';
 import {flushProjectAutosave,scheduleProjectAutosave} from '@/lib/autosave';
 import {useTranscriber} from '@/hooks/useTranscriber';
 import {extractAudio} from '@/lib/ffmpeg';
@@ -22,6 +21,7 @@ export default function TranscriptionSetup(){
   setBusy(true);setError('');
   try{
    const s=useEditorStore.getState();if(!isModelId(s.source))throw Error('Select a speech model.');
+   assertModelLanguage(s.source,s.transcriptLanguage);
    useEditorStore.setState({skipTranscription:false});scheduleProjectAutosave();await flushProjectAutosave();
    if(window.rescriptDesktop?.jobs)await window.rescriptDesktop.jobs.start(useEditorStore.getState().projectId!,s.source,s.transcriptLanguage,true);
    else {const audio=await extractAudio(s.videoFile!);if(audio)transcribe(audio,audio.length/16000);}
@@ -33,9 +33,9 @@ export default function TranscriptionSetup(){
   <div className="flex flex-wrap items-center gap-2">
    <div className="grid w-full gap-3 sm:grid-cols-2">
     <div className="min-w-0 text-xs">{f('Transcription model')}<ModelPicker value={model} language={language} onChange={id=>useEditorStore.getState().setSource(id)} disabled={busy||job==='running'||job==='preparing'}/></div>
-    <div className="min-w-0 text-xs">{f('Transcription language')}<Dropdown label={f('Transcription language')} value={language} onChange={id=>useEditorStore.getState().setTranscriptLanguage(id as TranscriptLanguage)} disabled={busy||job==='running'||job==='preparing'} options={TRANSCRIPT_LANGUAGE_ORDER.map(id=>({value:id,label:id==='auto'?f('Automatic'):TRANSCRIPT_LANGUAGES[id].nativeLabel,disabled:!modelSupportsLanguage(model,id)}))}/></div>
+    <div className="min-w-0 text-xs">{f('Transcription language')}<TranscriptionLanguagePicker model={model} value={language} onChange={id=>useEditorStore.getState().setTranscriptLanguage(id)} disabled={busy||job==='running'||job==='preparing'}/></div>
    </div>
-   <button disabled={busy||status!=='ready'||job==='running'||job==='preparing'} onClick={()=>void start()} className="rounded bg-zinc-900 px-3 py-2 text-xs text-white disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900">{f('Start transcription')}</button>
+   <button disabled={busy||!modelSupportsLanguage(model,language)||status!=='ready'||job==='running'||job==='preparing'} onClick={()=>void start()} className="rounded bg-zinc-900 px-3 py-2 text-xs text-white disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900">{f('Start transcription')}</button>
   </div>{error&&<p role="alert" className="mt-2 text-xs text-red-600">{error}</p>}
  </div>;
 }

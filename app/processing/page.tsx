@@ -1,4 +1,5 @@
 "use client";
+import {prepareDesktopModel,modelGpuAvailable} from '@/lib/desktop-models';
 import { useEffect } from 'react';
 import { readReferencedMedia } from '@/lib/media-input';
 import { extractAudio, releaseFFmpeg } from '@/lib/ffmpeg';
@@ -35,6 +36,7 @@ async function processProject() {
     job=await bridge.completePreparedAudio();
   }
   if(job.status==='complete')return;
+  await prepareDesktopModel(job.model as ModelId,!job.preferWasm&&await modelGpuAvailable(),(message,value)=>{void bridge.progress(message,value);});
   let worker=new Worker(new URL('../../workers/transcription.worker.ts',import.meta.url),{type:'module'});
   try {
     while(true) {
@@ -50,12 +52,13 @@ async function processProject() {
           if(message.type==='progress'&&Date.now()-lastProgress>250){lastProgress=Date.now();void bridge.progress(`Batch ${chunk.index+1}/${job.total} · ${message.message}`,message.value).catch(()=>{});}
         };
         worker.onerror=error=>reject(new Error(error.message||'Transcription worker stopped'));
-        const request:WorkerRequest={audio,preferWasm:job.preferWasm,duration:audio.length/16000,model:job.model as ModelId,language:job.language as TranscriptLanguage};
+        const request:WorkerRequest={audio,desktopModels:true,preferWasm:job.preferWasm,duration:audio.length/16000,model:job.model as ModelId,language:job.language as TranscriptLanguage};
         worker.postMessage(request,[audio.buffer]);
       });
       } catch(error) {
         if(error instanceof Error&&error.cause==='gpu'&&!job.preferWasm){
           worker.terminate();job=await bridge.preferCpu();
+          await prepareDesktopModel(job.model as ModelId,false,(message,value)=>{void bridge.progress(message,value);});
           worker=new Worker(new URL('../../workers/transcription.worker.ts',import.meta.url),{type:'module'});
           // Audio was transferred to the failed worker. Read the same unfinished
           // batch again from its source cache; completed text is never duplicated.

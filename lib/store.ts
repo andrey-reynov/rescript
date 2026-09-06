@@ -1,4 +1,6 @@
 "use client";
+import {compatibleLanguage} from './model-capabilities';
+import {MODELS} from './models';
 import {transcriptBlocks,groupPhrase,replaceTimedText,selectedRange,type PhraseGroup,type ClipName,type TranscriptView} from './transcript-structure';
 import type { SourceAudioLayout } from './audio-export';
 import { isReferencedMedia, type MediaInput } from './media-input';
@@ -29,7 +31,7 @@ import {
   shrinkManualCuts,
   trimEdgeResult,
 } from "./edits";
-import { MODELS, isModelId, loadModelPreference, saveModelPreference } from "./models";
+import { isModelId, loadModelPreference, saveModelPreference } from "./models";
 import { isTranscriptSource, type TranscriptSource } from "./source";
 
 import {
@@ -516,8 +518,9 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   setSource: (source) => {
     if (isModelId(source)) {
       saveModelPreference(source);
-      if(MODELS[source].englishOnly)saveTranscriptLanguagePreference("en");
-      set({ source, pendingTranscript: null, ...(MODELS[source].englishOnly?{transcriptLanguage:"en" as const}:{}) });
+      const transcriptLanguage=compatibleLanguage(MODELS[source].capabilities,get().transcriptLanguage);
+      saveTranscriptLanguagePreference(transcriptLanguage);
+      set({ source, pendingTranscript: null, transcriptLanguage });
     } else {
       set({ source });
     }

@@ -31,7 +31,7 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 
 ### 2. Models manager in Settings
 
-**Status:** Planned; not implemented.
+**Status:** Implemented; native/runtime checks recorded in [Implementation-Progress.md](Implementation-Progress.md). Retain final installed, Parakeet and interruption acceptance audit.
 
 **Expected behavior:**
 
@@ -134,7 +134,7 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 
 ### 7. Model capability metadata and language compatibility
 
-**Status:** Partially implemented; retain capability consistency work from the open issue. Model descriptions and right-aligned Experimental metadata already exist.
+**Status:** Shared capability profiles and validation implemented. Retain integrated selector/bilingual verification; see [Model-Capabilities.md](Model-Capabilities.md).
 
 **Tracking:** [#6 — Show supported languages beneath each transcription model](https://github.com/andrey-reynov/rescript/issues/6).
 

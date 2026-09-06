@@ -12,6 +12,17 @@ contextBridge.exposeInMainWorld("rescriptDesktop", {
     ipcRenderer.on("project:flush-request", listener);
     return () => { ipcRenderer.removeListener("project:flush-request", listener); };
   },
+  models:{
+    status:(gpu:boolean)=>ipcRenderer.invoke('models:status',gpu),
+    download:(id:string,gpu:boolean)=>ipcRenderer.invoke('models:download',id,gpu),
+    remove:(id:string)=>ipcRenderer.invoke('models:remove',id),
+    chooseFolder:()=>ipcRenderer.invoke('models:choose-folder'),
+    relocate:()=>ipcRenderer.invoke('models:relocate'),
+    importStart:(id:string,file:string,size:number)=>ipcRenderer.invoke('models:import-start',id,file,size),
+    importAppend:(token:string,offset:number,bytes:Uint8Array)=>ipcRenderer.invoke('models:import-append',token,offset,bytes),
+    importFinish:(token:string)=>ipcRenderer.invoke('models:import-finish',token),
+    importCancel:(token:string)=>ipcRenderer.invoke('models:import-cancel',token),
+  },
   jobs: {
     start: (id:string,model:string,language:string,transcribe:boolean) => ipcRenderer.invoke('job:start',id,model,language,transcribe),
     read: (id:string) => ipcRenderer.invoke('job:read',id),

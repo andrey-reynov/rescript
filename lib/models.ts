@@ -1,3 +1,4 @@
+import {WHISPER_CAPABILITIES,WHISPER_V3_CAPABILITIES,ENGLISH_CAPABILITIES,PARAKEET_V3_CAPABILITIES,acceptsLanguage,type ModelCapabilities} from './model-capabilities';
 /** Local speech models offered on the upload screen. */
 export type WhisperModel =
   | "base"
@@ -23,6 +24,7 @@ type DType = "fp32" | "fp16" | "q8" | "int8" | "uint8" | "q4" | "q4f16" | "bnb4"
 
 /** Shared UI fields for every local speech backend. */
 type ModelDisplay = {
+  capabilities:ModelCapabilities;
   /** English-trained models cannot recognize Russian even if tokenizer is multilingual. */
   englishOnly?: boolean;
   /** Offered for opt-in testing; not yet covered by real-audio acceptance. */
@@ -189,17 +191,17 @@ const WHISPER_DTYPE = {
  * (`dtype` / `crisper` vs `repoId`) are gated by `backend`.
  */
 export const MODELS: {[K in ModelId]: K extends ParakeetModel ? ParakeetModelInfo : WhisperModelInfo} = {
-tiny: {backend:"whisper",id:"onnx-community/whisper-tiny_timestamped",label:"Whisper Tiny",size:"~120 MB",description:"Multilingual. Downloaded when transcription starts.",dtype:WHISPER_DTYPE,englishOnly:false,cpuOnly:false,experimental:true},
-tinyEn: {backend:"whisper",id:"onnx-community/whisper-tiny.en_timestamped",label:"Whisper Tiny (English)",size:"~120 MB",description:"English only. Downloaded when transcription starts.",dtype:WHISPER_DTYPE,englishOnly:true,cpuOnly:false,experimental:false},
-medium: {backend:"whisper",id:"onnx-community/whisper-medium_timestamped",label:"Whisper Medium",size:"~800 MB",description:"Multilingual. Downloaded when transcription starts.",dtype:MEDIUM_DTYPE,englishOnly:false,cpuOnly:true,experimental:false},
-largeV2: {backend:"whisper",id:"onnx-community/whisper-large-v2-ONNX",label:"Whisper Large v2",size:"~1.2 GB",description:"Multilingual. Downloaded when transcription starts.",dtype:LARGE_DTYPE,englishOnly:false,cpuOnly:false,experimental:true},
-largeV3: {backend:"whisper",id:"Xenova/whisper-large-v3",label:"Whisper Large v3",size:"~1.6 GB",description:"Multilingual. Downloaded when transcription starts.",dtype:CPU_DTYPE,englishOnly:false,cpuOnly:true,experimental:true},
-turbo: {backend:"whisper",id:"onnx-community/whisper-large-v3-turbo_timestamped",label:"Whisper Large v3 Turbo",size:"~770 MB",description:"Multilingual. Downloaded when transcription starts.",dtype:TURBO_DTYPE,englishOnly:false,cpuOnly:false,experimental:false},
-distilSmall: {backend:"whisper",id:"onnx-community/distil-small.en",label:"Distil-Whisper Small (English)",size:"~540 MB",description:"English only. Downloaded when transcription starts.",dtype:WHISPER_DTYPE,englishOnly:true,cpuOnly:false,experimental:true},
-distilLargeV3: {backend:"whisper",id:"distil-whisper/distil-large-v3",label:"Distil-Whisper Large v3 (English)",size:"~770 MB",description:"English only. Downloaded when transcription starts.",dtype:CPU_DTYPE,englishOnly:true,cpuOnly:true,experimental:true},
-distilLargeV35: {backend:"whisper",id:"onnx-community/distil-large-v3.5-ONNX",label:"Distil-Whisper Large v3.5 (English)",size:"~660 MB",description:"English only. Downloaded when transcription starts.",dtype:DISTIL_DTYPE,englishOnly:true,cpuOnly:false,experimental:true},
-  parakeetV2: {backend:"parakeet",id:"parakeet-tdt-0.6b-v2",repoId:"ysdede/parakeet-tdt-0.6b-v2-onnx",label:"Parakeet v2 (English)",size:"~0.7–1.3 GB",description:"English only. Use v3 for Russian or bilingual recordings.",englishOnly:true,experimental:true},
-  base: {
+tiny: {capabilities:WHISPER_CAPABILITIES,backend:"whisper",id:"onnx-community/whisper-tiny_timestamped",label:"Whisper Tiny",size:"~120 MB",description:"Multilingual. Downloaded when transcription starts.",dtype:WHISPER_DTYPE,englishOnly:false,cpuOnly:false,experimental:true},
+tinyEn: {capabilities:ENGLISH_CAPABILITIES,backend:"whisper",id:"onnx-community/whisper-tiny.en_timestamped",label:"Whisper Tiny (English)",size:"~120 MB",description:"English only. Downloaded when transcription starts.",dtype:WHISPER_DTYPE,englishOnly:true,cpuOnly:false,experimental:false},
+medium: {capabilities:WHISPER_CAPABILITIES,backend:"whisper",id:"onnx-community/whisper-medium_timestamped",label:"Whisper Medium",size:"~800 MB",description:"Multilingual. Downloaded when transcription starts.",dtype:MEDIUM_DTYPE,englishOnly:false,cpuOnly:true,experimental:false},
+largeV2: {capabilities:WHISPER_CAPABILITIES,backend:"whisper",id:"onnx-community/whisper-large-v2-ONNX",label:"Whisper Large v2",size:"~1.2 GB",description:"Multilingual. Downloaded when transcription starts.",dtype:LARGE_DTYPE,englishOnly:false,cpuOnly:false,experimental:true},
+largeV3: {capabilities:WHISPER_V3_CAPABILITIES,backend:"whisper",id:"Xenova/whisper-large-v3",label:"Whisper Large v3",size:"~1.6 GB",description:"Multilingual. Downloaded when transcription starts.",dtype:CPU_DTYPE,englishOnly:false,cpuOnly:true,experimental:true},
+turbo: {capabilities:WHISPER_V3_CAPABILITIES,backend:"whisper",id:"onnx-community/whisper-large-v3-turbo_timestamped",label:"Whisper Large v3 Turbo",size:"~770 MB",description:"Multilingual. Downloaded when transcription starts.",dtype:TURBO_DTYPE,englishOnly:false,cpuOnly:false,experimental:false},
+distilSmall: {capabilities:ENGLISH_CAPABILITIES,backend:"whisper",id:"onnx-community/distil-small.en",label:"Distil-Whisper Small (English)",size:"~540 MB",description:"English only. Downloaded when transcription starts.",dtype:WHISPER_DTYPE,englishOnly:true,cpuOnly:false,experimental:true},
+distilLargeV3: {capabilities:ENGLISH_CAPABILITIES,backend:"whisper",id:"distil-whisper/distil-large-v3",label:"Distil-Whisper Large v3 (English)",size:"~770 MB",description:"English only. Downloaded when transcription starts.",dtype:CPU_DTYPE,englishOnly:true,cpuOnly:true,experimental:true},
+distilLargeV35: {capabilities:ENGLISH_CAPABILITIES,backend:"whisper",id:"onnx-community/distil-large-v3.5-ONNX",label:"Distil-Whisper Large v3.5 (English)",size:"~660 MB",description:"English only. Downloaded when transcription starts.",dtype:DISTIL_DTYPE,englishOnly:true,cpuOnly:false,experimental:true},
+  parakeetV2: {capabilities:ENGLISH_CAPABILITIES,backend:"parakeet",id:"parakeet-tdt-0.6b-v2",repoId:"ysdede/parakeet-tdt-0.6b-v2-onnx",label:"Parakeet v2 (English)",size:"~0.7–1.3 GB",description:"English only. Use v3 for Russian or bilingual recordings.",englishOnly:true,experimental:true},
+  base: {capabilities:WHISPER_CAPABILITIES,
     backend: "whisper",
     id: "onnx-community/whisper-base_timestamped",
     label: "Whisper Base",
@@ -207,7 +209,7 @@ distilLargeV35: {backend:"whisper",id:"onnx-community/distil-large-v3.5-ONNX",la
     size: "~200 MB",
     dtype: WHISPER_DTYPE,
   },
-  small: {
+  small: {capabilities:WHISPER_CAPABILITIES,
     backend: "whisper",
     id: "onnx-community/whisper-small_timestamped",
     label: "Whisper Small",
@@ -215,7 +217,7 @@ distilLargeV35: {backend:"whisper",id:"onnx-community/distil-large-v3.5-ONNX",la
     size: "~600 MB",
     dtype: WHISPER_DTYPE,
   },
-  parakeet: {
+  parakeet: {capabilities:PARAKEET_V3_CAPABILITIES,
     backend: "parakeet",
     id: "parakeet-tdt-0.6b-v3",
     repoId: "ysdede/parakeet-tdt-0.6b-v3-onnx",
@@ -275,7 +277,7 @@ export function isParakeetModel(value: unknown): value is ParakeetModel {
 }
 /** Reject incompatible explicit languages before downloading any weights. */
 export function modelSupportsLanguage(model:ModelId,language:string):boolean {
- return !MODELS[model].englishOnly||language==='en'||language==='auto';
+ return acceptsLanguage(MODELS[model].capabilities,language);
 }
 /** Whether `value` is a key of {@link MODELS}. */
 export function isModelId(value: unknown): value is ModelId {
@@ -286,9 +288,9 @@ const MODEL_STORAGE_KEY = "rescript.model";
 
 /** Read the last-selected speech model from localStorage (defaults to base). */
 export function loadModelPreference(): ModelId {
-  if (typeof window === "undefined") return "base";
+  if (!browserStorage()) return "base";
   try {
-    const raw = window.localStorage.getItem(MODEL_STORAGE_KEY);
+    const raw = browserStorage()?.getItem(MODEL_STORAGE_KEY);
     if (isModelId(raw)) return raw;
   } catch {
     // private mode / disabled storage
@@ -298,10 +300,21 @@ export function loadModelPreference(): ModelId {
 
 /** Persist the selected speech model for the next visit. */
 export function saveModelPreference(model: ModelId) {
-  if (typeof window === "undefined") return;
+  if (!browserStorage()) return;
   try {
-    window.localStorage.setItem(MODEL_STORAGE_KEY, model);
+    browserStorage()?.setItem(MODEL_STORAGE_KEY, model);
   } catch {
     // private mode / disabled storage
   }
 }
+
+/** Validate a requested inference configuration before any job or download begins. */
+export function assertModelLanguage(model:unknown,language:unknown):asserts model is ModelId {
+ if(!isModelId(model))throw Error('Select a valid transcription model.');
+ if(typeof language!=='string'||!modelSupportsLanguage(model,language)){
+  if(MODELS[model].capabilities.languageSelection==='automatic')throw Error('This model detects language automatically. Choose Automatic.');
+  throw Error('This model does not support the selected transcription language.');
+ }
+}
+
+function browserStorage(){try{return (globalThis as {localStorage?:{getItem(key:string):string|null;setItem(key:string,value:string):void}}).localStorage;}catch{return undefined;}}

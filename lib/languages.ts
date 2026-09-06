@@ -85,9 +85,9 @@ export function isTranscriptLanguage(
 
 /** Read the last-selected transcript language from localStorage. */
 export function loadTranscriptLanguagePreference(): TranscriptLanguage {
-  if (typeof window === "undefined") return DEFAULT_TRANSCRIPT_LANGUAGE;
+  if (!browserStorage()) return DEFAULT_TRANSCRIPT_LANGUAGE;
   try {
-    const raw = window.localStorage.getItem(LANGUAGE_STORAGE_KEY);
+    const raw = browserStorage()?.getItem(LANGUAGE_STORAGE_KEY);
     if (isTranscriptLanguage(raw)) return raw;
   } catch {
     // private mode / disabled storage
@@ -97,10 +97,12 @@ export function loadTranscriptLanguagePreference(): TranscriptLanguage {
 
 /** Persist the selected transcript language for the next visit. */
 export function saveTranscriptLanguagePreference(language: TranscriptLanguage) {
-  if (typeof window === "undefined") return;
+  if (!browserStorage()) return;
   try {
-    window.localStorage.setItem(LANGUAGE_STORAGE_KEY, language);
+    browserStorage()?.setItem(LANGUAGE_STORAGE_KEY, language);
   } catch {
     // private mode / disabled storage
   }
 }
+
+function browserStorage(){try{return (globalThis as {localStorage?:{getItem(key:string):string|null;setItem(key:string,value:string):void}}).localStorage;}catch{return undefined;}}

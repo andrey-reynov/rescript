@@ -5,7 +5,7 @@ import { TranscriptionJobs, type JobState, type JobChunk, type StoredPeaks } fro
 import type { JobWord as Word } from './transcription-jobs';
 
 /** A separate hidden renderer owns inference; the editor can close or crash independently. */
-export function installJobService(projects:ProjectFiles,devUrl:string|null,preload:string,trusted:(event:IpcMainInvokeEvent)=>boolean) {
+export function installJobService(projects:ProjectFiles,devUrl:string|null,preload:string,trusted:(event:IpcMainInvokeEvent)=>boolean,modelsChanging:()=>boolean=()=>false) {
   const jobs=new TranscriptionJobs(projects);
   let runner:BrowserWindow|null=null, activeId:string|null=null, blocker:number|null=null;
   let starting=false;
@@ -42,6 +42,7 @@ export function installJobService(projects:ProjectFiles,devUrl:string|null,prelo
   const worker=(channel:string,fn:(id:string,...args:never[])=>unknown)=>ipcMain.handle(`processing:${channel}`,(event,...args)=>{if(!runner||event.sender!==runner.webContents||!activeId)throw Error('Inactive processing worker');return fn(activeId,...args as never[]);});
   ui('start',async(_event,id:string,model:string,language:string,transcribe:boolean)=>{
     if(!transcribe){const previous=await jobs.read(id);if(previous?.status==='complete'){notify(id);return previous;}}
+    if(modelsChanging())throw Error('Wait for model relocation or deletion to finish.');
     if(starting)throw Error('A processing job is starting. Try again.');
     if(runner){if(activeId===id)return jobs.read(id);throw Error('Another project is processing. Pause it first.');}
     if(typeof model!=='string'||typeof language!=='string'||typeof transcribe!=='boolean')throw Error('Invalid job settings');
@@ -53,21 +54,25 @@ export function installJobService(projects:ProjectFiles,devUrl:string|null,prelo
     }finally{starting=false;}
   });
   ui('fork',async(_event,sourceId:string,destinationId:string)=>{
+    if(modelsChanging())throw Error('Wait for model relocation or deletion to finish.');
     if(starting||activeId===sourceId||activeId===destinationId)throw Error('Pause processing before copying checkpoints.');
     starting=true;try{return await jobs.fork(sourceId,destinationId);}finally{starting=false;}
   });
   ui('retry-chunks',async(_event,id:string,indices:number[])=>{
+    if(modelsChanging())throw Error('Wait for model relocation or deletion to finish.');
     if(starting||runner)throw Error('Pause the active processing job before retrying selected batches.');
     starting=true;
     try{await jobs.retryChunks(id,indices);const previous=(await jobs.read(id))!;const job=await jobs.start(id,previous.model,previous.language,true);await launch(id);notify(id);return job;}finally{starting=false;}
   });
   ui('transcribe-range',async(_event,id:string,start:number,end:number,model:string,language:string)=>{
+    if(modelsChanging())throw Error('Wait for model relocation or deletion to finish.');
     if(starting||runner)throw Error('Pause active processing before retranscribing a selection.');
     if(typeof model!=='string'||typeof language!=='string')throw Error('Invalid transcription settings.');
     starting=true;
     try{progress.delete(id);const job=await jobs.transcribeRange(id,start,end,model,language);await launch(id);notify(id);return job;}finally{starting=false;}
   });
   ui('transcribe-all',async(_event,id:string,model:string,language:string)=>{
+    if(modelsChanging())throw Error('Wait for model relocation or deletion to finish.');
     if(starting||runner)throw Error('Pause active processing before retranscribing.');
     if(typeof model!=='string'||typeof language!=='string')throw Error('Invalid transcription settings.');
     starting=true;
@@ -88,5 +93,5 @@ export function installJobService(projects:ProjectFiles,devUrl:string|null,prelo
   worker('checkpoint',async(id,key:string,chunk:Omit<JobChunk,'audio'>,words:Word[])=>{const job=await jobs.checkpoint(id,key,chunk,words);if(job.status==='complete')await finish(id);else {await publish(id);notify(id);}return job;});
   worker('progress',(id,message:string,value:number|null)=>{progress.set(id,{message,value});notify(id);});
   worker('fail',async(id,message:string)=>{await jobs.setStatus(id,'error',message);notify(id);closeRunner();});
-  return {jobs,stop:closeRunner,runner:()=>runner};
+  return {jobs,stop:closeRunner,runner:()=>runner,active:()=>starting||!!runner};
 }

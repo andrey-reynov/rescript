@@ -3,6 +3,20 @@ import {ru} from './messages/ru';
 import type {UiLocale} from './locales';
 /** Copy added by the fork. Other locales retain English until translated. */
 export const forkRussian={
+ 'Delete':'Удалить','Loading…':'Загрузка…',
+ 'Downloading model':'Загрузка модели',
+ 'models':'Модели','Models':'Модели','Model folder':'Папка моделей','Relocate models':'Переместить модели','Moving cached model':'Перенос модели','Relocating models':'Перемещение моделей','Stored in a previous folder':'В прежней папке','Download model':'Скачать модель','Delete model':'Удалить модель','Download':'Скачать',
+ 'Install the desktop app to manage model folders.':'Установите приложение для управления папками моделей.',
+ 'Changing this folder affects future downloads. Existing models stay usable in their current folders until you relocate them.':'Новая папка используется для будущих загрузок. Существующие модели работают из прежних папок до перемещения.',
+ 'Relocation verifies each copy before removing the original. Projects and source media stay unchanged.':'При перемещении каждая копия проверяется перед удалением оригинала. Проекты и исходное медиа не меняются.',
+ 'Pause processing before deleting or relocating models.':'Приостановите обработку перед удалением или перемещением моделей.',
+ 'English (fixed)':'Английский (фиксированный)',
+ 'English only · no language detection':'Только английский · без определения языка',
+ 'Multilingual, including Russian and English · automatic or selected language':'Несколько языков, включая русский и английский · автоматический или выбранный язык',
+ '25 European languages, including Russian · automatic detection only':'25 европейских языков, включая русский · только автоопределение',
+ 'This model detects language automatically. Choose Automatic.':'Модель определяет язык сама. Выберите «Автоматически».',
+ 'This model does not support the selected transcription language.':'Модель не поддерживает выбранный язык расшифровки.',
+ 'Select a valid transcription model.':'Выберите доступную модель расшифровки.',
  'Downloaded':'Скачанные',
  'More timeline tools':'Инструменты таймлайна','Project actions':'Действия проекта','Pin {tool}':'Закрепить {tool}','Unpin {tool}':'Открепить {tool}',
  'Retranscribe all':'Расшифровать всё заново','Full audio':'Всё аудио','The full transcript will be replaced. Timeline cuts stay unchanged.':'Вся расшифровка будет заменена. Монтаж останется без изменений.','Close revisions':'Закрыть версии','Revision list':'Список версий',

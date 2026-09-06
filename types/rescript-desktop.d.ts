@@ -1,3 +1,4 @@
+import type {DesktopModels} from './model-api';
 import type { DesktopJobs, ProcessingBridge } from "./job-api";
 import type { DesktopProjects } from "./project-api";
 import type { UiLocale } from "@/lib/i18n/locales";
@@ -18,6 +19,7 @@ export type MenuCommand =
 
 /** Desktop bridge exposed by electron/preload.ts when running inside Electron. */
 export interface RescriptDesktop {
+  models:DesktopModels;
   projects: DesktopProjects;
   jobs: DesktopJobs;
   processing: ProcessingBridge;

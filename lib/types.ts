@@ -99,6 +99,7 @@ export type WorkerResponse =
   | { type: "error"; message: string; cause?: "network" | "gpu" };
 
 export interface WorkerRequest {
+  desktopModels?:boolean;
   /** Use CPU/WASM after a GPU reset; source-time checkpoints remain valid. */
   preferWasm?: boolean;
   audio: Float32Array;
