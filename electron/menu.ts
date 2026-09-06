@@ -1,3 +1,4 @@
+import {desktopLiteral} from './locale';
 import { app, Menu, type MenuItemConstructorOptions } from "electron";
 import { desktopText as t } from "./locale";
 
@@ -44,10 +45,10 @@ function fileMenu(): MenuItemConstructorOptions {
         accelerator: "CmdOrCtrl+O",
         click: () => send({ type: "open-project-dialog" }),
       },
-      { label: "New project from media…", accelerator: "CmdOrCtrl+N", click: () => send({ type: "open-file" }) },
-      { label: "Save project", accelerator: "CmdOrCtrl+S", click: () => send({ type: "save-project" }) },
-      { label: "Save project as…", accelerator: "Shift+CmdOrCtrl+S", click: () => send({ type: "save-project-as" }) },
-      { label: "Close Project", click: () => send({ type: "close-project" }) },
+      { label: desktopLiteral("New project from media…"), accelerator: "CmdOrCtrl+N", click: () => send({ type: "open-file" }) },
+      { label: desktopLiteral("Save project"), accelerator: "CmdOrCtrl+S", click: () => send({ type: "save-project" }) },
+      { label: desktopLiteral("Save project as…"), accelerator: "Shift+CmdOrCtrl+S", click: () => send({ type: "save-project-as" }) },
+      { label: desktopLiteral("Close Project"), click: () => send({ type: "close-project" }) },
       {
         label: t("reopenLast"),
         accelerator: "Shift+CmdOrCtrl+O",

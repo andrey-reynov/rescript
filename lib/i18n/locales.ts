@@ -7,6 +7,7 @@
  */
 export const UI_LOCALES = [
   "en",
+  "ru",
   "zh-CN",
   "zh-TW",
   "ja",
@@ -41,6 +42,7 @@ const prefix =
     tag === base || tag.startsWith(`${base}-`);
 
 export const UI_LOCALE_META: Record<UiLocale, UiLocaleMeta> = {
+  ru: {htmlLang:"ru",nativeLabel:"Русский",nsis:"ru_RU",match:prefix("ru")},
   en: {
     htmlLang: "en",
     nativeLabel: "English",
@@ -111,6 +113,7 @@ function isTraditionalChinese(tag: string): boolean {
 
 /** Match order: check Traditional Chinese before the broad Simplified `zh*` rule. */
 const MATCH_ORDER: readonly UiLocale[] = [
+  "ru",
   "zh-TW",
   "zh-CN",
   "ja",

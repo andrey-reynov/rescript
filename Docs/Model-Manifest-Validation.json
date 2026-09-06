@@ -1,0 +1,277 @@
+[
+  {
+    "key": "tiny",
+    "repo": "onnx-community/whisper-tiny_timestamped",
+    "revision": "517244293732ee2d58139af5814231b7e6830a0d",
+    "pairs": [
+      {
+        "device": "webgpu",
+        "files": [
+          "onnx/encoder_model.onnx",
+          "onnx/decoder_model_merged_q4.onnx"
+        ],
+        "bytes": 119699015
+      },
+      {
+        "device": "wasm",
+        "files": [
+          "onnx/encoder_model.onnx",
+          "onnx/decoder_model_merged_q4.onnx"
+        ],
+        "bytes": 119699015
+      }
+    ]
+  },
+  {
+    "key": "tinyEn",
+    "repo": "onnx-community/whisper-tiny.en_timestamped",
+    "revision": "aeaa13760958b03fac5062f457d317d3319c3168",
+    "pairs": [
+      {
+        "device": "webgpu",
+        "files": [
+          "onnx/encoder_model.onnx",
+          "onnx/decoder_model_merged_q4.onnx"
+        ],
+        "bytes": 119697479
+      },
+      {
+        "device": "wasm",
+        "files": [
+          "onnx/encoder_model.onnx",
+          "onnx/decoder_model_merged_q4.onnx"
+        ],
+        "bytes": 119697479
+      }
+    ]
+  },
+  {
+    "key": "base",
+    "repo": "onnx-community/whisper-base_timestamped",
+    "revision": "608c49e61301901684bc36cac8f74b95ff6b5a8e",
+    "pairs": [
+      {
+        "device": "webgpu",
+        "files": [
+          "onnx/encoder_model.onnx",
+          "onnx/decoder_model_merged_q4.onnx"
+        ],
+        "bytes": 206190057
+      },
+      {
+        "device": "wasm",
+        "files": [
+          "onnx/encoder_model.onnx",
+          "onnx/decoder_model_merged_q4.onnx"
+        ],
+        "bytes": 206190057
+      }
+    ]
+  },
+  {
+    "key": "small",
+    "repo": "onnx-community/whisper-small_timestamped",
+    "revision": "65caa70f294b46e1c33ff820aae6b16d048ab818",
+    "pairs": [
+      {
+        "device": "webgpu",
+        "files": [
+          "onnx/encoder_model.onnx",
+          "onnx/decoder_model_merged_q4.onnx"
+        ],
+        "bytes": 586213010
+      },
+      {
+        "device": "wasm",
+        "files": [
+          "onnx/encoder_model.onnx",
+          "onnx/decoder_model_merged_q4.onnx"
+        ],
+        "bytes": 586213010
+      }
+    ]
+  },
+  {
+    "key": "medium",
+    "repo": "onnx-community/whisper-medium_timestamped",
+    "revision": "9fe933aaa6b0244316eb961f36d33dfedf0c0b0c",
+    "pairs": [
+      {
+        "device": "wasm",
+        "files": [
+          "onnx/encoder_model_int8.onnx",
+          "onnx/decoder_model_merged_q4.onnx"
+        ],
+        "bytes": 782513687
+      }
+    ]
+  },
+  {
+    "key": "largeV2",
+    "repo": "onnx-community/whisper-large-v2-ONNX",
+    "revision": "e6a53cfc81b2c8f77b6d660440fba22b336f5281",
+    "pairs": [
+      {
+        "device": "webgpu",
+        "files": [
+          "onnx/encoder_model_q4.onnx",
+          "onnx/decoder_model_merged_q4.onnx"
+        ],
+        "bytes": 1221432282
+      },
+      {
+        "device": "wasm",
+        "files": [
+          "onnx/encoder_model_q4.onnx",
+          "onnx/decoder_model_merged_q4.onnx"
+        ],
+        "bytes": 1221432282
+      }
+    ]
+  },
+  {
+    "key": "largeV3",
+    "repo": "Xenova/whisper-large-v3",
+    "revision": "67bf02d92b7754a1ff82a7f8545f8b8c378b2ef0",
+    "pairs": [
+      {
+        "device": "wasm",
+        "files": [
+          "onnx/encoder_model_quantized.onnx",
+          "onnx/decoder_model_merged_quantized.onnx"
+        ],
+        "bytes": 1560320275
+      }
+    ]
+  },
+  {
+    "key": "turbo",
+    "repo": "onnx-community/whisper-large-v3-turbo_timestamped",
+    "revision": "b3f77bf9a8c4d5ea3415827033d1ffea7955fd9a",
+    "pairs": [
+      {
+        "device": "webgpu",
+        "files": [
+          "onnx/encoder_model_q4.onnx",
+          "onnx/decoder_model_merged_fp16.onnx"
+        ],
+        "bytes": 769292396
+      },
+      {
+        "device": "wasm",
+        "files": [
+          "onnx/encoder_model_q4.onnx",
+          "onnx/decoder_model_merged_fp16.onnx"
+        ],
+        "bytes": 769292396
+      }
+    ]
+  },
+  {
+    "key": "distilSmall",
+    "repo": "onnx-community/distil-small.en",
+    "revision": "69be759f982d1d4c5b8a987d4140752742619bd0",
+    "pairs": [
+      {
+        "device": "webgpu",
+        "files": [
+          "onnx/encoder_model.onnx",
+          "onnx/decoder_model_merged_q4.onnx"
+        ],
+        "bytes": 537691588
+      },
+      {
+        "device": "wasm",
+        "files": [
+          "onnx/encoder_model.onnx",
+          "onnx/decoder_model_merged_q4.onnx"
+        ],
+        "bytes": 537691588
+      }
+    ]
+  },
+  {
+    "key": "distilLargeV3",
+    "repo": "distil-whisper/distil-large-v3",
+    "revision": "8031d2e6ce6631b7fc45629dddfc00271116d981",
+    "pairs": [
+      {
+        "device": "wasm",
+        "files": [
+          "onnx/encoder_model_quantized.onnx",
+          "onnx/decoder_model_merged_quantized.onnx"
+        ],
+        "bytes": 766801819
+      }
+    ]
+  },
+  {
+    "key": "distilLargeV35",
+    "repo": "onnx-community/distil-large-v3.5-ONNX",
+    "revision": "d908cd7fba0fb226f14b14ad955f22797ecfe5d5",
+    "pairs": [
+      {
+        "device": "webgpu",
+        "files": [
+          "onnx/encoder_model_q4.onnx",
+          "onnx/decoder_model_merged_fp16.onnx"
+        ],
+        "bytes": 663952256
+      },
+      {
+        "device": "wasm",
+        "files": [
+          "onnx/encoder_model_q4.onnx",
+          "onnx/decoder_model_merged_fp16.onnx"
+        ],
+        "bytes": 663952256
+      }
+    ]
+  },
+  {
+    "key": "parakeetV2",
+    "repo": "ysdede/parakeet-tdt-0.6b-v2-onnx",
+    "revision": "db4a768f5795e0f508187a34241fbeeef6ebb0d3",
+    "pairs": [
+      {
+        "device": "webgpu",
+        "files": [
+          "encoder-model.fp16.onnx",
+          "decoder_joint-model.onnx"
+        ],
+        "bytes": 1274752511
+      },
+      {
+        "device": "wasm",
+        "files": [
+          "encoder-model.int8.onnx",
+          "decoder_joint-model.fp16.onnx"
+        ],
+        "bytes": 670085732
+      }
+    ]
+  },
+  {
+    "key": "parakeet",
+    "repo": "ysdede/parakeet-tdt-0.6b-v3-onnx",
+    "revision": "f88260fa0777fe0868dda6df85d1a98f012a4a7a",
+    "pairs": [
+      {
+        "device": "webgpu",
+        "files": [
+          "encoder-model.fp16.onnx",
+          "decoder_joint-model.onnx"
+        ],
+        "bytes": 1311481345
+      },
+      {
+        "device": "wasm",
+        "files": [
+          "encoder-model.int8.onnx",
+          "decoder_joint-model.fp16.onnx"
+        ],
+        "bytes": 688450139
+      }
+    ]
+  }
+]

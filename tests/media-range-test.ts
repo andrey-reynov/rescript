@@ -1,0 +1,10 @@
+import assert from 'node:assert/strict';
+import {mediaRange} from '../electron/media-range';
+assert.deepEqual(mediaRange(null,100),{status:200,start:0,end:99,length:100});
+assert.deepEqual(mediaRange('bytes=20-39',100),{status:206,start:20,end:39,length:20});
+assert.deepEqual(mediaRange('bytes=20-',100),{status:206,start:20,end:99,length:80});
+assert.deepEqual(mediaRange('bytes=-20',100),{status:206,start:80,end:99,length:20});
+assert.deepEqual(mediaRange('bytes=90-120',100),{status:206,start:90,end:99,length:10});
+for(const value of ['bytes=100-','bytes=20-10','bytes=-0','bytes=-','bytes=0-4,8-9','invalid'])assert.equal(mediaRange(value,100).status,416);
+assert.equal(mediaRange('bytes=0-',0).status,416);
+console.log('MEDIA RANGE TESTS PASSED: full, bounded, open, suffix, clamped and invalid requests');

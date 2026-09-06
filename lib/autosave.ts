@@ -28,7 +28,7 @@ export function projectPayload() {
     currentTime:s.currentTime, thumbnail:s.projectThumbnail ?? undefined,
     transcriptionComplete:s.skipTranscription || (!window.rescriptDesktop?.jobs && (s.status === 'ready' || s.status === 'exporting')),
     transcriptionResultKey:s.transcriptionResultKey ?? undefined, transcriptionChunks:s.transcriptionChunks,
-    media:s.videoFile, mediaType:s.videoFile.type };
+    sourceAudio:s.sourceAudio ?? undefined, media:s.videoFile, mediaType:s.videoFile.type };
 }
 
 export function flushProjectAutosave(): Promise<void> {

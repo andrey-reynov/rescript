@@ -1,4 +1,5 @@
 "use client";
+import {parseSourceAudioLog,type SourceAudioLayout} from "./audio-export";
 import { isReferencedMedia, readReferencedMedia, type MediaInput } from './media-input';
 
 
@@ -43,10 +44,8 @@ let writtenFor: MediaInput | null = null;
 let inputPath = INPUT_NAME;
 let inputMounted = false;
 
-/** Lazily load a singleton multi-threaded ffmpeg.wasm instance. */
-export async function getFFmpeg(): Promise<FFmpeg> {
-  if (!ffmpegPromise) {
-    ffmpegPromise = (async () => {
+/** Independent instances let metadata inspection finish without retaining its heap or interrupting another job. */
+async function createFFmpeg():Promise<FFmpeg>{
       const [{ FFmpeg }, { toBlobURL }] = await Promise.all([
         import("@ffmpeg/ffmpeg"),
         import("@ffmpeg/util"),
@@ -77,7 +76,12 @@ export async function getFFmpeg(): Promise<FFmpeg> {
         classWorkerURL: new URL("/vendor/ffmpeg-class/worker.js", location.href).href,
       });
       return ffmpeg;
-    })();
+}
+
+/** Lazily load a singleton multi-threaded ffmpeg.wasm instance. */
+export async function getFFmpeg(): Promise<FFmpeg> {
+  if (!ffmpegPromise) {
+    ffmpegPromise = createFFmpeg();
     ffmpegPromise.catch(() => {
       ffmpegPromise = null;
     });
@@ -221,9 +225,9 @@ async function clearInput(ffmpeg: FFmpeg): Promise<void> {
   }
 }
 
-async function ensureInput(ffmpeg: FFmpeg, source: MediaInput): Promise<string> {
+async function ensureInput(ffmpeg: FFmpeg, source: MediaInput, onReadProgress?:(value:number)=>void): Promise<string> {
   if (writtenFor === source) return inputPath;
-  const file = isReferencedMedia(source)?await readReferencedMedia(source):source;
+  const file = isReferencedMedia(source)?await readReferencedMedia(source,onReadProgress):source;
   await clearInput(ffmpeg);
 
   if (file.size > COPY_INPUT_MAX_BYTES) {
@@ -484,4 +488,27 @@ export async function exportAudio(
   } finally {
     ffmpeg.off("progress", progressHandler);
   }
+}
+
+const audioLayoutCache=new WeakMap<MediaInput,SourceAudioLayout>();
+const audioInspections=new WeakMap<MediaInput,Promise<SourceAudioLayout>>();
+/** Read source declarations in an isolated worker; release its heap after inspection. */
+export async function inspectSourceAudio(source:MediaInput,onReadProgress?:(value:number)=>void):Promise<SourceAudioLayout>{
+  const cached=audioLayoutCache.get(source);if(cached)return cached;
+  const pending=audioInspections.get(source);if(pending)return pending;
+  const job=(async()=>{
+    const ffmpeg=await createFFmpeg();
+    try {
+      const file=isReferencedMedia(source)?await readReferencedMedia(source,onReadProgress):source;
+      const {FFFSType}=await import('@ffmpeg/ffmpeg');
+      await ffmpeg.createDir('/probe');
+      await ffmpeg.mount(FFFSType.WORKERFS,{blobs:[{name:'source',data:file}]},'/probe');
+      const lines:string[]=[];ffmpeg.on('log',({message})=>lines.push(message));
+      await ffmpeg.exec(['-i','/probe/source'],30_000);
+      if(!lines.some(line=>line.trim().startsWith('Input #0,')))throw Error('Could not inspect the source audio.');
+      const layout=parseSourceAudioLog(lines);audioLayoutCache.set(source,layout);return layout;
+    }finally{ffmpeg.terminate();}
+  })();
+  audioInspections.set(source,job);
+  try{return await job;}finally{audioInspections.delete(source);}
 }

@@ -99,7 +99,7 @@ export const en = {
   "timeline.hesitationAdjust": "… detected hesitation — drag edges to adjust, or Remove filler words to cut",
   "timeline.hesitationCut": "… detected hesitation — cut with Remove filler words",
   "timeline.dragTiming": "{word} — drag edges to adjust timing",
-  "timeline.scrollZoom": "Scroll to zoom in/out",
+  "timeline.scrollZoom": "Scroll to zoom; Shift + scroll to pan",
   "speaker.moveStart": "Drag to move where this speaker starts",
   "speaker.moveLabel": "Move speaker label",
   "speaker.options": "Speaker options",

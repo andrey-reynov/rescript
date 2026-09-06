@@ -1,3 +1,4 @@
+import { mediaRange } from './media-range';
 import {
   app,
   BrowserWindow,
@@ -23,6 +24,7 @@ import {
   type RecentProject,
 } from "./menu";
 import {
+  desktopLiteral,
   isDesktopLocale,
   resolveDesktopLocale,
   setDesktopLocale,
@@ -119,7 +121,17 @@ function registerAppProtocol(): void {
       try {
         const id = decodeURIComponent(pathname.slice("/__media/".length));
         const file = await projectFiles.mediaPath(id);
-        const response = await net.fetch(pathToFileURL(file).toString(), { headers: request.headers }); const headers = new Headers(response.headers); headers.set("Access-Control-Allow-Origin", isDev ? new URL(DEV_SERVER_URL).origin : "app://localhost"); headers.set("Cross-Origin-Resource-Policy", "cross-origin"); return new Response(response.body, {status:response.status, headers});
+        const size=statSync(file).size;const range=mediaRange(request.headers.get('range'),size);
+        if(range.status===416)return new Response(null,{status:416,headers:{'Content-Range':'bytes */'+size}});
+        const inputHeaders=new Headers(request.headers);
+        if(range.status===206)inputHeaders.set('Range', 'bytes='+range.start+'-'+range.end);
+        const response=await net.fetch(pathToFileURL(file).toString(),{headers:inputHeaders});
+        const headers=new Headers(response.headers);
+        headers.set('Accept-Ranges','bytes');headers.set('Content-Length',String(range.length));
+        if(range.status===206)headers.set('Content-Range','bytes '+range.start+'-'+range.end+'/'+size);
+        headers.set('Access-Control-Allow-Origin',isDev?new URL(DEV_SERVER_URL).origin:'app://localhost');
+        headers.set('Cross-Origin-Resource-Policy','cross-origin');
+        return new Response(response.body,{status:range.status,headers});
       } catch { return new Response("Original media needs relinking", { status: 404 }); }
     }
     const filePath = resolveStaticPath(pathname);
@@ -263,7 +275,7 @@ function createWindow(): BrowserWindow {
 
   win.webContents.on("render-process-gone", (_event, details) => {
     console.error("Editor renderer exited", details);
-    void dialog.showMessageBox(win, {type:"error",message:"The editor stopped responding.",detail:"Saved projects remain on disk. Reload to recover your last save or choose a snapshot from the library.",buttons:["Reload", "Close"]}).then(({response}) => { if(response===0) win.reload(); else win.destroy(); });
+    void dialog.showMessageBox(win, {type:"error",message:desktopLiteral("The editor stopped responding."),detail:desktopLiteral("Saved projects remain on disk. Reload to recover your last save or choose a snapshot from the library."),buttons:[desktopLiteral("Reload"), desktopLiteral("Close")]}).then(({response}) => { if(response===0) win.reload(); else win.destroy(); });
   });
   win.once("ready-to-show", () => win.show());
 

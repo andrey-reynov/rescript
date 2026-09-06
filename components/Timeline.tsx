@@ -17,11 +17,14 @@ import {
   Pause,
   Play,
   RotateCcw,
+  AudioLines,
   SquareSplitHorizontal,
   Trash2,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
+import ActionMenu from './ActionMenu';
+import RetranscribeSelection from "./RetranscribeSelection";
 import { useEditorStore } from "@/lib/store";
 import {
   canSplitAt,
@@ -41,7 +44,7 @@ import { VAD_SAMPLE_RATE } from "@/lib/vad";
 import { peakBetween } from "@/lib/waveform";
 import { useCutRanges } from "@/hooks/useCutRanges";
 import { useIsDark } from "@/hooks/useIsDark";
-import { useI18n } from "./I18nProvider";
+import { useI18n, useForkI18n } from "./I18nProvider";
 
 const RULER_H = 18;
 const WORDBAR_H = 28;
@@ -97,6 +100,7 @@ type DragKind =
 
 export default function Timeline() {
   const { t } = useI18n();
+  const f=useForkI18n();
   const waveform = useEditorStore((s) => s.waveform);
   const words = useEditorStore((s) => s.words);
   const sceneBoundaries = useEditorStore((s) => s.sceneBoundaries);
@@ -124,6 +128,7 @@ export default function Timeline() {
     [sceneBoundaries, keeps]
   );
 
+  const timelineRef = useRef<HTMLElement>(null);
   const outerRef = useRef<HTMLDivElement>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -376,14 +381,23 @@ export default function Timeline() {
     }
   }, [currentTime, playing, pps, width]);
 
-  // Vertical wheel / pinch zooms (anchored at the pointer); horizontal
-  // trackpad side-scroll pans via native overflow-x. Non-passive so zoom
-  // can preventDefault.
+  // Shift + wheel pans anywhere over the timeline, including its toolbar.
+  // Unmodified wheel/pinch keeps pointer-anchored zoom over the track.
   useEffect(() => {
     const el = scrollRef.current;
     if (!el) return;
+    const surface=timelineRef.current;if(!surface)return;
     const onWheel = (e: WheelEvent) => {
       if (durationRef.current <= 0) return;
+      if(e.shiftKey&&!e.ctrlKey){
+        e.preventDefault();
+        const unit=e.deltaMode===1?16:e.deltaMode===2?el.clientWidth:1;
+        const delta=Math.abs(e.deltaX)>Math.abs(e.deltaY)?e.deltaX:e.deltaY;
+        userScrolledRef.current=true;autoScrollRef.current=null;
+        el.scrollLeft+=delta*unit;
+        return;
+      }
+      if(!el.contains(e.target as Node))return;
       // Horizontal intent → pan: don't preventDefault, let native scroll run.
       if (!e.ctrlKey && Math.abs(e.deltaX) > Math.abs(e.deltaY)) return;
       e.preventDefault();
@@ -406,8 +420,8 @@ export default function Timeline() {
       pendingScrollRef.current = Math.max(0, tAnchor * nextPps - pointerX);
       setZoom(nextZoom);
     };
-    el.addEventListener("wheel", onWheel, { passive: false });
-    return () => el.removeEventListener("wheel", onWheel);
+    surface.addEventListener("wheel", onWheel, { passive: false });
+    return () => surface.removeEventListener("wheel", onWheel);
   }, []);
 
   // Apply the anchor-preserving scroll once wheel-zoom has re-rendered.
@@ -509,6 +523,19 @@ export default function Timeline() {
     setHoveredSplitId(null);
   }, []);
 
+  // Ruler clicks place the playhead before any edit-selection handling.
+  // Ruler seeking also leaves the current edit selection intact.
+  const onSeekPointerDown = useCallback((e:ReactPointerEvent)=>{
+    if(e.button!==0)return;
+    const top=e.currentTarget.getBoundingClientRect().top;
+    const y=e.clientY-top;
+    if(y>=RULER_H)return;
+    e.preventDefault();e.stopPropagation();
+    dragRef.current={type:'seek'};setDragging(true);
+    e.currentTarget.setPointerCapture(e.pointerId);
+    seekTo(timeFromClientX(e.clientX));
+  },[seekTo,timeFromClientX]);
+
   const onBackgroundPointerDown = useCallback(
     (e: ReactPointerEvent) => {
       if (e.button !== 0) return;
@@ -608,7 +635,7 @@ export default function Timeline() {
   const showHandles = pps >= HANDLE_VIS_PPS;
 
   return (
-    <footer className="flex h-48 shrink-0 flex-col border-t border-zinc-200 bg-white sm:h-52 dark:border-zinc-800 dark:bg-zinc-900">
+    <footer ref={timelineRef} aria-label={f("Timeline")} className="flex h-48 shrink-0 flex-col border-t border-zinc-200 bg-white sm:h-52 dark:border-zinc-800 dark:bg-zinc-900">
       {/* Mobile wraps the transport onto its own row; from `sm` up it is
           absolutely centred so it stays put as the side groups change width. */}
       <div className="relative flex shrink-0 flex-wrap items-center gap-x-2 border-b border-zinc-100 px-2.5 sm:h-10 sm:flex-nowrap dark:border-zinc-800">
@@ -630,7 +657,7 @@ export default function Timeline() {
           )}
         </div>
 
-        <div className="order-3 -mx-2.5 flex h-9 w-[calc(100%+1.25rem)] items-center justify-center gap-1.5 border-t border-zinc-100 sm:absolute sm:left-1/2 sm:top-1/2 sm:order-2 sm:mx-0 sm:h-auto sm:w-auto sm:-translate-x-1/2 sm:-translate-y-1/2 sm:border-t-0 dark:border-zinc-800">
+        <div className="order-3 -mx-2.5 flex h-9 w-[calc(100%+1.25rem)] items-center justify-center gap-1.5 border-t border-zinc-100 sm:order-2 sm:mx-0 sm:h-auto sm:w-auto sm:shrink-0 sm:border-t-0 dark:border-zinc-800">
           <button
             type="button"
             disabled={!ready}
@@ -665,101 +692,12 @@ export default function Timeline() {
         </div>
 
         <div className="order-2 flex h-9 items-center justify-end gap-1 sm:order-3 sm:h-auto sm:flex-1">
-          <button
-            type="button"
-            disabled={!ready || !splitOk}
-            onClick={() => {
-              useEditorStore.getState().splitAtPlayhead();
-            }}
-            title={
-              splitOk
-                ? t("timeline.splitTitle")
-                : t("timeline.splitDisabled")
-            }
-            className={`flex h-7 items-center gap-1.5 rounded-lg px-2 text-xs font-medium transition ${
-              ready && splitOk
-                ? "cursor-pointer text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.97] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-                : "cursor-not-allowed text-zinc-300 dark:text-zinc-600"
-            }`}
-          >
-            <SquareSplitHorizontal size={13} />
-            <span className="hidden sm:inline">{t("timeline.split")}</span>
-            <kbd
-              className={`hidden rounded px-1 py-px text-[10px] font-normal sm:inline ${
-                ready && splitOk
-                  ? "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
-                  : "bg-zinc-100 text-zinc-300 dark:bg-zinc-800 dark:text-zinc-600"
-              }`}
-            >
-              S
-            </kbd>
-          </button>
-
-          <button
-            type="button"
-            disabled={!ready || !deleteOk}
-            onClick={() => {
-              useEditorStore.getState().deleteSelectedClip();
-            }}
-            title={
-              deleteOk
-                ? t("timeline.deleteTitle")
-                : t("timeline.deleteDisabled")
-            }
-            className={`flex h-7 items-center gap-1.5 rounded-lg px-2 text-xs font-medium transition ${
-              ready && deleteOk
-                ? "cursor-pointer text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.97] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-                : "cursor-not-allowed text-zinc-300 dark:text-zinc-600"
-            }`}
-          >
-            <Trash2 size={13} />
-            <span className="hidden sm:inline">{t("timeline.delete")}</span>
-            <kbd
-              className={`hidden rounded px-1 py-px text-[10px] font-normal sm:inline ${
-                ready && deleteOk
-                  ? "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
-                  : "bg-zinc-100 text-zinc-300 dark:bg-zinc-800 dark:text-zinc-600"
-              }`}
-            >
-              ⌫
-            </kbd>
-          </button>
-
-          <button
-            type="button"
-            disabled={!ready || !restoreOk}
-            onClick={() => {
-              const store = useEditorStore.getState();
-              if (store.selectedCutIndex != null) {
-                store.restoreSelectedCut();
-              } else if (selectedWordsAllCutOut) {
-                store.restoreWords(store.selectedWordIds);
-                store.setSelectedWords([]);
-              }
-            }}
-            title={
-              restoreOk
-                ? t("timeline.restoreTitle")
-                : t("timeline.restoreDisabled")
-            }
-            className={`flex h-7 items-center gap-1.5 rounded-lg px-2 text-xs font-medium transition ${
-              ready && restoreOk
-                ? "cursor-pointer text-zinc-700 hover:bg-zinc-100 hover:text-zinc-900 active:scale-[0.97] dark:text-zinc-300 dark:hover:bg-zinc-800 dark:hover:text-zinc-100"
-                : "cursor-not-allowed text-zinc-300 dark:text-zinc-600"
-            }`}
-          >
-            <RotateCcw size={13} />
-            <span className="hidden sm:inline">{t("timeline.restore")}</span>
-            <kbd
-              className={`hidden rounded px-1 py-px text-[10px] font-normal sm:inline ${
-                ready && restoreOk
-                  ? "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400"
-                  : "bg-zinc-100 text-zinc-300 dark:bg-zinc-800 dark:text-zinc-600"
-              }`}
-            >
-              ⌫
-            </kbd>
-          </button>
+          <RetranscribeSelection>{retranscribe=><ActionMenu label={f('More timeline tools')} favoritesKey="rescript.timeline-favorites.v1" defaults={['split','delete','restore']} actions={[
+            {id:'split',label:t('timeline.split'),icon:<SquareSplitHorizontal size={13}/>,shortcut:'S',disabled:!ready||!splitOk,title:t(splitOk?'timeline.splitTitle':'timeline.splitDisabled'),run:()=>useEditorStore.getState().splitAtPlayhead()},
+            {id:'delete',label:t('timeline.delete'),icon:<Trash2 size={13}/>,shortcut:'⌫',disabled:!ready||!deleteOk,title:t(deleteOk?'timeline.deleteTitle':'timeline.deleteDisabled'),run:()=>useEditorStore.getState().deleteSelectedClip()},
+            {id:'restore',label:t('timeline.restore'),icon:<RotateCcw size={13}/>,shortcut:'⌫',disabled:!ready||!restoreOk,title:t(restoreOk?'timeline.restoreTitle':'timeline.restoreDisabled'),run:()=>{const store=useEditorStore.getState();if(store.selectedCutIndex!=null)store.restoreSelectedCut();else if(selectedWordsAllCutOut){store.restoreWords(store.selectedWordIds);store.setSelectedWords([]);}}},
+            {id:'retranscribe',label:f('Retranscribe'),icon:<AudioLines size={13}/>,disabled:retranscribe.disabled,run:retranscribe.open},
+          ]}/>}</RetranscribeSelection>
 
           <div className="mx-0.5 h-4 w-px bg-zinc-200 dark:bg-zinc-700" />
 
@@ -810,6 +748,7 @@ export default function Timeline() {
             autoScrollRef.current = null;
             setScrollLeft(next);
           }}
+          onPointerDownCapture={onSeekPointerDown}
           onPointerDown={onBackgroundPointerDown}
           onPointerMove={onPointerMove}
           onPointerLeave={onPointerLeave}

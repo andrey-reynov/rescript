@@ -15,13 +15,7 @@ import {
 import logo from "@/assets/logo.png";
 import SocialLinks, { GITHUB_REPO_URL, FORK_NOTICE } from "./SocialLinks";
 import SettingsMenu from "./SettingsMenu";
-import ModelSelector, {
-  LanguageSection,
-  ModelOption,
-  ModelOptionSeparator,
-} from "./ModelSelector";
-import ImportTranscriptOption from "./ImportTranscriptOption";
-import { MODEL_ORDER } from "@/lib/models";
+
 import { useMediaEngineSupport } from "@/hooks/useMediaEngineSupport";
 import { detectMediaKind, MEDIA_ACCEPT } from "@/lib/media";
 import ProjectLibrary from "./ProjectLibrary";
@@ -32,7 +26,7 @@ import {
 import { isElectron } from "@/lib/platform";
 import { useEditorStore } from "@/lib/store";
 import type { SpeakerInfo, Word } from "@/lib/types";
-import { useI18n } from "./I18nProvider";
+import { useI18n, useForkI18n } from "./I18nProvider";
 import {
   localizeRuntimeMessage,
 } from "@/lib/i18n";
@@ -112,6 +106,7 @@ export default function UploadScreen({
   const openProject = useEditorStore((s) => s.openProject);
 
   const { t } = useI18n();
+  const f=useForkI18n();
 
   const refreshProjects = useCallback(async () => {
     try {
@@ -145,15 +140,6 @@ export default function UploadScreen({
       if (!file) return;
       if (!detectMediaKind(file)) {
         alert(t("editor.chooseMedia"));
-        return;
-      }
-      const { source, pendingTranscript: pending } = useEditorStore.getState();
-      if (source === "import") {
-        if (!pending) {
-          alert(t("editor.chooseTranscript"));
-          return;
-        }
-        onFile(file, { words: pending.words, speakers: pending.speakers });
         return;
       }
       onFile(file);
@@ -208,26 +194,18 @@ export default function UploadScreen({
                     className="rounded-sm border border-zinc-200 dark:border-zinc-700"
                   />
                   <p className="ml-2 text-[15px] font-medium text-zinc-800 dark:text-zinc-100">
-                    Rescript
+                    Rescript by Reynov
                   </p>
                 </div>
               </a>
               <div className="flex flex-wrap items-center gap-2 sm:justify-end">
                 <SettingsMenu />
                 <div className="h-5 w-px bg-zinc-200 dark:bg-zinc-700 mr-1" />
-                <ModelSelector groupLabel={t("model.transcriptSource")}>
-                  {MODEL_ORDER.map((id) => (
-                    <ModelOption key={id} id={id} />
-                  ))}
-                  <ModelOptionSeparator />
-                  <LanguageSection />
-                  <ModelOptionSeparator />
-                  <ImportTranscriptOption />
-                </ModelSelector>
+
               </div>
             </div>
           )}
-          {isElectron && <div className="mb-4 flex justify-end"><button type="button" className="rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700" onClick={()=>void window.rescriptDesktop!.projects.open().then(id=>{if(id)void handleOpen(id);}).catch(e=>alert(e.message))}>Open project…</button></div>}
+          {isElectron && <div className="mb-4 flex justify-end"><button type="button" className="rounded-lg border border-zinc-300 px-3 py-2 text-sm dark:border-zinc-700" onClick={()=>void window.rescriptDesktop!.projects.open().then(id=>{if(id)void handleOpen(id);}).catch(e=>alert(e.message))}>{f("Open project…")}</button></div>}
           {/*
             Native <label htmlFor> opens the file dialog without a synthetic
             input.click(). display:none inputs + .click() fail in some Chromium
@@ -336,7 +314,7 @@ export default function UploadScreen({
             />
           </label>
 
-          {libraryError&&<p role="alert" className="my-4 text-sm text-red-600">{libraryError} <button className="underline" onClick={()=>void refreshProjects()}>Retry</button></p>}
+          {libraryError&&<p role="alert" className="my-4 text-sm text-red-600">{f(libraryError)} <button className="underline" onClick={()=>void refreshProjects()}>{f('Retry')}</button></p>}
           {ready && projects.length > 0 && <ProjectLibrary projects={projects} busyId={busyId} onOpen={handleOpen} />}
 
           {!isElectron && <div className="mt-6 grid grid-cols-1 gap-3 sm:grid-cols-3">
@@ -356,7 +334,7 @@ export default function UploadScreen({
           {!isElectron && <div className="mt-6 flex flex-col items-center gap-2">
             <div className="flex max-w-sm flex-col items-center gap-2 text-center">
               <SocialLinks variant="text" />
-              <p className="text-[11px] leading-snug text-zinc-500 dark:text-zinc-400">{FORK_NOTICE}</p>
+              <p className="text-[11px] leading-snug text-zinc-500 dark:text-zinc-400">{f(FORK_NOTICE)}</p>
             </div>
           </div>}
         </div>

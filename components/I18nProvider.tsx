@@ -1,5 +1,6 @@
 "use client";
 
+import {forkText} from '@/lib/i18n/fork-messages';
 import {
   createContext,
   useCallback,
@@ -83,3 +84,5 @@ export function useI18n(): I18nContextValue {
   if (!value) throw new Error("useI18n must be used inside I18nProvider");
   return value;
 }
+
+export function useForkI18n(){const {locale}=useI18n();return (text:string,params?:Record<string,string|number>)=>forkText(locale,text,params);}

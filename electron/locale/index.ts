@@ -1,3 +1,4 @@
+import {forkText} from '../../lib/i18n/fork-messages';
 import {
   isUiLocale,
   resolveUiLocale,
@@ -33,3 +34,5 @@ export function desktopText(
     Object.prototype.hasOwnProperty.call(params, name) ? String(params[name]) : token
   );
 }
+
+export function desktopLiteral(text:string){return forkText(currentLocale,text);}

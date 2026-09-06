@@ -1,4 +1,4 @@
-export type TranscriptLanguage = "en" | "es" | "fr" | "de" | "pt" | "zh";
+export type TranscriptLanguage = "auto" | "ru" | "en" | "es" | "fr" | "de" | "pt" | "zh";
 
 export interface TranscriptLanguageInfo {
   label: string;
@@ -11,12 +11,14 @@ export interface TranscriptLanguageInfo {
 
 const LANGUAGE_STORAGE_KEY = "rescript.transcript-language";
 
-export const DEFAULT_TRANSCRIPT_LANGUAGE: TranscriptLanguage = "en";
+export const DEFAULT_TRANSCRIPT_LANGUAGE: TranscriptLanguage = "auto";
 
 export const TRANSCRIPT_LANGUAGES: Record<
   TranscriptLanguage,
   TranscriptLanguageInfo
 > = {
+  auto: {label:"Automatic",nativeLabel:"Automatic",flag:"🌐",code:"AUTO"},
+  ru: {label:"Russian",nativeLabel:"Русский",flag:"🇷🇺",code:"RU"},
   en: {
     label: "English",
     nativeLabel: "English",
@@ -56,6 +58,8 @@ export const TRANSCRIPT_LANGUAGES: Record<
 };
 
 export const TRANSCRIPT_LANGUAGE_ORDER: TranscriptLanguage[] = [
+  "auto",
+  "ru",
   "en",
   "es",
   "fr",
@@ -68,6 +72,8 @@ export function isTranscriptLanguage(
   value: unknown
 ): value is TranscriptLanguage {
   return (
+    value === "auto" ||
+    value === "ru" ||
     value === "en" ||
     value === "es" ||
     value === "fr" ||

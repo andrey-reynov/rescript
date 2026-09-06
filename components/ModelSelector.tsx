@@ -33,6 +33,7 @@ import {
 import {
   MODEL_ORDER,
   MODELS,
+  modelSupportsLanguage,
   isModelId,
   isWhisperModel,
 } from "@/lib/models";
@@ -43,7 +44,7 @@ import {
   useEditorStore,
 } from "@/lib/store";
 import Popover, { PopoverContent, PopoverTrigger } from "./Popover";
-import { useI18n } from "./I18nProvider";
+import { useI18n, useForkI18n } from "./I18nProvider";
 
 export type ModelOptionContextValue = {
   /** Currently selected source id. */
@@ -128,8 +129,13 @@ export default function ModelSelector({
   embedded = false,
   onClose,
   onKeepOpen,
+  value, onValueChange, languageValue, portal = true,
 }: {
   children?: ReactNode;
+  value?: TranscriptSource;
+  onValueChange?: (value: TranscriptSource) => void;
+  languageValue?: TranscriptLanguage;
+  portal?: boolean;
   groupLabel?: string;
   /** Render the option list only — for nesting inside Settings. */
   embedded?: boolean;
@@ -138,18 +144,20 @@ export default function ModelSelector({
   /** Called when an option needs the parent panel to stay open (embedded). */
   onKeepOpen?: () => void;
 }) {
-  const source = useEditorStore((s) => s.source);
-  const setSource = useEditorStore((s) => s.setSource);
-  const transcriptLanguage = useEditorStore((s) => s.transcriptLanguage);
+  const storedSource = useEditorStore((s) => s.source);
+  const storedSetSource = useEditorStore((s) => s.setSource);
+  const storedLanguage = useEditorStore((s) => s.transcriptLanguage);
+  const source=value??storedSource;
+  const setSource=onValueChange??storedSetSource;
+  const transcriptLanguage=languageValue??storedLanguage;
   const { t } = useI18n();
   const [open, setOpen] = useState(false);
   const [triggers, setTriggers] = useState<Record<string, OptionTrigger>>({});
   const listId = useId();
 
   useEffect(() => {
-    hydrateModelPreference();
-    hydrateTranscriptLanguagePreference();
-  }, []);
+    if(value===undefined&&!useEditorStore.getState().projectId){hydrateModelPreference();hydrateTranscriptLanguagePreference();}
+  }, [value]);
 
   const closeMenu = useCallback(() => {
     if (embedded) onClose?.();
@@ -218,9 +226,9 @@ export default function ModelSelector({
   // Always mount options (hidden when closed) so custom triggers stay registered.
   const options = children ?? (
     <>
-      {MODEL_ORDER.map((id) => (
+      <div className="max-h-[45vh] overflow-y-auto">{MODEL_ORDER.map((id) => (
         <ModelOption key={id} id={id} />
-      ))}
+      ))}</div>
     </>
   );
 
@@ -242,8 +250,9 @@ export default function ModelSelector({
       <Popover
         open={open}
         onOpenChange={setOpen}
-        placement="bottom-end"
-        backdrop
+        placement={portal ? "bottom-end" : "bottom-start"}
+        portal={portal}
+        backdrop={portal}
       >
         <div className="relative z-30 shrink-0">
           <PopoverTrigger>
@@ -301,7 +310,7 @@ export default function ModelSelector({
             id={listId}
             role="listbox"
             aria-label={groupLabel}
-            className="z-40 w-[18rem] overflow-visible"
+            className="z-40 w-[24rem] max-w-[90vw] overflow-visible"
           >
             <p className="px-3 pb-1 pt-2.5 text-[11px] font-medium tracking-wide text-zinc-400 dark:text-zinc-500">
               {groupLabel}
@@ -321,7 +330,7 @@ export default function ModelSelector({
  * value as JSX, and react-hooks/static-components reads any call result used as
  * a component type as a component created during render.
  */
-const SOURCE_ICONS: Record<TranscriptSource, IconComponent> = {
+const SOURCE_ICONS: Partial<Record<TranscriptSource, IconComponent>> = {
   base: SignalBarsLow,
   small: SignalBarsMedium,
   parakeet: SignalBarsHigh,
@@ -347,11 +356,13 @@ export function ModelOption({
   onSelect?: (ctx: ModelOptionContextValue) => void;
   autoTrigger?: boolean;
 }) {
+  const f=useForkI18n();
   const selector = useSelectorCtx();
   const selected = selector.value === id;
 
-  const Icon = icon ?? SOURCE_ICONS[id];
-  const resolvedLabel = label ?? (isModelId(id) ? MODELS[id].label : id);
+  const Icon = icon ?? SOURCE_ICONS[id] ?? SignalBarsHigh;
+  const model = isModelId(id) ? MODELS[id] : undefined;
+  const resolvedLabel = label ?? model?.label ?? id;
   const resolvedMeta = meta ?? (isModelId(id) ? MODELS[id].size : undefined);
 
   const optionCtx = useMemo<ModelOptionContextValue>(
@@ -382,6 +393,11 @@ export function ModelOption({
         type="button"
         role="option"
         aria-selected={selected}
+        title={model ? [
+          f(model.englishOnly ? "English only" : "Multilingual"),
+          model.experimental ? f("Experimental") : "",
+          model.backend === "whisper" && model.cpuOnly ? "CPU" : "",
+        ].filter(Boolean).join(" · ") : undefined}
         onClick={handleClick}
         className={`flex w-full flex-col gap-0.5 rounded-lg px-2.5 py-2 text-left transition cursor-pointer ${selected
             ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50"
@@ -396,10 +412,12 @@ export function ModelOption({
           <span className="min-w-0 flex-1 text-[13px] font-medium leading-tight">
             {resolvedLabel}
           </span>
+          {model?.experimental&&<span className="shrink-0 text-[10px] text-zinc-400">{f("Experimental")}</span>}
           {resolvedMeta && (
             <span className="shrink-0 text-[11px] text-zinc-400 dark:text-zinc-500">{resolvedMeta}</span>
           )}
         </span>
+        {model&&<span className="pl-6 text-[11px] text-zinc-500">{f(model.englishOnly?"English only":model.backend==='parakeet'?"25 European languages, including Russian · automatic detection":"Multilingual, including Russian and English")}</span>}
         {children}
       </button>
     </OptionCtx.Provider>
@@ -413,15 +431,18 @@ export function ModelOptionSeparator() {
 
 /** Language hint as a flyout submenu inside the model / transcript-source menu. */
 export function LanguageSection() {
+  const f=useForkI18n();
+  const source=useEditorStore(s=>s.source);
   const language = useEditorStore((s) => s.transcriptLanguage);
   const setLanguage = useEditorStore((s) => s.setTranscriptLanguage);
   const selector = useSelectorCtx();
   const [submenuOpen, setSubmenuOpen] = useState(false);
   const submenuId = useId();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const active = TRANSCRIPT_LANGUAGES[language];
 
   const select = (next: TranscriptLanguage) => {
+    if(isModelId(source)&&!modelSupportsLanguage(source,next))return;
     setLanguage(next);
     setSubmenuOpen(false);
     selector.closeMenu();
@@ -429,8 +450,10 @@ export function LanguageSection() {
 
   return (
     <div>
+      {isModelId(source)&&MODELS[source].englishOnly&&<p className="px-2.5 py-1 text-xs text-zinc-500">{f('English only. Use a multilingual model for Russian.')}</p>}
+      {source==='parakeet'&&<p className="px-2.5 py-1 text-xs text-zinc-500">{f('Parakeet detects language automatically. Use Whisper to force a specific language.')}</p>}
       <p className="px-2.5 pb-1 pt-1.5 text-[11px] font-medium tracking-wide text-zinc-400 dark:text-zinc-500">
-        {t("model.language")}
+        {t("model.transcriptLanguage")}
       </p>
       {/* No portal: stay in the parent panel DOM so outside-click on the model
           menu still treats this flyout as inside the floating tree. */}
@@ -462,7 +485,7 @@ export function LanguageSection() {
                 {active.flag}
               </span>
               <span className="min-w-0 flex-1 text-[13px] font-medium leading-tight">
-                {active.nativeLabel}
+                {language==='auto'&&locale==='ru'?'Автоматически':active.nativeLabel}
               </span>
               <ChevronRight
                 size={14}
@@ -487,6 +510,7 @@ export function LanguageSection() {
                   type="button"
                   role="menuitemradio"
                   aria-checked={selected}
+                  disabled={isModelId(source)&&!modelSupportsLanguage(source,id)}
                   onClick={() => select(id)}
                   className={`flex w-full cursor-pointer items-center gap-2.5 rounded-lg px-2.5 py-2 text-left transition ${selected
                       ? "bg-zinc-100 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-50"
@@ -497,7 +521,7 @@ export function LanguageSection() {
                     {option.flag}
                   </span>
                   <span className="min-w-0 flex-1 text-[13px] font-medium leading-tight">
-                    {option.nativeLabel}
+                    {id==='auto'&&locale==='ru'?'Автоматически':option.nativeLabel}
                   </span>
                   {selected && (
                     <Check

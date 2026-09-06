@@ -75,6 +75,19 @@ async function main(){
     assert.equal(resumed.status,'running');assert.deepEqual(resumed.completed,[0]);
     assert.equal((await jobs.next(variantId))!.index,1);
     assert.deepEqual((await jobs.read(id))!.completed,[0]);assert.equal((await jobs.read(id))!.status,'paused');
+    const russian=await jobs.start(id,'base','ru',true);
+    assert.equal(russian.status,'running','language change reuses extracted audio');
+    assert.deepEqual(russian.completed,[]);
+    const ruChunk=(await jobs.next(id))!;const {audio:_ruAudio,...ruTiming}=ruChunk;void _ruAudio;
+    await jobs.checkpoint(id,russian.key,ruTiming,[{...word,text:'Привет',start:1,end:2,language:'ru'}]);
+    jobs=new TranscriptionJobs(projects);
+    const ruResumed=await jobs.start(id,'base','ru',true);
+    assert.equal(ruResumed.key,russian.key);assert.deepEqual(ruResumed.completed,[0]);
+    assert.equal((await jobs.words(id))[0].language,'ru');assert.equal((await jobs.words(id))[0].text,'Привет');
+    const automatic=await jobs.start(id,'base','auto',true);
+    assert.notEqual(automatic.key,russian.key);assert.deepEqual(automatic.completed,[]);
+    assert.equal(automatic.status,'running');
+    await assert.rejects(jobs.checkpoint(id,russian.key,ruTiming,[word]),/Stale/);
     console.log('TRANSCRIPTION CHECKPOINT TESTS PASSED: bounded chunks, overlap, restart, idempotency, pause, crash boundary, settings identity');
   }finally{
     if(!path.resolve(root).startsWith(path.resolve(os.tmpdir())+path.sep)||!path.basename(root).startsWith('rescript-job-test-'))throw Error('Unsafe test cleanup');

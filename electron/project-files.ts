@@ -27,6 +27,7 @@ export interface ProjectData {
   transcriptionComplete?: boolean;
   transcriptionResultKey?: string;
   transcriptionChunks?: number[];
+  sourceAudio?: import("../lib/audio-export").SourceAudioLayout;
   [key: string]: unknown;
 }
 

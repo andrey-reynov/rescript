@@ -1,3 +1,4 @@
+import {detectWhisperLanguage} from '@/lib/whisper-language';
 /**
  * Transcription worker: runs entirely in the browser.
  *
@@ -38,6 +39,9 @@ import { en } from "@/lib/i18n/messages/en";
 import type { Word, WorkerRequest, WorkerResponse } from "@/lib/types";
 import {
   MODELS,
+  modelSupportsLanguage,
+  isModelId,
+  type ParakeetModel,
   isParakeetModel,
   isWhisperModel,
   isCrisperModel,
@@ -257,7 +261,7 @@ const PARAKEET_CACHE_DB = "parakeet-cache-db";
 const PARAKEET_CACHE_STORE = "file-store";
 
 /** Whether Parakeet ONNX weights already sit in parakeet.js IndexedDB. */
-async function isParakeetCached(): Promise<boolean> {
+async function isParakeetCached(choice:ParakeetModel): Promise<boolean> {
   if (typeof indexedDB === "undefined") return false;
   // Avoid opening (and thereby creating) the DB when nothing has been cached.
   try {
@@ -269,7 +273,7 @@ async function isParakeetCached(): Promise<boolean> {
     // databases() can throw in private mode; fall through to open().
   }
 
-  const repoId = MODELS.parakeet.repoId;
+  const repoId = MODELS[choice].repoId;
   // Hub keys: `hf-${repoId}-main--${filename}` (empty subfolder).
   const candidates = [
     `hf-${repoId}-main--encoder-model.int8.onnx`,
@@ -312,9 +316,9 @@ async function isParakeetCached(): Promise<boolean> {
  * Parakeet via parakeet.js — custom weightlift definition (not transformers.js).
  * WebGPU uses fp16 encoder; WASM int8 is the size / compatibility fallback.
  */
-function parakeetModel(): ModelDefinition<ParakeetInstance> {
+function parakeetModel(choice:ParakeetModel): ModelDefinition<ParakeetInstance> {
   return {
-    isCached: isParakeetCached,
+    isCached: ()=>isParakeetCached(choice),
     dispose: async (model) => {
       await Promise.all([
         model.encoderSession?.release?.(),
@@ -358,7 +362,7 @@ function parakeetModel(): ModelDefinition<ParakeetInstance> {
         try {
           // fp16 encoder + fp32 decoder ≈ 1.31 GB. WebGPU cannot run the int8
           // encoder at all, so fp16 is the only practical encoder here.
-          const model = await fromHub(MODELS.parakeet.id, {
+          const model = await fromHub(MODELS[choice].id, {
             ...common,
             backend: "webgpu",
             encoderQuant: "fp16",
@@ -377,7 +381,7 @@ function parakeetModel(): ModelDefinition<ParakeetInstance> {
 
       // int8 encoder + fp16 decoder ≈ 690 MB: the compatibility / size fallback,
       // keeping the decoder off int8 for the reason above.
-      const model = await fromHub(MODELS.parakeet.id, {
+      const model = await fromHub(MODELS[choice].id, {
         ...common,
         backend: "wasm",
         encoderQuant: "int8",
@@ -430,13 +434,14 @@ const models = new ModelManager({
     (Object.keys(MODELS) as ModelId[]).map((choice) => {
       const info = MODELS[choice];
       if (info.backend === "parakeet") {
-        return [info.id, parakeetModel()];
+        return [info.id, parakeetModel(choice as ParakeetModel)];
       }
       const definition = transformersModel<AutomaticSpeechRecognitionPipeline>({
         pipeline,
         task: "automatic-speech-recognition",
         modelId: info.id,
         dtype: info.dtype,
+        ...(info.cpuOnly?{devicePolicy:{forceWasm:true,pickDevice:async()=>"wasm" as const,preferWasm:()=>{}}}:{}),
         cacheKey: env.cacheKey ?? "transformers-cache",
         onDevice: (device) => {
           asrDevice = device;
@@ -567,8 +572,8 @@ async function getAsr(choice: WhisperModel) {
   return transcriber;
 }
 
-async function getParakeet() {
-  return models.load<ParakeetInstance>(MODELS.parakeet.id);
+async function getParakeet(choice:ParakeetModel) {
+  return models.load<ParakeetInstance>(MODELS[choice].id);
 }
 
 /**
@@ -1123,14 +1128,15 @@ async function finishWithDiarization(
 async function runParakeet(
   audio: Float32Array,
   duration: number,
-  transcriptLanguage: TranscriptLanguage
+  transcriptLanguage: TranscriptLanguage,
+  choice:ParakeetModel
 ): Promise<Word[]> {
   // Overlap diarizer (+ language-matched aligner) with Parakeet load.
   getDiarizer().catch(() => {});
   if (alignModelFor(transcriptLanguage)) {
     getAligner(transcriptLanguage).catch(() => {});
   }
-  const [loaded, vad] = await Promise.all([getParakeet(), getVad()]);
+  const [loaded, vad] = await Promise.all([getParakeet(choice), getVad()]);
   let model = loaded;
 
   post({ type: "progress", message: en["progress.detectingSpeech"], value: 0 });
@@ -1173,7 +1179,7 @@ async function runParakeet(
         err
       );
       await fallbackAsrToWasm();
-      model = await getParakeet();
+      model = await getParakeet(choice);
       result = await runSlice();
     }
 
@@ -1192,7 +1198,7 @@ async function runParakeet(
     postLive({ type: "progress", message: en["progress.transcribing"], value });
   }
 
-  await releaseAsr("parakeet");
+  await releaseAsr(choice);
 
   const cleaned = cleanTranscript(rawWords);
   const words = await refineWordTimestamps(
@@ -1295,7 +1301,7 @@ async function runWhisper(
     // short VAD segments on every model here, whether with Whisper's
     // <|startofprev|> filler prompt or CrisperWhisper's mode tags. See the note
     // above MODELS in lib/models.ts; vad-regression-test.ts guards it.
-    language: transcriptLanguage,
+
   };
 
   const rawWords: Word[] = [];
@@ -1315,7 +1321,9 @@ async function runWhisper(
     const partialBefore = partial;
     const progressBefore = { transcribed, chunkFloor, chunkTokens };
 
+    let detectedLanguage:string=MODELS[choice].englishOnly?"en":transcriptLanguage;
     const runSlice = async () => {
+      if(transcriptLanguage==='auto'&&!MODELS[choice].englishOnly){postLive({type:'progress',message:'Detecting language',value:null});detectedLanguage=await detectWhisperLanguage(transcriber,slice);}
       // Each generate() window consumes `chunkLength - 2 * stride` seconds of
       // new audio, and the streamer's timestamps rewind to ~0 when the next
       // window starts. A timestamp lower than the last one seen marks that
@@ -1343,7 +1351,9 @@ async function runWhisper(
           interpolateProgress();
         },
       });
-      const output = await transcriber(slice, { ...asrOptions, streamer });
+      // English-only Whisper checkpoints reject task/language arguments entirely.
+      const multilingual=(transcriber.model.generation_config as {is_multilingual?:boolean}).is_multilingual!==false;
+      const output = await transcriber(slice, { ...asrOptions, ...(multilingual?{task:"transcribe" as const,language:detectedLanguage}:{}), streamer });
       const result = Array.isArray(output) ? output[0] : output;
       return (result.chunks ?? []) as AsrChunk[];
     };
@@ -1369,7 +1379,7 @@ async function runWhisper(
       chunks = await runSlice();
     }
 
-    const words = wordsFromChunks(chunks, offsetS, sliceDuration, duration);
+    const words = wordsFromChunks(chunks, offsetS, sliceDuration, duration).map(word=>({...word,language:detectedLanguage}));
     // A segment that decodes to nothing is the signature of a model or prompt
     // that has collapsed on this slice — the timeline fills with "..." VAD
     // placeholders and the transcript silently loses a stretch of speech. It is
@@ -1411,11 +1421,13 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
   if(preferWasm)fallbackDevicePolicy.preferWasm();
   try {
     const choice: ModelId = model ?? "base";
-    const transcriptLanguage: TranscriptLanguage = language ?? "en";
+    const transcriptLanguage: TranscriptLanguage = language ?? "auto";
 
+    if(!isModelId(choice))throw new Error("Unknown speech model: "+String(choice));
+    if(!modelSupportsLanguage(choice,transcriptLanguage))throw new Error("This model supports English only. Choose a multilingual model for Russian.");
     let words: Word[];
     if (isParakeetModel(choice)) {
-      words = await runParakeet(audio, duration, transcriptLanguage);
+      words = await runParakeet(audio, duration, transcriptLanguage, choice);
     } else if (isWhisperModel(choice)) {
       words = await runWhisper(audio, duration, choice, transcriptLanguage);
     } else {

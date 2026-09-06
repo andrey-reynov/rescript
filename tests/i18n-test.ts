@@ -1,3 +1,4 @@
+import {forkText} from '../lib/i18n/fork-messages';
 import {
   UI_LOCALES,
   buildLocaleBootScript,
@@ -92,4 +93,16 @@ const now = Date.UTC(2026, 7, 9, 12, 0, 0);
 assert(formatRelativeTime("ja", now - 5 * 60_000, now).includes("5"), "ja relative");
 assert(formatRelativeTime("en", now - 5 * 60_000, now).includes("5"), "en relative");
 
+assert(resolveUiLocale('system',['ru-RU'])==='ru','Russian system locale');
+assert(resolveUiLocale('en',['ru-RU'])==='en','UI override independent of system language');
+assert(resolveUiLocale('ru',['en-US'])==='ru','saved Russian override');
+assert(translate('ru','common.settings')==='Настройки','Russian settings');
+assert(forkText('ru','Open {name}',{name:'Russian.mp4'})==='Открыть Russian.mp4','source name remains unchanged');
+assert(forkText('ru','Batch 2/4 · Detecting language')==='Блок 2/4 · Определение языка','batched progress');
+for(const name of ['Rescript by Reynov','Parakeet','Whisper','FCPXML','AAF'])assert(forkText('ru',name)===name,'technology branding unchanged');
+assert(nsis.includes('ru_RU'),'Russian installer language');
+for(const key of enKeys){
+ const placeholders=(text:string)=>[...text.matchAll(/\{(\w+)\}/g)].map(m=>m[1]).sort().join(',');
+ assert(placeholders(en[key])===placeholders(catalogs.ru[key]),'Russian placeholders: '+key);
+}
 console.log("ALL I18N TESTS PASSED");

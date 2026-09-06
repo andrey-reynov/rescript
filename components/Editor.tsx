@@ -25,16 +25,10 @@ import TranscriptPanel from "./TranscriptPanel";
 import MediaPreview from "./MediaPreview";
 import Timeline from "./Timeline";
 import ExportDialog from "./ExportDialog";
-import { Download, Redo2, Undo2 } from "lucide-react";
+import { Redo2, Undo2 } from "lucide-react";
 import LogoLoader from "./LogoLoader";
 import SettingsMenu from "./SettingsMenu";
-import ModelSelector, {
-  LanguageSection,
-  ModelOption,
-  ModelOptionSeparator,
-} from "./ModelSelector";
-import ImportTranscriptOption from "./ImportTranscriptOption";
-import { MODEL_ORDER } from "@/lib/models";
+
 import { isTypingTarget } from "@/lib/keyboard";
 import { en } from "@/lib/i18n/messages/en";
 import { useI18n } from "./I18nProvider";
@@ -144,7 +138,6 @@ export default function Editor() {
   const canRedo = useEditorStore((s) => s.future.length > 0);
   const undo = useEditorStore((s) => s.undo);
   const redo = useEditorStore((s) => s.redo);
-  const setExportOpen = useEditorStore((s) => s.setExportOpen);
 
   const [modeTransitioning, setModeTransitioning] = useState(false);
   const wasIdle = useRef(status === "idle");
@@ -159,21 +152,9 @@ export default function Editor() {
 
   const startMenuFile = useCallback(
     (file: File) => {
-      const { source, pendingTranscript } = useEditorStore.getState();
-      if (source === "import") {
-        if (!pendingTranscript) {
-          alert(t("editor.chooseTranscript"));
-          return;
-        }
-        loadVideo(file, {
-          words: pendingTranscript.words,
-          speakers: pendingTranscript.speakers,
-        });
-        return;
-      }
       loadVideo(file);
     },
-    [loadVideo, t]
+    [loadVideo]
   );
 
   // A file picked before the media engine is known to be usable waits here
@@ -205,6 +186,19 @@ export default function Editor() {
     },
     [engineReady, startMenuFile, t]
   );
+
+  const projectThumbnail=useEditorStore(s=>s.projectThumbnail);
+  useEffect(()=>{
+    if(!videoFile || projectThumbnail)return;
+    let cancelled=false;
+    void import('@/lib/thumbnail').then(m=>m.projectThumbnail(videoFile)).then(image=>{
+      if(!cancelled && image && useEditorStore.getState().videoFile===videoFile){
+        useEditorStore.setState({projectThumbnail:image});
+        void import('@/lib/autosave').then(m=>m.scheduleProjectAutosave());
+      }
+    });
+    return()=>{cancelled=true;};
+  },[videoFile,projectThumbnail]);
 
   // Processing pipeline: load ffmpeg -> extract audio -> (maybe) transcribe.
   // Restored projects already have words; they only need PCM for the waveform.
@@ -368,15 +362,7 @@ export default function Editor() {
       {status === "idle" ? (
         <>
           {isElectron && <TopBar>
-            <ModelSelector groupLabel={t("model.transcriptSource")}>
-              {MODEL_ORDER.map((id) => (
-                <ModelOption key={id} id={id} />
-              ))}
-              <ModelOptionSeparator />
-              <LanguageSection />
-              <ModelOptionSeparator />
-              <ImportTranscriptOption />
-            </ModelSelector>
+
             <div className="mx-1 h-5 w-px bg-zinc-200 dark:bg-zinc-700" />
             <SettingsMenu />
           </TopBar>}
@@ -385,6 +371,7 @@ export default function Editor() {
       ) : (
         <>
           <TopBar>
+            <ProjectControls />
             <button
               onClick={undo}
               disabled={!canUndo}
@@ -401,19 +388,9 @@ export default function Editor() {
             >
               <Redo2 size={16} />
             </button>
-            <div className="mx-1 h-5 w-px bg-zinc-200 dark:bg-zinc-700" />
-            <button
-              onClick={() => setExportOpen(true)}
-              disabled={status !== "ready" && status !== "exporting"}
-              className="flex ml-1 h-8 items-center gap-1.5 rounded-full bg-zinc-900 px-4 text-[13px] font-medium text-white transition hover:bg-zinc-700 cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-            >
-              <Download size={14} />
-              {t("editor.export")}
-            </button>
-            <div className="mx-1 h-5 w-px bg-zinc-200 dark:bg-zinc-700" />
+            <ProjectControls mode="menu" />
             <SettingsMenu />
           </TopBar>
-          <ProjectControls />
           <EditorWorkspace />
           <Timeline />
         </>

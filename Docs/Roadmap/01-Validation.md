@@ -72,3 +72,5 @@ Both fixtures repeat the supplied short recording as 16 kHz mono PCM WAV. They e
 - The installed user project was read only for diagnosis. All runtime preparation and interaction testing used a separate project copy and profile.
 
 - Follow-up check: the real native File > Close Project command returned the isolated production editor to the project library; the menu item has no accelerator. Preparation-stage labels were shortened to two words. Type checks, autosave regression tests, and the Windows installer build passed.
+
+- Timeline navigation: production-app input tests passed for ruler seeking, Alt-waveform seeking, Alt-click precedence over trim handles, accurate seeking after zoom/pan, and Space playback. Shift-wheel moved the viewport 320 px over the toolbar and approximately 230 px over the waveform without changing zoom. Testing exposed missing media range status/headers; the protocol now returns 206, Content-Range, Content-Length and Accept-Ranges for valid partial reads. Range unit tests cover full, bounded, open-ended, suffix, clamped and invalid requests.
