@@ -210,24 +210,6 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 
 **Tracking:** No issue assigned yet. Depends on item 4 for deletion-range resizing.
 
-### 12. Skip deletion areas playback toggle
-
-**Status:** Implemented and shipped in 1.3.0; retain integrated playback and independent visibility-toggle runtime audit.
-
-**Expected behavior:**
-
-- Add **Skip deletion areas** to the timeline meatballs menu as a single checkmark toggle.
-- Checked: playback skips deletion areas. Unchecked: playback includes those areas, allowing the user to hear deleted source content.
-- Toggling affects preview playback only. Preserve deletion ranges, transcript data, and export cuts.
-- Reflect the actual playback setting with a visible checkmark when on and no checkmark when off, plus an accessible checked state. Use the same checkmark convention for item 3's Hide deleted words toggle; keep the two settings independent.
-
-**Acceptance criteria:**
-
-- Clicking the same menu item switches between skipping and playing deleted regions, and the checkmark immediately matches playback behavior.
-- Hide deleted words independently uses checked = hidden and unchecked = visible. Neither toggle changes the other or destroys edits.
-
-**Tracking:** No issue assigned yet.
-
 ### 13. Clip-based transcript editing and phrase grouping
 
 **Status:** Implemented baseline, with continuous-flow and selection-scope refinements. Selected correction realignment is implemented; see [Selected-Text-Alignment.md](Selected-Text-Alignment.md). The full detailed acceptance audit remains open.

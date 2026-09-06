@@ -105,3 +105,9 @@ Latest static build predates the final small tweaks for Space replacement, no-op
 - Extracted revision dialog with initial/return focus, keyboard containment and Escape, visible local restore errors, and a restore-in-progress guard. A failed restore now returns focus to usable dialog controls instead of leaving focus behind the overlay.
 - Item 10 passed its full acceptance checks: Accent Open project, both card icons' hover/pressed/keyboard actions, X/no Cancel, stationary header/description with scrolling list in a short window, light/dark visuals, actual native revision restoration and recovery backup, unchanged project on dismissal, and failure recovery.
 - Removed only item 10 from the pending plan. Its original requirements and detailed evidence are preserved in [Completed-Plan-Items.md](Completed-Plan-Items.md). The rest of the plan remains active.
+
+
+## Stage nine: playback toggle acceptance complete
+
+- Item 12 passed integrated real-playback checks, including enabling skip during playback within a deletion, visible checkbox states, independent Hide deleted words in all three layouts, preserved saved edit data, and preference persistence after reopening.
+- Added regression coverage for unchanged exported NLE timeline output across preview/visibility toggle combinations. Removed only item 12 from the pending plan; its requirements and evidence remain in Completed-Plan-Items.md. Other transcript menu/import acceptance work remains under item 3.

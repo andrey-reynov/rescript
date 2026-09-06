@@ -36,3 +36,32 @@ Verified 2026-09-06 in an isolated production-built Electron app. Components: `P
 
 **Tracking:** No issue assigned yet.
 
+
+## Item 12 — Skip deletion areas playback toggle
+
+Verified 2026-09-06 with actual media playback in the isolated production-built Electron app. Original fixture data was restored afterward.
+
+- The timeline menu exposed one checkbox item. Checked state was `true`, unchecked state `false`, and toggling the same item updated it immediately.
+- With a test deletion spanning source 1–4 seconds, unchecked playback progressed normally from 2 to 2.197 seconds inside the deletion. Enabling Skip deletion areas while playback continued moved it to 4.068 seconds, after the cut. No reimport or transcription was involved.
+- Hiding deleted words left Skip deletion areas checked; subsequently disabling Skip deletion areas left Hide deleted words checked. Hidden words stayed hidden across By speaker, Continuous text and By clip. By clip retained a Deleted summary; turning visibility back on displayed eight deleted word spans.
+- Saved word records, deletion ranges, explicit splits, phrases, clip names and optional speaker data were identical before/after the toggles. The unchecked playback preference survived reopening the project.
+- `playback-toggle-test.ts` verifies the store's start-playback behavior and independent controls, plus identical NLE timeline output across toggle combinations. ExportDialog uses the same cut ranges independently of the two preview/display settings.
+
+### Original requirements
+
+**Status:** Complete; verified above.
+
+**Expected behavior:**
+
+- Add **Skip deletion areas** to the timeline meatballs menu as a single checkmark toggle.
+- Checked: playback skips deletion areas. Unchecked: playback includes those areas, allowing the user to hear deleted source content.
+- Toggling affects preview playback only. Preserve deletion ranges, transcript data, and export cuts.
+- Reflect the actual playback setting with a visible checkmark when on and no checkmark when off, plus an accessible checked state. Use the same checkmark convention for item 3's Hide deleted words toggle; keep the two settings independent.
+
+**Acceptance criteria:**
+
+- Clicking the same menu item switches between skipping and playing deleted regions, and the checkmark immediately matches playback behavior.
+- Hide deleted words independently uses checked = hidden and unchecked = visible. Neither toggle changes the other or destroys edits.
+
+**Tracking:** No issue assigned yet.
+
