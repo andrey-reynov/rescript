@@ -312,3 +312,10 @@ Together with stage 31's partial/full phrase highlight verification, this comple
 ## Stage 39 — Explicit word seeking and context scope
 
 Actual renderer check selected words 140–142 and right-clicked middle word 141. The menu preserved the full selection, and Go to word sought to the clicked word's 1.81-second start while playback stayed paused. Right-clicking unselected word 138 selected only it and left the playhead at 1.81; its Go to word then sought to 1.26, still paused. Ctrl-click on word 142 sought to approximately 2.4125 without starting playback. Combined with stage 13's distinct waveform context behavior and stage 31's partial-phrase context fix, the detailed seek/context checklist item is verified. No transcript or cut mutation was performed.
+
+
+## Stage 40 — Combined edits, history, autosave and reopening
+
+Through the actual editor UI, replaced `Hello.` with `Greetings`, named its clip `Opening remarks`, and grouped words 140–142 while retaining the existing manual cut and explicit split. Autosave preserved the corrected word ID 182, approximate timing, original source ID 137, original text `Hello.`, and source interval 0.095–0.55. Undoing the grouping preserved the earlier correction/name; Redo restored the same phrase identity. Reloading the renderer and reopening the project preserved words, phrase IDs, clip-name IDs, cuts, boundaries, view and silence settings exactly. Rendered transcript/name/phrase checks also passed after reopening. The isolated fixture was restored afterward.
+
+Together with stage 30's legacy migration without retranscription and stages 34–35's name/correction history checks, the detailed combined persistence acceptance item is verified. Long-project edits and composition/multi-batch alignment checks remain open.

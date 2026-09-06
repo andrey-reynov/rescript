@@ -130,7 +130,7 @@ Evidence and remaining gates: [Transcript-Acceptance-Audit.md](Transcript-Accept
 - [x] Ctrl-click and Go to word move the playhead without starting playback. Word right-click preserves the selected action target; waveform right-click retains its separate behavior.
 - [ ] Typing replaces one or multiple selected words. Double-click permits character corrections. Backspace cuts in timed selection but edits characters with a caret; Enter splits in timed selection but commits with a caret.
 - [x] View toggles, Hide deleted words, and Skip deletion areas remain independent and do not alter edit/export data.
-- [ ] New structures, names, corrected text, and timing provenance survive undo/redo, autosave, and reopening; older projects load without retranscription or data loss.
+- [x] New structures, names, corrected text, and timing provenance survive undo/redo, autosave, and reopening; older projects load without retranscription or data loss.
 - [x] No floating selection toolbar remains in default clip view; any retained legacy toolbar respects viewport visibility.
 - [ ] Long-video virtualization continues to work: offscreen rendering does not lose selection, group membership, or edits, and updates do not rebuild every word on each pointer event.
 

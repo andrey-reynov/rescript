@@ -12,7 +12,7 @@ This is an evidence map for PLAN item 13, not a reduction in scope. The detailed
 | Ctrl-click/Go to word and both context-menu targets | Stage 39 verifies clicked-word Go to word within/outside multi-selection, no seek on context opening, and paused Ctrl-click. Stages 13/31 verify waveform and partial-phrase context behavior | Verified |
 | Selection versus caret keyboard behavior | Stages 16/17/28 verify replacement, character deletion, cancellation and empty text recovery; stage 34 verifies naming input routing. Initial OS composition input and full keyboard interaction audit remain open | Open |
 | Independent views, hidden text and skip controls | playback-toggle-test compares exported NLE timeline before/after toggles; stages 9/11 verify all layouts, actual playback and reopen | Verified |
-| Structures/corrections/provenance survive history, save and migration | Many focused tests and stages 18/30/34/35 verify individual paths. Complete combined edit/reopen verification remains open | Open |
+| Structures/corrections/provenance survive history, save and migration | Stage 40 verifies combined correction/name/group history, exact saved structures and rendered reopen state; stage 30 verifies legacy migration without retranscription; stages 34/35 cover name and timing history | Verified |
 | Default toolbar removed; legacy toolbar obeys viewport | Stage 10's 10,000-word resize/offscreen/return action checks; source gates legacy toolbar on speaker view | Verified |
 | Long-project selection/grouping/correction under virtualization | Stage 6 verifies bounded DOM and selected offscreen endpoints. Offscreen committed correction/group persistence and pointer-update behavior still require the complete check | Open |
 
