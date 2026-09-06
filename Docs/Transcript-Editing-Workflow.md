@@ -2,6 +2,18 @@
 
 Status: implemented and acceptance audit complete. See [Transcript-Acceptance-Audit.md](Transcript-Acceptance-Audit.md) and Implementation-Progress.md stage 44 for evidence and verification limits. This document retains the agreed workflow for [completed plan item 13](Completed-Plan-Items.md#13-clip-based-transcript-editing-and-phrase-grouping) and refines completed items 3, 4, 6, 9, 11, and 12. Follow [UI-Rules.md](UI-Rules.md) for shared controls.
 
+## Current interaction revision
+
+The user revised the original gestures after testing release 1.5.2. This section supersedes conflicting historical gesture descriptions below and in earlier acceptance records:
+
+- Plain word/phrase click selects and seeks to its source start. It does not start playback; Space plays/pauses from that position.
+- Ctrl-click is no longer a special transcript or timeline-word action. Ctrl+Z and Ctrl+Shift+Z remain history shortcuts outside text inputs.
+- Typing while timed words are selected does not begin correction. Double-click enters word correction; the Correct context command remains available for a selected phrase. Inside correction, typing/Space edits text, Enter commits, and Escape cancels.
+- Shift-click and drag still select ranges without seeking. Enter still splits selected timed text; Delete/Backspace still cuts it outside correction.
+- Clip headings use `number · name · menu`. The name defaults to Clip N and enters inline editing on click or Rename clip from its menu. There is no permanent separate empty name field. The fixed number selects the clip interval; existing Join remains available at explicit boundaries.
+
+Earlier runtime records describe the gestures at the time they were tested. Implementation-Progress.md records the updated checks.
+
 ## Goal
 
 Build a local-first commentary/gameplay rough-cut editor organized around spoken content. Make transcript editing, timeline editing, and later subtitle creation work from the same timed words. Keep finishing in an NLE; this is not a full Resolve replacement.

@@ -102,6 +102,7 @@ import { isWebGpuDeviceLostError } from "@/lib/webgpu";
 env.fetch = installFetchRetry(self as unknown as { fetch: typeof fetch });
 
 env.allowLocalModels = false;
+let retainSpeechModel=false;
 let nativeModels=typeof self!=='undefined'&&self.location.protocol==='app:';
 function configureNativeModels(){const fetcher=env.fetch!;env.useCustomCache=true;env.customCache=nativeModelCache(fetcher);env.fetch=(input,init)=>{const url=typeof input==='string'?input:input.href;return fetcher(modelFileFromUrl(url)?managedModelUrl(url):input,init);};}
 if(nativeModels)configureNativeModels();
@@ -473,7 +474,7 @@ models.subscribe((snap) => {
   post({
     type: "progress",
     message:
-      rec.fromCache === true
+      nativeModels || rec.fromCache === true
         ? en["progress.loadingSpeechCache"]
         : en["progress.downloadingSpeech"],
     value: rec.indeterminate ? null : rec.percent,
@@ -621,6 +622,9 @@ async function fallbackAsrToWasm() {
  * Best-effort — a failure here is wasted memory, not a failed transcript.
  */
 async function releaseAsr(choice: ModelId): Promise<void> {
+  // Native jobs reuse this worker for every batch. Its owner terminates it on
+  // completion, pause, error, or GPU fallback. Browser single runs still unload.
+  if(retainSpeechModel)return;
   try {
     await models.unload(MODELS[choice].id);
   } catch (err) {
@@ -1431,6 +1435,7 @@ async function runWhisper(
 
 self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
   const { audio, duration, model, language, preferWasm } = event.data;
+  retainSpeechModel=event.data.retainSpeechModel===true;
   if(event.data.desktopModels&&!nativeModels){nativeModels=true;configureNativeModels();}
   if(preferWasm)fallbackDevicePolicy.preferWasm();
   try {

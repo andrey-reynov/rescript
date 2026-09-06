@@ -199,6 +199,7 @@ export function useTranscriptSelection({
         anyKept: !cutOut,
       });
       useEditorStore.getState().selectWordRange([word.id]);
+      useEditorStore.getState().seekTo(word.start);
     },
     [applyMarks, containerRef]
   );

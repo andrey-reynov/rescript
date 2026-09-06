@@ -16,7 +16,6 @@ import {
   VolumeOff,
 } from "lucide-react";
 import { FloatingPortal } from "@floating-ui/react";
-import {flushSync} from "react-dom";
 import { useEditorStore } from "@/lib/store";
 import { isDisfluencyPlaceholder } from "@/lib/disfluencies";
 import ContextMenu from './ContextMenu';
@@ -86,7 +85,7 @@ const WordSpan = memo(function WordSpan({
       data-placeholder={placeholder ? "" : undefined}
       title={emptyText?f("Empty text · audio preserved; double-click to correct"):partial?f("Partially cut · source timing preserved"):word.correction?.timing==='approximate'?f("Approximate timing · corrected text"):placeholder ? t("transcript.hesitation") : undefined}
       onClick={(e) => {
-        if(e.ctrlKey){useEditorStore.getState().seekTo(word.start);return;}
+        if(e.ctrlKey||e.metaKey||e.altKey)return;
         if(e.shiftKey){e.currentTarget.closest<HTMLElement>('[data-transcript-editor]')?.focus({preventScroll:true});useEditorStore.getState().selectWordRange([word.id],true);window.getSelection()?.removeAllRanges();return;}
         e.currentTarget.closest<HTMLElement>('[data-transcript-editor]')?.focus({preventScroll:true});
         onClick(word,e.currentTarget);
@@ -262,7 +261,7 @@ export default function TranscriptPanel() {
     ensureWordVisible,
   });
 
-  // Selection and seeking are separate; explicit seek gestures handle the playhead.
+  // Plain clicks select and seek; drag/Shift selection remains separate.
   const onWordClick = useCallback(
     (word: Word, el: HTMLElement) => {
       resumeFollowPlayhead();
@@ -394,17 +393,8 @@ export default function TranscriptPanel() {
   const contextRun=(action:()=>void)=>()=>{try{action();setEditError('');}catch(e){setEditError(e instanceof Error?e.message:String(e));}};
   const editKey=(e:React.KeyboardEvent)=>{
     if(e.isDefaultPrevented()||isTypingTarget(e.target)||e.ctrlKey||e.metaKey||e.altKey||correcting||!selectedWordIds.length||status!=='ready')return;
-    if(isCompositionKey(e.nativeEvent)){
-      // Windows sends Process/229 before composition starts. Supply its editable
-      // target before the browser handles that key; retain text if IME cancels.
-      if(!e.nativeEvent.isComposing&&e.nativeEvent.keyCode===229){
-        flushSync(()=>beginCorrection(selectedWordIds));
-        e.currentTarget.querySelector<HTMLInputElement>('[data-correction-input]')?.select();
-      }
-      return;
-    }
+    if(isCompositionKey(e.nativeEvent))return;
     if(e.key==='Enter'){e.preventDefault();e.stopPropagation();useEditorStore.getState().splitBeforeSelection();}
-    else if(e.key.length===1){e.preventDefault();e.stopPropagation();beginCorrection(selectedWordIds,e.key);}
   };
   const busy = status === "preparing" || status === "transcribing";
 
@@ -510,8 +500,8 @@ export default function TranscriptPanel() {
 </>}
                     {view==='clips'&&turn.first&&turn.block&&<div className="mb-2 flex items-center gap-2 text-xs text-zinc-500">
                       {turn.block.kind==='deleted'?<span className="text-red-500">{f('Deleted')} · {intervalDuration(turn.block.end-turn.block.start,f('s'))}{!showDeleted&&hiddenSelectionCount(turn.sourceWordIds,selectedIds,cutOutIds)>0&&<span role="status" className="ml-2 text-zinc-500">{f('Hidden selected words: {count}',{count:hiddenSelectionCount(turn.sourceWordIds,selectedIds,cutOutIds)})}</span>}</span>:<>
-                        <button onClick={()=>{useEditorStore.getState().selectWordRange(turn.sourceWordIds);useEditorStore.getState().setSelectedClipIndex(turn.block!.clipIndex!);}}>{f('Clip {number}',{number:(turn.block.clipIndex??0)+1})}</button>
-                        <ClipNameInput label={f('Clip name')} value={turn.block.name??''} onCommit={name=>useEditorStore.getState().renameClip((turn.block!.start+turn.block!.end)/2,name)}/>
+                        <button onClick={()=>{useEditorStore.getState().selectWordRange(turn.sourceWordIds);useEditorStore.getState().setSelectedClipIndex(turn.block!.clipIndex!);}}>{(turn.block.clipIndex??0)+1}</button><span aria-hidden>·</span>
+                        <ClipNameInput label={f('Clip name')} fallback={f('Clip {number}',{number:(turn.block.clipIndex??0)+1})} value={turn.block.name??''} onCommit={name=>useEditorStore.getState().renameClip((turn.block!.start+turn.block!.end)/2,name)}/>
                         {turn.block.splitId!==undefined&&<button title={f('Join clips')} onClick={()=>removeSceneBoundary(turn.block!.splitId!)}><Merge size={13}/></button>}
                       </>}
                     </div>}

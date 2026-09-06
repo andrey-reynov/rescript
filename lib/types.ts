@@ -102,6 +102,8 @@ export interface WorkerRequest {
   /** Align supplied text only; never decode or diarize the audio. */
   alignWords?:Word[];
   desktopModels?:boolean;
+  /** Keep weights alive across checkpoint batches; terminating the job worker releases them. */
+  retainSpeechModel?:boolean;
   /** Use CPU/WASM after a GPU reset; source-time checkpoints remain valid. */
   preferWasm?: boolean;
   audio: Float32Array;
