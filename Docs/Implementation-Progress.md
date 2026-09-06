@@ -217,3 +217,10 @@ Latest static build predates the final small tweaks for Space replacement, no-op
 - Used the isolated prepared sample with a paused test job explicitly preferring WASM to avoid downloading a separate GPU set. Native resume launched the real processing worker and Parakeet v3/Automatic completed all 42.4106875 seconds with 44 words, beginning “Hello. This is an example video for your…”. Published generation matched the job and source became parakeet.
 - Test project, job manifest and summary restored after closing the app. Model files remain in the isolated test model directory for subsequent offline/relocation and bilingual validation.
 - This proves English sample inference via managed CPU artifacts, not GPU, Russian, or offline relocation. Those acceptance checks and installed-build work remain open; no application code change was needed in this pass.
+
+## Stage twenty-six: relocated Parakeet works offline after restart
+
+- Changed the isolated default model directory through the native folder action and relocated all 32 existing artifacts. Every previously available model remained available; all manifest roots point to the new directory, original file copies are gone, cleanup queue is empty and no relocation error remains.
+- Restarted the isolated app with native and renderer Hugging Face requests blocked/logged. Parakeet v3 CPU/Automatic completed the real sample with 44 words from the moved files. The model network-attempt log remained empty, proving no silent replacement download.
+- Restored the project/job/summary after closing the test app. Managed test models intentionally remain at work/offline-model-validation/Rescript Models, with that default persisted for later tests.
+- This completes the outstanding native Parakeet offline-relocation check. Item 2 retains final freshly installed-build acceptance; bilingual/model-capability work remains in items 7/8.
