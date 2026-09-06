@@ -1,3 +1,4 @@
+import {installSilenceService} from './silence-service';
 import {installModelIpc} from './model-ipc';
 import type {ModelStorage} from './model-storage';
 import { mediaRange } from './media-range';
@@ -34,6 +35,7 @@ import {
 
 let projectFiles: ProjectFiles;
 let modelStorage:ModelStorage;
+let silenceService:ReturnType<typeof installSilenceService>;
 
 const isDev = !app.isPackaged;
 const DEV_SERVER_URL = process.env.ELECTRON_START_URL ?? "http://localhost:3000";
@@ -353,7 +355,7 @@ if (!gotLock) {
   app.quit();
 } else {
   app.on("second-instance", () => {
-    const win = BrowserWindow.getAllWindows().find(candidate => !candidate.webContents.getURL().includes("/processing")) ?? createWindow();
+    const win = BrowserWindow.getAllWindows().find(candidate => !/[\/]processing|[\/]analysis/.test(candidate.webContents.getURL())) ?? createWindow();
     if (win) {
       if (win.isMinimized()) win.restore();
       win.show();
@@ -407,8 +409,9 @@ if (!gotLock) {
     const jobService=installJobService(projectFiles, isDev ? DEV_SERVER_URL : null, join(__dirname,"preload.js"), event => {
       const url=event.senderFrame?.url??"";
       return Boolean(BrowserWindow.fromWebContents(event.sender)) && (isDev ? url.startsWith(DEV_SERVER_URL+"/") : url.startsWith("app://localhost/"));
-    },()=>modelStorage?.busy??false);
-    modelStorage=installModelIpc(event=>{const url=event.senderFrame?.url??'';return Boolean(BrowserWindow.fromWebContents(event.sender))&&(isDev?url.startsWith(DEV_SERVER_URL+'/'):url.startsWith('app://localhost/'));},()=>jobService.active());
+    },()=>!!modelStorage?.busy||!!silenceService?.active());
+    modelStorage=installModelIpc(event=>{const url=event.senderFrame?.url??'';return Boolean(BrowserWindow.fromWebContents(event.sender))&&(isDev?url.startsWith(DEV_SERVER_URL+'/'):url.startsWith('app://localhost/'));},()=>jobService.active()||!!silenceService?.active());
+    silenceService=installSilenceService(projectFiles,isDev?DEV_SERVER_URL:null,join(__dirname,'preload.js'),event=>{const url=event.senderFrame?.url??'';return Boolean(BrowserWindow.fromWebContents(event.sender))&&(isDev?url.startsWith(DEV_SERVER_URL+'/'):url.startsWith('app://localhost/'));},()=>jobService.active()||modelStorage.busy);
     setDesktopLocale(resolveDesktopLocale(app.getLocale()));
     registerAppProtocol();
     buildAppMenu(dispatchMenuCommand);
@@ -416,7 +419,7 @@ if (!gotLock) {
     // Local fork: updates are installed manually; never initialize an updater.
 
     app.on("activate", () => {
-      if (!BrowserWindow.getAllWindows().some(candidate => !candidate.webContents.getURL().includes("/processing"))) createWindow();
+      if (!BrowserWindow.getAllWindows().some(candidate => !/[\/]processing|[\/]analysis/.test(candidate.webContents.getURL()))) createWindow();
     });
   });
 

@@ -1,3 +1,4 @@
+import type {DesktopSilence,SilenceProcessing} from './silence-api';
 import type {DesktopModels} from './model-api';
 import type { DesktopJobs, ProcessingBridge } from "./job-api";
 import type { DesktopProjects } from "./project-api";
@@ -19,6 +20,8 @@ export type MenuCommand =
 
 /** Desktop bridge exposed by electron/preload.ts when running inside Electron. */
 export interface RescriptDesktop {
+  silence:DesktopSilence;
+  silenceProcessing:SilenceProcessing;
   models:DesktopModels;
   projects: DesktopProjects;
   jobs: DesktopJobs;

@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import {audioRms,silenceDetections,detectionCuts,normalizeSilenceSettings,type AcousticAnalysis} from '../lib/silence-analysis';
+const settings=normalizeSilenceSettings({thresholdMode:'absolute',absoluteDb:-20,minDuration:0,preHandle:.1,postHandle:.2,mergeGap:0});
+const analysis:AcousticAnalysis={version:1,fingerprint:'fixture',duration:4,frameSeconds:1,rms:[.5,.01,.01,.5],speech:[.01,.01,.95,.95]};
+const result=silenceDetections(analysis,settings);
+assert.deepEqual(result.ranges,[{start:0,end:1,kind:'noSpeech'},{start:1,end:2,kind:'overlap'},{start:2,end:3,kind:'amplitude'}]);
+assert.deepEqual(result.noSpeech,[{start:0,end:2}],'loud non-speech is not amplitude silence');
+assert.deepEqual(result.amplitude,[{start:1,end:3}],'quiet speech is not no-speech');
+assert.deepEqual(audioRms(new Float32Array([1,-1,0,0]),2),[1,0]);
+assert.deepEqual(detectionCuts([{start:1,end:3}],settings,4),[{start:1.2,end:2.9}]);
+assert.deepEqual(detectionCuts([{start:0,end:4}],settings,4),[{start:0,end:4}]);
+assert.deepEqual(detectionCuts([{start:1,end:1.1}],settings,4),[],'handles cannot invert a cut');
+assert.deepEqual(silenceDetections(analysis,{...settings,minDuration:2.1}).ranges,[]);
+assert.equal(normalizeSilenceSettings({relativePercent:Infinity}).relativePercent,10);
+assert.equal(normalizeSilenceSettings({colors:{amplitude:'invalid',noSpeech:'#112233',overlap:'#ffffff'}}).colors.amplitude,'#3b82f6');
+const relative=silenceDetections(analysis,{...settings,thresholdMode:'relative',relativePercent:10});assert.ok(Math.abs(relative.threshold-.0255)<1e-10);
+assert.equal(analysis.rms.length,4,'detection is non-destructive');
+console.log('Acoustic regions: independent amplitude/VAD sets, overlap, RMS, thresholds, handles and non-destructive analysis passed.');

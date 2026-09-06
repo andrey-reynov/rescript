@@ -13,6 +13,7 @@ export default function ProjectControls({mode='status'}:{mode?:'status'|'menu'})
   const file=useEditorStore(s=>s.videoFile);
   const state=useEditorStore(s=>s.saveState);
   const status=useEditorStore(s=>s.status);
+  const silenceJob=useEditorStore(s=>s.silenceJob);
   const job=useEditorStore(s=>s.jobState);
   const error=useEditorStore(s=>s.saveError);
   const progress=useEditorStore(s=>s.progress);
@@ -48,6 +49,7 @@ export default function ProjectControls({mode='status'}:{mode?:'status'|'menu'})
     ]:[]),
     {id:'close',label:f('Close Project'),icon:<X size={14}/>,disabled:busy,run:()=>void act(closeCurrentProject)},
     ...(job&&job!=='complete'?[{id:'processing',label:f(job==='running'||job==='preparing'?'Pause processing':'Resume processing'),icon:job==='running'||job==='preparing'?<Pause size={14}/>:<Play size={14}/>,disabled:busy,run:()=>void act(async()=>{await flushProjectAutosave();const s=useEditorStore.getState();if(job==='running'||job==='preparing')await window.rescriptDesktop!.jobs.pause(s.projectId!);else{const previous=await window.rescriptDesktop!.jobs.read(s.projectId!);if(previous)await window.rescriptDesktop!.jobs.start(s.projectId!,previous.model,previous.language,previous.transcribe);}})}]:[]),
+    ...(silenceJob&&silenceJob.status!=='complete'?[{id:'silence-processing',label:f(silenceJob.status==='running'?'Pause detection':'Resume detection'),icon:<AudioLines size={14}/>,disabled:busy,run:()=>void act(async()=>{const id=useEditorStore.getState().projectId!;if(silenceJob.status==='running')await window.rescriptDesktop!.silence.pause(id);else await window.rescriptDesktop!.silence.start(id);})}]:[]),
     {id:'retranscribe-all',label:f('Retranscribe all'),icon:<AudioLines size={14}/>,disabled:busy||retranscribe.disabled,run:retranscribe.open},
     {id:'export',label:t('editor.export'),icon:<Download size={14}/>,disabled:status!=='ready'&&status!=='exporting',run:()=>useEditorStore.getState().setExportOpen(true)},
   ]}/>}</RetranscribeSelection>{actionError&&<p role="alert" className="absolute right-0 top-full z-50 w-72 rounded bg-white p-2 text-xs text-red-600 dark:bg-zinc-900">{f(localizeRuntimeMessage(actionError,t))}</p>}</div>;
@@ -55,6 +57,7 @@ export default function ProjectControls({mode='status'}:{mode?:'status'|'menu'})
 
     <span role="status" className={state==='error'?'text-red-600':'text-zinc-500'}>{state==='saved'?f('Saved'):state==='saving'?f('Saving…'):state==='error'?f('Save failed'):f('Unsaved changes · autosave within 0.5s')}</span>
     {job&&job!=='complete'&&<span role="status" className="whitespace-normal text-zinc-500">{job==='error'||job==='paused'?f(localizeRuntimeMessage(processingError,t)):<>{f(localizeRuntimeMessage(progress.message,t))}{progress.value!==null?` · ${Math.min(100,Math.max(0,Math.floor(progress.value*100)))}%`:' · '+f('Working…')}{quietSeconds>=10?' · '+f('Idle {seconds}s',{seconds:quietSeconds}):''}</>}</span>}
+    {silenceJob&&silenceJob.status!=='complete'&&<span role="status" className="text-zinc-500">{f(silenceJob.message)} · {Math.floor(silenceJob.progress*100)}%</span>}
     {(error||actionError)&&<p role="alert" className="w-full text-red-600">{f(localizeRuntimeMessage(error||actionError,t))} {f("Your work is still open; retry saving before closing.")}</p>}
   </div>;
 }

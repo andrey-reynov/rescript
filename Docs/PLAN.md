@@ -96,7 +96,7 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 
 ### 5. Silence blocks with separate detectors
 
-**Status:** Planned; GitHub issue open.
+**Status:** Implemented; see [Silence-Detection.md](Silence-Detection.md) for behavior and evidence. Retain representative gameplay/music and final installed-build validation.
 
 **Tracking:** [#3 — Add silence blocks](https://github.com/andrey-reynov/rescript/issues/3).
 

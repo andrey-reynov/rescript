@@ -1,4 +1,5 @@
 "use client";
+import {normalizeSilenceSettings,type SilenceSettings,type AcousticAnalysis} from './silence-analysis';
 import {compatibleLanguage} from './model-capabilities';
 import {MODELS} from './models';
 import {transcriptBlocks,groupPhrase,replaceTimedText,selectedRange,type PhraseGroup,type ClipName,type TranscriptView} from './transcript-structure';
@@ -81,6 +82,10 @@ interface EditorState {
    * useTranscriber). Null when the file has no audio track.
    */
   waveform: WaveformPeaks | null;
+  acousticAnalysis:AcousticAnalysis|null;
+  silenceJob:import("../types/silence-api").SilenceJob|null;
+  silenceSettings:SilenceSettings;
+  setSilenceSettings:(value:Partial<SilenceSettings>)=>void;
   /** Whether the media has an audio track at all. */
   hasAudio: boolean;
   /** Transcript source selected on the upload screen (speech model or import). */
@@ -360,7 +365,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   mediaUrl: null,
   mediaKind: null,
   duration: 0,
-  waveform: null,
+  waveform: null,acousticAnalysis:null,silenceJob:null,silenceSettings:normalizeSilenceSettings(),
   hasAudio: false,
   source: "base",
   transcriptLanguage: DEFAULT_TRANSCRIPT_LANGUAGE,
@@ -446,7 +451,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       error: null,
       currentTime: 0,
       exportUrl: null,
-      waveform: null,
+      waveform: null,acousticAnalysis:null,silenceJob:null,silenceSettings:normalizeSilenceSettings(),
       hasAudio: false,
       duration: 0,
     });
@@ -503,7 +508,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       playing: false,
       exportUrl: null,
       exportOpen: false,
-      waveform: null,
+      waveform: null,acousticAnalysis:null,silenceJob:null,silenceSettings:normalizeSilenceSettings(record.silenceSettings),
       hasAudio: false,
     });
   },
@@ -788,6 +793,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const words=replaceTimedText(s.words,ids,text,blocks);const valid=new Set(words.map(w=>w.id));
     pushEdit(get,set,{words,phrases:s.phrases.map(g=>({...g,wordIds:g.wordIds.filter(id=>valid.has(id))})).filter(g=>g.wordIds.length>1),selectedWordIds:[]});
   },
+  setSilenceSettings:value=>{set({silenceSettings:normalizeSilenceSettings({...get().silenceSettings,...value})});bumpAutosave();},
   setTranscriptView:transcriptView=>{set({transcriptView});bumpAutosave();},
   selectWordRange:(ids,extend=false)=>{const s=get();const anchor=extend?s.selectionAnchor??ids[0]:ids[0];set({selectionAnchor:anchor??null,selectedWordIds:extend?selectedRange(s.words,anchor,ids):ids,selectedClipIndex:null,selectedCutIndex:null});},
   groupSelectedPhrase:()=>{const s=get();const blocks=transcriptBlocks(s.words,getCutRanges(s.words,s.duration,s.manualCuts),s.sceneBoundaries,s.duration);pushEdit(get,set,{phrases:groupPhrase(s.words,s.phrases,s.selectedWordIds,blocks,crypto.randomUUID())});},
@@ -992,7 +998,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
       mediaUrl: null,
       mediaKind: null,
       duration: 0,
-      waveform: null,
+      waveform: null,acousticAnalysis:null,silenceJob:null,silenceSettings:normalizeSilenceSettings(),
       hasAudio: false,
       source: loadModelPreference(),
       transcriptLanguage: loadTranscriptLanguagePreference(),

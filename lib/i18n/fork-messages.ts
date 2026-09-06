@@ -3,6 +3,13 @@ import {ru} from './messages/ru';
 import type {UiLocale} from './locales';
 /** Copy added by the fork. Other locales retain English until translated. */
 export const forkRussian={
+ 'Pause detection':'Приостановить анализ',
+ 'Silence detection':'Обнаружение тишины','Volume and speech are separate detectors. Detection never deletes audio.':'Громкость и речь определяются отдельно. Обнаружение ничего не удаляет.',
+ 'Analyze audio':'Анализировать звук','Resume detection':'Продолжить анализ','Detecting silence':'Анализ тишины','Silence detection paused':'Анализ приостановлен','Silence detection complete':'Анализ завершён',
+ 'Install the desktop app for saved audio analysis.':'Для сохраняемого анализа звука установите приложение.',
+ 'Volume threshold':'Порог громкости','Absolute (dBFS)':'Абсолютный (dBFS)','Percent of average':'Доля средней громкости','Threshold (dBFS)':'Порог (dBFS)','Average volume (%)':'Средняя громкость (%)','Speech probability':'Вероятность речи','Minimum region (seconds)':'Минимальная область (секунды)',
+ 'Show detected regions':'Показывать найденные области','Amplitude silence':'Низкая громкость','No speech':'Нет речи','Overlap':'Совпадение','Auto Cut':'Автоудаление','Regions to delete':'Области для удаления','Overlap only':'Только совпадения','Either detector':'Любой детектор','Before speech (seconds)':'До речи (секунды)','After speech (seconds)':'После речи (секунды)','Merge gaps (seconds)':'Объединять промежутки (секунды)','Delete detected regions':'Удалить найденные области','Delete detected region':'Удалить найденную область','Select a detected region. Right-click for actions.':'Выберите область. Правая кнопка открывает действия.',
+ 'Cut transcript gaps':'Вырезать промежутки расшифровки','Restore empty cuts':'Восстановить пустые вырезы','Gaps between recognized words; not measured acoustic silence.':'Промежутки между распознанными словами, а не измеренная тишина.',
  'Delete':'Удалить','Loading…':'Загрузка…',
  'Downloading model':'Загрузка модели',
  'models':'Модели','Models':'Модели','Model folder':'Папка моделей','Relocate models':'Переместить модели','Moving cached model':'Перенос модели','Relocating models':'Перемещение моделей','Stored in a previous folder':'В прежней папке','Download model':'Скачать модель','Delete model':'Удалить модель','Download':'Скачать',

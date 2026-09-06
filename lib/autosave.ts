@@ -23,7 +23,7 @@ export function projectPayload() {
   if (!s.videoFile || !s.mediaKind) throw new Error("Open a project first.");
   return { id: s.projectId ?? undefined, name: s.projectName || s.videoFile.name,
     mediaKind: s.mediaKind, duration: s.duration, source: s.source,
-    transcriptLanguage: s.transcriptLanguage, words: s.words, phrases:s.phrases,clipNames:s.clipNames,transcriptView:s.transcriptView,showDeleted:s.showDeleted, skipDeletions:s.skipDeletions,
+    transcriptLanguage: s.transcriptLanguage, words: s.words, phrases:s.phrases,clipNames:s.clipNames,transcriptView:s.transcriptView,showDeleted:s.showDeleted, skipDeletions:s.skipDeletions,silenceSettings:s.silenceSettings,
     manualCuts:s.manualCuts, sceneBoundaries:s.sceneBoundaries, speakers:s.speakers,
     currentTime:s.currentTime, thumbnail:s.projectThumbnail ?? undefined,
     transcriptionComplete:s.skipTranscription || (!window.rescriptDesktop?.jobs && (s.status === 'ready' || s.status === 'exporting')),
