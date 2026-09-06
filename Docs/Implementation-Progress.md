@@ -265,3 +265,8 @@ Production UI build and TypeScript passed. Isolated runtime fixture grouped word
 ## Stage 32 — Actual gameplay analysis in the installed app
 
 Ran the installed silence-analysis worker on a one-minute extraction of the user's existing gameplay VOD, in a separate test project. It completed all 1,875 frames, produced distinct RMS/VAD/overlap ranges, and added no cuts or transcript data. See Silence-Detection.md for measured durations and the explicit accuracy limits. Cached results and dialog candidates survived reopening. The installed colored-lane check exposed a hidden-window sizing/visibility issue and remains open; item 5 is not marked complete.
+
+
+## Stage 33 — Installed detector visualization and explicit deletion
+
+Confirmed the acceptance window was hidden; showing it rendered all 23 gameplay regions in the expected colors without a source change. A focused overlap Delete applied the configured source handles, and Undo restored the original edit with unchanged media reference. A controlled instrumental/silent-edge fixture completed actual installed VAD/RMS analysis, displayed ten regions, and added no cuts. Its music false positives are explicitly recorded in Silence-Detection.md rather than treated as perfect detection. Combined with existing settings, resize/restore, persistence, and background-job tests, item 5's feature acceptance is complete and retained in Completed-Plan-Items.md. Models-manager acceptance and the full transcript workflow remain open.

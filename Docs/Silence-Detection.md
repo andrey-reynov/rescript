@@ -25,7 +25,7 @@ The former Remove silences transcript cleanup is now labeled **Cut transcript ga
 - `silence-state-test.ts`: explicit cuts, Undo, settings in project payload and one-hour projection responsiveness.
 - Isolated runtime on 42.4106875 seconds: 1,326 actual speech probabilities, all three colors, analysis without edit changes; explicit cuts changed one existing deletion to six and Undo restored it with source word times intact. A 20% threshold persisted through reopen. A fresh analysis completed after reloading the editor.
 
-Final release audit still includes installed-build operation, representative gameplay/music validation, and integration with the remaining editing requirements.
+Installed-build and gameplay/instrumental validation are recorded below. Broader transcript-editing integration remains tracked by plan item 13.
 
 
 ### Installed gameplay analysis sample (2026-09-06)
@@ -35,3 +35,12 @@ A disposable 60-second mono 16 kHz WAV was extracted from source minutes 10–11
 With default settings, the real results project to 19.840 seconds of no-speech-only regions, 0.736 seconds of amplitude-only regions, and 1.568 seconds of overlap (RMS threshold 0.0022967835). This verifies that real gameplay yields distinct detector outputs; these are detector classifications, not a manually annotated accuracy benchmark. The cached result remains available on reopening and the dialog shows four overlap cut candidates without applying them.
 
 Installed timeline visualization remains unverified in this run: the hidden test window exposed zero rendered detection buttons while its canvas had nonzero width but the timeline retained its fallback 50 px/s width. Changing the emulated viewport did not resolve it. Investigate window visibility/ResizeObserver delivery and validate the colored lane before closing item 5. Dedicated music accuracy/visual validation also remains open.
+
+
+### Installed visual and editing verification follow-up
+
+The missing-lane observation above was caused by the acceptance app's native window being hidden (`isVisible: false`), suppressing layout observation. Showing that test window without taking focus rendered all 23 gameplay regions: blue RGB(59,130,246), yellow RGB(234,179,8), and green RGB(34,197,94). No application layout change was required. Deleting the first overlap via its focused region button created source range 3.158–3.292, retaining the configured handles inside the detected 3.008–3.392 range. One Undo restored zero cuts and left the source reference unchanged.
+
+A controlled 16-second instrumental fixture (12 seconds of synthesized pitched melody, with two seconds of silence at each edge) completed 500 real VAD/RMS frames in the installed app. The silent edges produced 3.936 seconds of green overlap; 5.632 seconds of the musical passage were yellow no-speech-only. All ten projected regions appeared with the configured legend. Detection produced no cuts.
+
+Accuracy limitation: the default VAD also classified parts of this known speech-free melody as speech. It is a probabilistic speech detector, not a guaranteed music classifier. Gameplay results likewise are not manually annotated ground truth. Threshold controls, separate amplitude measurement, explicit delete confirmation, handles, and Undo are essential to reviewing these outputs. The feature acceptance verifies distinct acoustic detectors and non-destructive editing, not perfect speech classification for every soundtrack.

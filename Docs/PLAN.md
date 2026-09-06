@@ -27,24 +27,6 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 
 **Tracking:** No issue assigned yet.
 
-### 5. Silence blocks with separate detectors
-
-**Status:** Implemented; see [Silence-Detection.md](Silence-Detection.md) for behavior and evidence. Retain representative gameplay/music and final installed-build validation.
-
-**Tracking:** [#3 — Add silence blocks](https://github.com/andrey-reynov/rescript/issues/3).
-
-**Expected behavior:**
-
-- Distinguish no-speech regions from amplitude-below-threshold silence. A gap between recognized words is not proof of acoustic silence.
-- Detect/display no-speech regions and low-amplitude regions separately. Allow amplitude settings such as an absolute threshold or a configurable fraction of average level; 5–10% is an example from the issue, not a fixed requirement.
-- Default legend: yellow for no speech, blue for amplitude silence, green for overlap. Keep the mapping configurable as agreed in the roadmap.
-- Let the user choose whether to delete detected regions and adjust the resulting deletion boundaries. Detection alone must not delete content.
-
-**Acceptance criteria:**
-
-- Gameplay/music without speech can be distinguished from low-amplitude silence; overlap is shown in green.
-- Detector settings and the legend are understandable, and selecting/deleting/resizing regions preserves original media and extendable handles.
-
 ### 13. Clip-based transcript editing and phrase grouping
 
 **Status:** Implemented baseline, with continuous-flow and selection-scope refinements. Selected correction realignment is implemented; see [Selected-Text-Alignment.md](Selected-Text-Alignment.md). The full detailed acceptance audit remains open.
