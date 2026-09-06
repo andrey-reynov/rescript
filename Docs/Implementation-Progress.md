@@ -277,3 +277,10 @@ Confirmed the acceptance window was hidden; showing it rendered all 23 gameplay 
 Item 13 audit found clip names committed and trimmed on every keystroke, preventing ordinary space-separated names and creating per-character Undo steps. ClipNameInput now holds a transient draft, commits on Enter/blur, cancels on Escape, and does not commit an unchanged display value. Composition confirmation is excluded from commit shortcuts. The source-anchored name model remains unchanged: merged labels display together and re-splitting restores each original name unless the user explicitly renames the merged clip.
 
 Runtime validation typed `First`, a separate space, and `clip`; the draft and committed value remained `First clip`. Escape discarded `Discard this`; one Undo restored the original empty name. The isolated fixture was restored afterward. Production build, TypeScript, component lint, and transcript-state tests passed. Transcript-structure regression coverage verifies merged label display, re-split ownership, and unchanged name IDs.
+
+
+## Stage 35 — Corrected phrase realignment and submission guard
+
+RealignSelection now reserves submission synchronously before any await, preventing rapid repeated activation from starting competing workers. Starting the job focuses the modal so disabling its button cannot return media shortcuts to the editor. Failure releases the reservation for retry; existing cancel/generation handling still discards stale work.
+
+Actual English CTC runtime alignment of a corrected three-word phrase published all measured word timings atomically, preserved provenance and unrelated edits, and reverted in one Undo. See Selected-Text-Alignment.md for measured ranges. The isolated project fixture was restored afterward. Production build and focused correction-alignment tests pass; the full item 13 audit remains open.
