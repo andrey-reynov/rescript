@@ -224,3 +224,9 @@ Latest static build predates the final small tweaks for Space replacement, no-op
 - Restarted the isolated app with native and renderer Hugging Face requests blocked/logged. Parakeet v3 CPU/Automatic completed the real sample with 44 words from the moved files. The model network-attempt log remained empty, proving no silent replacement download.
 - Restored the project/job/summary after closing the test app. Managed test models intentionally remain at work/offline-model-validation/Rescript Models, with that default persisted for later tests.
 - This completes the outstanding native Parakeet offline-relocation check. Item 2 retains final freshly installed-build acceptance; bilingual/model-capability work remains in items 7/8.
+
+## Stage twenty-seven: capability and bilingual acceptance
+
+- Actual Settings UI language switches left Russian transcription preferences unchanged. Fresh Base/Russian output stayed Cyrillic under English UI; Parakeet/Automatic retained both languages in the bilingual sample under Russian UI.
+- Shared dialog language choices matched fixed English, automatic-only Parakeet and explicit multilingual Whisper profiles. Unsupported native forcing rejected before changing job generation. Capability/model tests pass.
+- Item 7 moved to Completed-Plan-Items.md with original requirements/evidence. Item 8 retains installed/native-menu/migration gates. Isolated Russian and bilingual project/job/summary files restored; UI returned to Russian.

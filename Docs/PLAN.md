@@ -45,23 +45,6 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 - Gameplay/music without speech can be distinguished from low-amplitude silence; overlap is shown in green.
 - Detector settings and the legend are understandable, and selecting/deleting/resizing regions preserves original media and extendable handles.
 
-### 7. Model capability metadata and language compatibility
-
-**Status:** Shared capability profiles and validation implemented. Retain integrated selector/bilingual verification; see [Model-Capabilities.md](Model-Capabilities.md).
-
-**Tracking:** [#6 — Show supported languages beneath each transcription model](https://github.com/andrey-reynov/rescript/issues/6).
-
-**Remaining work:**
-
-- Derive descriptions and language choices from shared, model-specific capability metadata instead of generic backend/English-only checks.
-- Distinguish supported spoken languages, automatic detection, and the ability to force a particular language, especially for Parakeet. Do not imply that every multilingual model accepts every explicit language.
-- Reuse the same capability information in the Settings model manager (item 2), full-audio retranscription (item 1), and selected-range transcription.
-
-**Acceptance criteria:**
-
-- Model descriptions agree with available language choices and actual backend capabilities. Unsupported explicit choices are rejected before inference/download starts.
-- Automatic detection versus forced-language limitations are clear. Descriptions remain localized/readable and preserve the existing grouped model-menu design.
-
 ### 8. Russian support and independent language settings: remaining verification
 
 **Status:** Existing UI and transcription language controls are separate and Russian UI exists; verify the remaining end-to-end acceptance criteria rather than reimplementing those controls.

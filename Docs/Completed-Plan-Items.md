@@ -266,3 +266,30 @@ Verified 2026-09-06 in the isolated production-built Electron app using actual r
 - Repeated full run with a known spoken word deleted: recognized “This” at 1.275–1.4330952380952382 while retaining that exact source-time cut and the prior manual cut. Group IDs are pruned, names/splits retained, original media is untouched. See stages nineteen through twenty-one for queued saves/import generation and preference preservation tests.
 - An active real job disabled Transcribe in an already open dialog and the top menu action; a second native start was rejected. Pausing allowed the next fresh run. The action also requires a project and usable selection/duration in source.
 - Restored the isolated project, job manifest and summary after closing the test app. Remaining broader model/installed/language and item 13 requirements remain in PLAN.md.
+
+## Item 7 acceptance complete
+
+### 7. Model capability metadata and language compatibility
+
+**Status:** Shared capability profiles and validation implemented. Retain integrated selector/bilingual verification; see [Model-Capabilities.md](Model-Capabilities.md).
+
+**Tracking:** [#6 — Show supported languages beneath each transcription model](https://github.com/andrey-reynov/rescript/issues/6).
+
+**Remaining work:**
+
+- Derive descriptions and language choices from shared, model-specific capability metadata instead of generic backend/English-only checks.
+- Distinguish supported spoken languages, automatic detection, and the ability to force a particular language, especially for Parakeet. Do not imply that every multilingual model accepts every explicit language.
+- Reuse the same capability information in the Settings model manager (item 2), full-audio retranscription (item 1), and selected-range transcription.
+
+**Acceptance criteria:**
+
+- Model descriptions agree with available language choices and actual backend capabilities. Unsupported explicit choices are rejected before inference/download starts.
+- Automatic detection versus forced-language limitations are clear. Descriptions remain localized/readable and preserve the existing grouped model-menu design.
+
+
+**Completion evidence:**
+
+- Shared profile metadata is consumed by model descriptions, Settings manager and both full/selected dialog instances. model-capabilities-test.ts and models-test.ts pass; invalid explicit Parakeet/Russian requests fail without a new job generation.
+- Runtime language menu matrix: Parakeet v3 exposes only Automatic; Tiny English exposes fixed English/English and disables Russian; Base exposes Automatic/Russian/English and its supported UI subset. Existing grouped model menu and localized descriptions retained.
+- Real managed Whisper Base/Russian inference under English UI kept the Russian text (“Неэронной сети. Это хорошо.”). Real Parakeet v3/Automatic CPU inference retained English and Russian in the bilingual fixture (“Hello. This is an example…” and “Нейронные сети это хорошо.”). These checks establish source-language retention, not perfect recognition accuracy.
+- Switched UI language through Settings in both directions; saved Russian transcription preference remained Russian. Restored test project/job files afterward. Fresh-install/native-menu/migration acceptance remains explicitly in item 8.
