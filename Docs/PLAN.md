@@ -45,20 +45,6 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 - Gameplay/music without speech can be distinguished from low-amplitude silence; overlap is shown in green.
 - Detector settings and the legend are understandable, and selecting/deleting/resizing regions preserves original media and extendable handles.
 
-### 8. Russian support and independent language settings: remaining verification
-
-**Status:** Existing UI and transcription language controls are separate and Russian UI exists; verify the remaining end-to-end acceptance criteria rather than reimplementing those controls.
-
-**Tracking:** [#4 — Add Russian language support](https://github.com/andrey-reynov/rescript/issues/4), [#7 — Separate UI language from transcription language and verify Russian UI](https://github.com/andrey-reynov/rescript/issues/7). Issue #4 has no description; use #7 and the agreed source-language requirements to define verification.
-
-**Remaining work / acceptance criteria:**
-
-- Verify English UI with Russian transcription and Russian UI with English transcription; changing either setting must not change the other.
-- Verify Russian speech stays Russian instead of being translated to English, with a compatible model.
-- Verify Russian localization in the editor, Project Manager, and native menus in a freshly installed build, including preference persistence after restart.
-- Verify migration preserves existing project language and UI locale preferences.
-- Apply item 7's model-specific Automatic/forced-language limitations consistently; fix only failures uncovered by these checks.
-
 ### 13. Clip-based transcript editing and phrase grouping
 
 **Status:** Implemented baseline, with continuous-flow and selection-scope refinements. Selected correction realignment is implemented; see [Selected-Text-Alignment.md](Selected-Text-Alignment.md). The full detailed acceptance audit remains open.

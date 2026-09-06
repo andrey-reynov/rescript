@@ -293,3 +293,21 @@ Verified 2026-09-06 in the isolated production-built Electron app using actual r
 - Runtime language menu matrix: Parakeet v3 exposes only Automatic; Tiny English exposes fixed English/English and disables Russian; Base exposes Automatic/Russian/English and its supported UI subset. Existing grouped model menu and localized descriptions retained.
 - Real managed Whisper Base/Russian inference under English UI kept the Russian text (“Неэронной сети. Это хорошо.”). Real Parakeet v3/Automatic CPU inference retained English and Russian in the bilingual fixture (“Hello. This is an example…” and “Нейронные сети это хорошо.”). These checks establish source-language retention, not perfect recognition accuracy.
 - Switched UI language through Settings in both directions; saved Russian transcription preference remained Russian. Restored test project/job files afterward. Fresh-install/native-menu/migration acceptance remains explicitly in item 8.
+
+
+### 8. Russian support and independent language settings: remaining verification
+
+**Status:** Existing UI and transcription language controls are separate and Russian UI exists; verify the remaining end-to-end acceptance criteria rather than reimplementing those controls.
+
+**Tracking:** [#4 — Add Russian language support](https://github.com/andrey-reynov/rescript/issues/4), [#7 — Separate UI language from transcription language and verify Russian UI](https://github.com/andrey-reynov/rescript/issues/7). Issue #4 has no description; use #7 and the agreed source-language requirements to define verification.
+
+**Remaining work / acceptance criteria:**
+
+- Verify English UI with Russian transcription and Russian UI with English transcription; changing either setting must not change the other.
+- Verify Russian speech stays Russian instead of being translated to English, with a compatible model.
+- Verify Russian localization in the editor, Project Manager, and native menus in a freshly installed build, including preference persistence after restart.
+- Verify migration preserves existing project language and UI locale preferences.
+- Apply item 7's model-specific Automatic/forced-language limitations consistently; fix only failures uncovered by these checks.
+
+
+**Completion evidence (2026-09-06):** Stage 27 records the independent UI/transcription language matrix, Cyrillic Whisper output under English UI, bilingual Parakeet output under Russian UI, and model-specific language restrictions. Stage 30 completes installed Russian editor/manager/native-menu checks, restart persistence, and older-project migration without retranscription. Original acceptance criteria above are retained for traceability.
