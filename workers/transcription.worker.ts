@@ -890,10 +890,11 @@ async function forceAlign(
   words: Word[],
   audio: Float32Array,
   duration: number,
-  language: TranscriptLanguage
+  language: TranscriptLanguage,
+  strict = false
 ): Promise<Word[]> {
   const info = alignModelFor(language);
-  if (!info) return words;
+  if (!info) {if(strict)throw Error('No CTC aligner for language: '+language);return words;}
 
   // Subscribe only while we are actually waiting. The aligner also warms in the
   // background during transcription, and those bytes must not fight the
@@ -943,12 +944,14 @@ async function forceAlign(
           emission,
           startSample / VAD_SAMPLE_RATE,
           slice.length / VAD_SAMPLE_RATE,
-          aligner.vocab
+          aligner.vocab,
+          strict
         );
       } catch (err) {
         console.warn("Forced alignment failed for one batch; keeping decoded times.", err);
       }
     }
+    if(strict&&!aligned)throw Error('Alignment could not measure the selected text. Existing timings were kept.');
     out.push(...(aligned ?? batch));
     done++;
     post({ type: "progress", message: en["progress.aligning"], value: done / batches.length });
@@ -1434,6 +1437,10 @@ self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
     const choice: ModelId = model ?? "base";
     const transcriptLanguage: TranscriptLanguage = language ?? "auto";
 
+    if(event.data.alignWords){
+      const aligned=await forceAlign(event.data.alignWords,audio,duration,transcriptLanguage,true);
+      cancelLive();post({type:'complete',words:aligned});return;
+    }
     if(!isModelId(choice))throw new Error("Unknown speech model: "+String(choice));
     assertModelLanguage(choice,transcriptLanguage);
     let words: Word[];

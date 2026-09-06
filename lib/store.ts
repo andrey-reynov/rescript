@@ -1,4 +1,5 @@
 "use client";
+import {applyAlignment,type AlignmentSelection} from './correction-alignment';
 import {normalizeSilenceSettings,type SilenceSettings,type AcousticAnalysis} from './silence-analysis';
 import {compatibleLanguage} from './model-capabilities';
 import {MODELS} from './models';
@@ -234,6 +235,7 @@ interface EditorState {
   restoreSelectedCut: () => boolean;
   /** Replace the selected (contiguous) words with corrected text. */
   correctWords: (ids: number[], text: string) => void;
+  applyWordAlignment: (selection:AlignmentSelection,result:Word[])=>void;
   /** Nudge a word's start/end on the timeline (may steal time from neighbors). */
   adjustWordBounds: (id: number, start: number, end: number) => void;
   /** Insert a scene boundary at the playhead. */
@@ -793,6 +795,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     const words=replaceTimedText(s.words,ids,text,blocks);const valid=new Set(words.map(w=>w.id));
     pushEdit(get,set,{words,phrases:s.phrases.map(g=>({...g,wordIds:g.wordIds.filter(id=>valid.has(id))})).filter(g=>g.wordIds.length>1),selectedWordIds:[]});
   },
+  applyWordAlignment:(selection,result)=>{const s=get();const blocks=transcriptBlocks(s.words,getCutRanges(s.words,s.duration,s.manualCuts),s.sceneBoundaries,s.duration);const words=applyAlignment(s.words,selection,result,blocks);pushEdit(get,set,{words});},
   setSilenceSettings:value=>{set({silenceSettings:normalizeSilenceSettings({...get().silenceSettings,...value})});bumpAutosave();},
   setTranscriptView:transcriptView=>{set({transcriptView});bumpAutosave();},
   selectWordRange:(ids,extend=false)=>{const s=get();const anchor=extend?s.selectionAnchor??ids[0]:ids[0];set({selectionAnchor:anchor??null,selectedWordIds:extend?selectedRange(s.words,anchor,ids):ids,selectedClipIndex:null,selectedCutIndex:null});},
