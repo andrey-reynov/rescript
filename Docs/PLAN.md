@@ -8,7 +8,7 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 
 ### 1. Retranscribe all from the top menu
 
-**Status:** Planned; not implemented.
+**Status:** Implemented and shipped in 1.3.0; retain final full/selected modal, cancellation/error, and conflicting-job acceptance audit.
 
 **Expected behavior:**
 
@@ -52,7 +52,7 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 
 ### 3. Transcript visibility and Import menu
 
-**Status:** Planned; not implemented.
+**Status:** Implemented; continuous text now uses natural-width virtualized lines. Retain full menu/import, view-state and bilingual acceptance audit; see Implementation-Progress.md.
 
 **Expected behavior:**
 
@@ -79,7 +79,7 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 
 ### 4. Resize deletion regions
 
-**Status:** Planned; GitHub issue open.
+**Status:** Implemented; focused bounds/undo/persistence tests pass. Retain direct pointer-resize and source-edge runtime audit.
 
 **Tracking:** [#2 — Make it possible to change the length of the deletion region](https://github.com/andrey-reynov/rescript/issues/2).
 
@@ -114,7 +114,7 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 
 ### 6. Merge and split speech blocks
 
-**Status:** Planned; GitHub issue open.
+**Status:** Implemented baseline; structure/state tests and initial grouping runtime checks pass. Retain remaining cross-boundary, mixed-speaker, and reopen acceptance audit.
 
 **Tracking:** [#5 — Merge and split speech blocks without losing source timestamps](https://github.com/andrey-reynov/rescript/issues/5). Roadmap: `Roadmap/03-Language-and-Transcript-Model.md`.
 
@@ -165,7 +165,7 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 
 ### 9. Hide offscreen word-selection toolbar
 
-**Status:** Planned for any retained legacy toolbar. Item 13 removes this toolbar from the default By clip view; do not rebuild it there.
+**Status:** Implemented for the optional speaker toolbar. Runtime hiding above/below the viewport, returning, and multi-word selection pass; retain resizing and action checks.
 
 **Related specification:** [Transcript editing workflow](Transcript-Editing-Workflow.md).
 
@@ -188,7 +188,7 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 
 ### 10. Project Manager buttons and revision modal
 
-**Status:** Planned; not implemented.
+**Status:** Implemented and shipped in 1.3.0; retain short-window, light/dark, keyboard and revision-restoration runtime audit.
 
 **Expected behavior:**
 
@@ -210,7 +210,7 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 
 ### 11. Waveform context menus
 
-**Status:** Planned; not implemented.
+**Status:** Implemented and shipped in 1.3.0; retain zoom/scroll, source-edge, overlapping deletion and menu keyboard runtime audit.
 
 **Expected behavior:**
 
@@ -234,7 +234,7 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 
 ### 12. Skip deletion areas playback toggle
 
-**Status:** Planned; not implemented.
+**Status:** Implemented and shipped in 1.3.0; retain integrated playback and independent visibility-toggle runtime audit.
 
 **Expected behavior:**
 
@@ -252,7 +252,7 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 
 ### 13. Clip-based transcript editing and phrase grouping
 
-**Status:** Planned; not implemented.
+**Status:** Implemented baseline, with continuous-flow and selection-scope refinements. Selected correction realignment and the full detailed acceptance audit remain open.
 
 **Detailed specification:** [Transcript-Editing-Workflow.md](Transcript-Editing-Workflow.md). This consolidates the agreed large editing update and refines items 3, 4, 6, 9, 11, and 12 without duplicating their implementation.
 

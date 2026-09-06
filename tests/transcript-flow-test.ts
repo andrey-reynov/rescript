@@ -1,0 +1,18 @@
+import assert from 'node:assert/strict';
+import {transcriptFlow} from '../lib/transcript-flow';
+const words=Array.from({length:200},(_,id)=>({id,text:'word',start:id,end:id+1,speaker:id%9}));
+const before=JSON.stringify(words);
+const lines=transcriptFlow(words,49,text=>text.length);
+assert.equal(lines[0].length,10);
+assert.equal(lines[7].at(-1)?.id,79);
+assert.equal(lines[8][0].id,80);
+assert.deepEqual(lines.flat(),words);
+assert.equal(JSON.stringify(words),before);
+assert.equal(transcriptFlow(words,99,text=>text.length)[0].length,20,'resizing reflows text');
+assert.deepEqual(transcriptFlow([{text:'oversized'},{text:'a'}],2,text=>text.length).map(line=>line.length),[1,1]);
+assert.deepEqual(transcriptFlow([],99,text=>text.length),[]);
+const huge=Array.from({length:50000},(_,id)=>({id,text:'слово'}));
+const started=performance.now();const packed=transcriptFlow(huge,500,text=>text.length*8);
+assert.equal(packed.flat().length,50000);assert(performance.now()-started<1000);
+assert(packed.every(line=>line.length<=10));
+console.log('Continuous transcript: width-based flow, identity preservation, resize, oversized words and 50,000-word projection passed.');

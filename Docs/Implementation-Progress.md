@@ -77,3 +77,12 @@ Latest static build predates the final small tweaks for Space replacement, no-op
 - `silence-analysis-test.ts`, `silence-jobs-test.ts`, `silence-state-test.ts`, localization tests and both type checks pass; static/Electron builds pass. Runtime evidence is detailed in Silence-Detection.md.
 - Isolated real analysis: 1,326 frames, all three colors, unchanged transcript/cuts before explicit deletion. Auto Cut + Undo preserved word timestamps; 20% threshold survived reopen. Fresh analysis completed across an editor reload. Dialog visual inspection and Escape were checked.
 - Full-plan completion remains unproven. Remaining areas include selected correction realignment, installed bilingual/Parakeet/migration checks, gameplay/music detector validation, long-video/editor keyboard and boundary audits, and the final requirement-by-requirement audit.
+
+
+## Stage six: continuous flow and viewport audit
+
+- Continuous text now packs visual rows using the actual 15px transcript font and available panel width, replacing arbitrary 80-word paragraph breaks. Font loading and panel resizing reflow the display; word identities and source data remain untouched. Visible rows and selected endpoints remain virtualized.
+- `transcript-flow-test.ts` verifies width-based wrapping, resize, oversized words, unchanged identities/data, and a 50,000-word projection. Renderer type checking, production static/Electron build, and changed-file lint pass (the existing TanStack compiler warning remains).
+- Isolated runtime with 10,000 mixed English/Russian words: first eight rows exactly matched an ordinary browser paragraph; only 136 word spans initially and 205 after scrolling were mounted. Word 2 stayed selected offscreen without seeking (source time 0); resized layout reflowed and mounted 88 spans. Screenshot inspected. Test fixture restored afterward.
+- Optional By speaker toolbar: selected word 150, scrolled above and below the viewport, returned, and extended to words 150–153. The toolbar was hidden with pointer events disabled offscreen and returned at the visible anchor; selection persisted throughout. Resize and restored toolbar actions still need a dedicated check before closing item 9.
+- This stage does not complete the full plan. Selected correction realignment, installed bilingual/Parakeet/migration checks, representative gameplay/music analysis, remaining keyboard/IME and clip-boundary runtime cases, and final requirement audit remain open.
