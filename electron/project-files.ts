@@ -28,6 +28,7 @@ export interface ProjectData {
   speakers?: unknown[];
   currentTime?: number;
   thumbnail?: string;
+  transcriptionPreservedCuts?: Array<{start:number;end:number}>;
   transcriptionComplete?: boolean;
   transcriptionResultKey?: string;
   transcriptionChunks?: number[];
@@ -211,8 +212,15 @@ export class ProjectFiles {
     return this.update(id,old=>{
       // An editor may have queued this save before the worker committed its result.
       // Keep the authoritative transcript until that editor has acknowledged it.
-      if(old.transcriptionResultKey && data.transcriptionResultKey!==old.transcriptionResultKey && data.source!=='import')
-        return {...data,words:old.words,speakers:old.speakers,transcriptionComplete:old.transcriptionComplete,transcriptionResultKey:old.transcriptionResultKey,transcriptionChunks:old.transcriptionChunks};
+      if(old.transcriptionResultKey && data.transcriptionResultKey!==old.transcriptionResultKey && data.source!=='import'){
+        let manualCuts=data.manualCuts;
+        if(old.transcriptionPreservedCuts?.length){
+          const incoming=(data.manualCuts??[]) as Array<{id:number;start:number;end:number}>;
+          let nextId=incoming.reduce((max,cut)=>Math.max(max,cut.id),0)+1;
+          manualCuts=[...incoming,...old.transcriptionPreservedCuts.map(range=>({...range,id:nextId++}))];
+        }
+        return {...data,manualCuts,phrases:old.phrases,transcriptionPreservedCuts:old.transcriptionPreservedCuts,words:old.words,speakers:old.speakers,transcriptionComplete:old.transcriptionComplete,transcriptionResultKey:old.transcriptionResultKey,transcriptionChunks:old.transcriptionChunks};
+      }
       if(old.transcriptionResultKey&&data.transcriptionResultKey===old.transcriptionResultKey&&old.transcriptionChunks?.some(index=>!data.transcriptionChunks?.includes(index))){
         const known=new Set(data.transcriptionChunks??[]);
         const incoming=data.words as Array<{id:number;start:number;end:number}>;const ids=new Set(incoming.map(word=>word.id));

@@ -1,3 +1,5 @@
+import {getCutRanges} from '../lib/edits';
+import type {Word,ManualCut} from '../lib/types';
 import assert from 'node:assert/strict';
 import {promises as fs} from 'node:fs';
 import path from 'node:path';
@@ -39,6 +41,25 @@ async function main(){
   assert.equal(publishTranscriptionProgress(result,job,[]),result,'Full replacement is also atomic');
   while(job.status!=='complete'){chunk=(await jobs.next(id))!;job=await jobs.checkpoint(id,job.key,chunk,[]);}
   const full=publishTranscriptionProgress(result,job,[]);assert.equal(full.words.length,0);assert.deepEqual(full.manualCuts,data.manualCuts);
+  const editData={...data,words:[{...word(10,1,2),deleted:true},word(11,10,11),{...word(12,20,21),deleted:true}],phrases:[{id:'obsolete',wordIds:[10,11]}],sceneBoundaries:[{id:8,time:30}],clipNames:[{id:'name',time:40,name:'Keep name'}]};
+  const cutsBefore=getCutRanges(editData.words,125,data.manualCuts as ManualCut[]);
+  const emptyRangeJob={...job,key:'empty-middle',replacementRange:{start:10,end:12}};
+  const emptyMiddle=publishTranscriptionProgress(editData,emptyRangeJob,[]);
+  assert.deepEqual(getCutRanges(emptyMiddle.words as Word[],125,emptyMiddle.manualCuts as ManualCut[]),cutsBefore,'Empty replacement cannot join separated word-owned cuts');
+  const allJob={...job,key:'full-with-cuts',replacementRange:{start:0,end:125}};
+  const preserved=publishTranscriptionProgress(editData,allJob,[word(0,1,22)]);
+  assert.deepEqual(getCutRanges(preserved.words as Word[],125,preserved.manualCuts as ManualCut[]),cutsBefore,'Full replacement retains deleted-word and manual cuts exactly');
+  assert.deepEqual(preserved.sceneBoundaries,editData.sceneBoundaries);assert.deepEqual(preserved.clipNames,editData.clipNames);assert.deepEqual(preserved.phrases,[]);
+  assert.equal(publishTranscriptionProgress(preserved,allJob,[]),preserved,'Repeated publication cannot duplicate cut ranges');
+  for(const status of ['running','paused','error'] as const)assert.equal(publishTranscriptionProgress(editData,{...allJob,status},[]),editData,'Unfinished/failed replacement leaves the whole edit untouched');
+  await projects.update(id,()=>preserved);
+  // A renderer save queued before publication must not remove materialized cuts,
+  // and an unrelated newly added manual cut must survive that same save.
+  const lateCut={id:2,start:60,end:65};
+  await projects.save(id,{...editData,manualCuts:[...(editData.manualCuts??[]),lateCut]});
+  const afterLate=(await projects.read(id)).data;
+  assert.deepEqual(getCutRanges(afterLate.words as Word[],125,afterLate.manualCuts as ManualCut[]),getCutRanges(editData.words,125,[...(editData.manualCuts as ManualCut[]),lateCut]));
+  assert.deepEqual(afterLate.phrases,[],'Queued save cannot revive obsolete phrase IDs');
   console.log('Range transcription: preparation-only, exact bounds, model/language, resume, atomic publication and edit preservation passed.');
  }finally{await fs.rm(root,{recursive:true,force:true});}
 }

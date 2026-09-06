@@ -169,3 +169,10 @@ Latest static build predates the final small tweaks for Space replacement, no-op
 - Regression tests cover overlap, no missing/duplicated words, projection across cuts and splits, and stable persisted group identity. Type checks, focused lint and production build pass.
 - Native runtime grouped/saved/reopened six mixed-speaker words, split into two three-word phrase projections, reopened/joined, verified original-time seeking paused, and ungrouped without word/cut changes. Fixture restored.
 - Item 6 is complete and moved with its original requirements to Completed-Plan-Items.md. The rest of PLAN.md remains pending.
+
+## Stage nineteen: source cuts survive retranscription publication
+
+- Found and fixed replacement publication losing cuts owned by deleted word IDs. Materialize their existing source ranges before replacing words; clear retained word deletion flags to prevent newly adjacent words bridging an empty replacement. Existing manual cuts remain intact, and the editor receives the published ranges with a fresh cut-ID counter.
+- Protect materialized ranges and pruned phrase IDs against a queued old-generation autosave. Reassign preserved-range IDs against incoming manual cuts so a concurrent new cut remains intact. Renderer publication also checks manual cut/split reference changes during its save/read round trip.
+- Native regression covers full and partial/empty replacement, exact effective cut geometry, retained names/splits, obsolete phrases, idempotent publication, paused/error atomicity, and late saves with a new manual cut. Progressive result tests and both type checks pass.
+- Item 1 remains pending: integrated fresh inference/modal checks, and the explicit-import exception in ProjectFiles.save versus a retranscription of an imported transcript still needs audit. Model/language preference publication and concurrent edit behavior require end-to-end verification before closing the item.

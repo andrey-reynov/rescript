@@ -25,11 +25,12 @@ export function useDesktopJob() {
           const result=await api.result(projectId);if(!current())return;
           const latest=useEditorStore.getState();
           // Do not replace an edit made while the save/read round trip was in flight.
-          if(latest.words!==before.words||latest.speakers!==before.speakers){again=true;return;}
+          if(latest.words!==before.words||latest.speakers!==before.speakers||latest.manualCuts!==before.manualCuts||latest.sceneBoundaries!==before.sceneBoundaries){again=true;return;}
           const data=result.project.data;
           if(job.transcribe&&data.transcriptionResultKey===job.key){
             const words=data.words as Word[];
-            useEditorStore.setState({words,phrases:data.phrases??[],selectedWordIds:[],selectionAnchor:null,speakers:speakersFromWords(words,latest.speakers),
+            const manualCuts=(data.manualCuts??[]) as typeof latest.manualCuts;
+            useEditorStore.setState({words,manualCuts,nextManualCutId:Math.max(latest.nextManualCutId,...manualCuts.map(cut=>cut.id+1)),selectedCutIndex:null,phrases:data.phrases??[],selectedWordIds:[],selectionAnchor:null,speakers:speakersFromWords(words,latest.speakers),
               transcriptionResultKey:job.key,transcriptionChunks:data.transcriptionChunks??[],
               skipTranscription:job.status==='complete',
               past:(job.replacementChunks||job.replacementRange)?[]:extendTranscriptHistory(latest.past,latest.words,words),
