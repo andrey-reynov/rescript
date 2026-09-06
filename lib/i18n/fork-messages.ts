@@ -3,6 +3,13 @@ import {ru} from './messages/ru';
 import type {UiLocale} from './locales';
 /** Copy added by the fork. Other locales retain English until translated. */
 export const forkRussian={
+ 'Select text to correct.':'Выберите текст для исправления.',
+ 'Select consecutive text to correct.':'Выберите последовательные слова для исправления.',
+ 'Correct visible words within one retained clip.':'Исправляйте видимые слова в пределах одного сохранённого клипа.',
+ 'Select at least two words in one clip.':'Выберите хотя бы два слова в одном клипе.',
+ 'Select consecutive words.':'Выберите последовательные слова.',
+ 'Group words within one retained clip.':'Объединяйте слова в пределах одного сохранённого клипа.',
+
  'Restoring revision…':'Восстановление ревизии…','Snapshot not found.':'Снимок не найден. Обновите список версий.',
  'Realign selected text':'Уточнить время слов','Realign':'Уточнить','Speech language':'Язык речи',
  'Adjust word timing against the audio. Text and timeline cuts stay unchanged.':'Уточнение времени слов по аудио. Текст и монтажные вырезы не изменятся.',

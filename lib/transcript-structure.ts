@@ -58,15 +58,21 @@ export function projectPhrases(groups:PhraseGroup[],blocks:TranscriptBlock[]):Ph
  }return result;
 }
 
-export function replaceTimedText(words:Word[],ids:number[],text:string,blocks:TranscriptBlock[]):Word[]{
- const selected=new Set(ids),members=words.filter(w=>selected.has(w.id));const tokens=text.trim().split(/\s+/u).filter(Boolean);
- if(!members.length)throw Error('Select text to correct.');
+/** Used before entering a draft and again at commit: never hide an invalid range. */
+export function correctionSelection(words:Word[],ids:number[],blocks:TranscriptBlock[]){
+ const selected=new Set(ids),members=words.filter(w=>selected.has(w.id));
+ if(!members.length||members.length!==selected.size)throw Error('Select text to correct.');
  const from=words.indexOf(members[0]),to=words.indexOf(members.at(-1)!);
  if(to-from+1!==members.length)throw Error('Select consecutive text to correct.');
- // Overlapping speech may end after the final source-ordered word. Keep the
- // entire selected interval, including when checking cuts and explicit splits.
+ // Overlapping speech can extend beyond the last source-ordered word.
  const start=members.reduce((value,word)=>Math.min(value,word.start),Infinity),end=members.reduce((value,word)=>Math.max(value,word.end),-Infinity);
  if(!blocks.some(b=>b.kind==='clip'&&b.start<=start&&b.end>=end)||members.some(w=>w.deleted))throw Error('Correct visible words within one retained clip.');
+ return {members,from,to,start,end};
+}
+
+export function replaceTimedText(words:Word[],ids:number[],text:string,blocks:TranscriptBlock[]):Word[]{
+ const {members,from,to,start,end}=correctionSelection(words,ids,blocks);
+ const tokens=text.trim().split(/\s+/u).filter(Boolean);
  const inherited=members.flatMap(w=>w.correction?.sourceWordIds??[w.id]);
  const provenance:CorrectionProvenance={sourceWordIds:[...new Set(inherited)],sourceStart:Math.min(...members.map(w=>w.correction?.sourceStart??w.start)),sourceEnd:Math.max(...members.map(w=>w.correction?.sourceEnd??w.end)),originalText:members.filter((w,i)=>!w.correction||i===0||w.correction.sourceStart!==members[i-1].correction?.sourceStart||w.correction.sourceEnd!==members[i-1].correction?.sourceEnd).map(w=>w.correction?.originalText??w.text).join(' '),timing:'approximate'};
  const speaker=members.every(w=>w.speaker===members[0].speaker)?members[0].speaker:-1;

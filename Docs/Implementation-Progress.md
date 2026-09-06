@@ -156,3 +156,9 @@ Latest static build predates the final small tweaks for Space replacement, no-op
 - Actual renderer input test replaced two selected words with English/Russian text, committed with Enter without changing cuts/splits, verified approximate provenance and saved output, then restored original words with Undo. Double-click opened existing text; native Select All/Backspace edited characters, and Escape discarded the draft without cutting media. Fixture restored.
 - Simulated key-229 Enter left the correction open. This proves event routing, not full OS IME composition entry; that remains pending. The first harness attempt omitted native Select All's virtual key code; adding it made the character-deletion check pass without an app change.
 - Focused composition test and production build pass. Full item 13 acceptance remains open.
+
+## Stage seventeen: correction draft eligibility
+
+- Shared correction selection validation now runs before opening any correction draft (typing, double-click, context action or legacy toolbar), and again during commit. Cross-cut/split, disjoint and stale-ID selections cannot hide text in an invalid draft. IDs are normalized to source order.
+- Runtime cross-split selection of four words rejected typing with an explanation, retained all four selected spans and preserved saved words/cuts/splits/phrases. The valid bilingual replacement/Enter/Undo/double-click/Backspace/Escape checks passed again. Fixture restored.
+- Added missing Russian translations for correction/grouping eligibility errors discovered in that runtime check. Structure/state tests and production build pass; item 13 remains open for its remaining acceptance scope.

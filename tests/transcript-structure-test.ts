@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {transcriptBlocks,groupPhrase,projectPhrases,selectedRange,replaceTimedText} from '../lib/transcript-structure';
+import {correctionSelection,transcriptBlocks,groupPhrase,projectPhrases,selectedRange,replaceTimedText} from '../lib/transcript-structure';
 import type {Word} from '../lib/types';
 const words:Word[]=Array.from({length:8},(_,id)=>({id,text:'word'+id,start:id,end:id+.8,speaker:id%2,deleted:false}));
 const cut=[{start:3,end:5}],splits=[{id:1,time:6}];
@@ -36,3 +36,10 @@ for(const boundaryBlocks of [transcriptBlocks(overlapping,[],[{id:9,time:3}],8),
 }
 assert.deepEqual(overlapping,unchanged,'Neither accepted nor rejected operations mutate source words');
 console.log('Overlapping speech: full correction span, mixed metadata and cross-boundary rejection passed.');
+
+assert.throws(()=>correctionSelection(words,[0,999],blocks),/Select text/,'Stale selection cannot silently correct only its surviving IDs');
+assert.throws(()=>correctionSelection(words,[0,2],blocks),/consecutive/);
+assert.throws(()=>correctionSelection(words,[2,3,4,5],blocks),/one retained clip/);
+assert.deepEqual(correctionSelection(words,[1,0],blocks).members.map(w=>w.id),[0,1],'Draft anchor follows source order');
+assert.equal(correctionSelection(overlapping,[0,1],overlapBlocks).end,4);
+console.log('Correction draft preflight rejects stale, disjoint and cross-cut selections.');

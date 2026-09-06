@@ -23,7 +23,7 @@ import RealignSelection from './RealignSelection';
 import {alignmentSelection,type AlignmentSelection} from '@/lib/correction-alignment';
 import ActionMenu from './ActionMenu';
 import {intervalDuration,hiddenSelectionCount} from '@/lib/transcript-presentation';
-import {transcriptBlocks,type TranscriptBlock} from '@/lib/transcript-structure';
+import {transcriptBlocks,correctionSelection,type TranscriptBlock} from '@/lib/transcript-structure';
 import TranscriptionSetup from "./TranscriptionSetup";
 import TranscriptToolsMenu from "./TranscriptToolsMenu";
 import TranscriptSearch from "./TranscriptSearch";
@@ -320,18 +320,20 @@ export default function TranscriptPanel() {
     clearSelection();
   }, [selection, restoreWords, clearSelection]);
 
+  const beginCorrection=useCallback((ids:number[],replacement?:string)=>{
+    if(status!=='ready')return;
+    try{
+      const {members}=correctionSelection(words,ids,blocks);
+      freezeSelectionRef.current=true;setEditError('');
+      setCorrecting({ids:members.map(word=>word.id)});
+      setCorrectText(replacement??members.map(word=>word.text).join(' '));
+      releaseToolbar();
+    }catch(e){setEditError(e instanceof Error?e.message:String(e));}
+  },[status,words,blocks,releaseToolbar]);
+
   const openCorrect = useCallback(() => {
-    if (!selection) return;
-    const idSet = new Set(selection.ids);
-    const text = words
-      .filter((w) => idSet.has(w.id))
-      .map((w) => w.text)
-      .join(" ");
-    freezeSelectionRef.current = true;
-    setCorrectText(text);
-    setCorrecting({ ids: selection.ids });
-    releaseToolbar();
-  }, [selection, words, releaseToolbar]);
+    if(selection)beginCorrection(selection.ids);
+  }, [selection,beginCorrection]);
 
   const closeCorrect = useCallback(() => {
     freezeSelectionRef.current = false;
@@ -386,9 +388,6 @@ export default function TranscriptPanel() {
     return () => document.removeEventListener("keydown", handler);
   }, [view,selection, assigningSpeaker, correcting, openSpeakerAssign]);
 
-  const beginCorrection=(ids:number[],replacement?:string)=>{
-    if(!ids.length)return;freezeSelectionRef.current=true;setEditError('');setCorrecting({ids});setCorrectText(replacement??words.filter(w=>ids.includes(w.id)).map(w=>w.text).join(' '));
-  };
   const contextRun=(action:()=>void)=>()=>{try{action();setEditError('');}catch(e){setEditError(e instanceof Error?e.message:String(e));}};
   const editKey=(e:React.KeyboardEvent)=>{
     if(e.isDefaultPrevented()||isCompositionKey(e.nativeEvent)||isTypingTarget(e.target)||e.ctrlKey||e.metaKey||e.altKey||correcting||!selectedWordIds.length||status!=='ready')return;
