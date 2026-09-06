@@ -7,12 +7,12 @@ Objective: implement all of PLAN.md and Transcript-Editing-Workflow.md. This log
 | Plan item | Current state | Remaining verification/work |
 |---|---|---|
 | 1 Full-audio retranscription | Implemented in shared modal, IPC and job service | Final integrated regression after clip/phrase persistence is added |
-| 2 Models manager | Pending | Settings downloads/deletion/location/relocation and runtime/cache integration |
+| 2 Models manager | Implemented native storage and Settings controls | Final installed/Parakeet and interruption audit |
 | 3 Transcript views/menu | Implemented baseline clip/speaker/continuous rendering and grouped menu | Final boundary/long-video/UI audit |
 | 4 Resize deletion regions | Implemented direct selected-cut handles and keyboard nudges | Final pointer/edge/overlap audit |
-| 5 Silence blocks | Pending | Separate amplitude/no-speech detectors, settings and visualization |
+| 5 Silence blocks | Implemented real RMS/VAD analysis, controls and timeline regions | Final gameplay/music and installed-build audit |
 | 6 Speech block operations | Pending | Resolve through distinct clip/phrase operations in item 13 |
-| 7 Capability metadata | Pending | Explicit model language/forced-language capabilities and shared UI |
+| 7 Capability metadata | Implemented shared profiles and UI/native/worker guards | Integrated selector and bilingual audit |
 | 8 Russian verification | Pending | Full bilingual/install/migration matrix |
 | 9 Offscreen toolbar | Removed in default clip view; clipping middleware added for legacy toolbar | Runtime scroll test with offscreen anchor after final rebuild |
 | 10 Project Manager UI | Implemented | Final visual/theme/accessibility audit with long revision lists |
@@ -57,3 +57,23 @@ Implementation caveats still to resolve: do not allow per-row virtualization to 
 Remaining full-plan work: native models manager/download storage/relocation; model language capability consistency; silence detection/settings/colors/actions; selected correction realignment/timing validation; comprehensive installed bilingual/migration checks; runtime drag/resize, restore/join and hidden-word edge cases; offscreen legacy toolbar proof; keyboard/IME/focus and long-video performance audit; final installer and full requirement audit. Timeline/deletion/editor changes are substantial progress, not proof of full plan completion.
 
 Latest static build predates the final small tweaks for Space replacement, no-op corrections, localized partial-cut/timing tooltips, and keyboard deletion clamp/Enter parity. Rebuild before final runtime audit. Test app launched for stage three used isolated bootstrap process 29848; close it after checks rather than relying on this PID across turns.
+
+
+## Stage four: model management and language capabilities
+
+- Shared model capabilities distinguish supported spoken languages, explicit Whisper language selection, fixed-English models, and automatic-only Parakeet v3. Both transcription modals use the same language picker; job/worker guards reject incompatible requests before loading. See Model-Capabilities.md for evidence and backend limitations.
+- Added native file manifests, streamed downloads, bounded legacy imports, verified per-file relocation and retained old locations for default-folder changes. Settings Models exposes download/delete/folder/relocate/progress/errors; worker model loading uses the same managed files. See Model-Storage.md.
+- Type checks, static/Electron builds, full lint (existing two warnings), model/storage/job/localization tests pass.
+- Isolated runtime: migrated seven Tiny English artifacts (122,390,002 bytes); full-audio job completed with 45 words and cuts preserved. Settings downloaded all seven Tiny artifacts (122,468,518 bytes), then Delete removed them and availability became false. Folder selection preserved existing Tiny English availability in its old location.
+- Model capabilities and storage acceptance continue with relocation/restart, native Parakeet and final installed bilingual checks; silence detection and the remaining editing/performance requirements are still outstanding.
+
+- Settings relocation moved Tiny English, Base, Medium and Turbo to the selected folder with no models left in prior locations. After restart with Tiny English Hub downloads blocked in both native and renderer paths, full transcription again completed (45 words, cuts preserved). Cached-import tokens are owned by their renderer and cancelled on navigation/close/crash.
+
+
+## Stage five: separate acoustic detectors
+
+- Added RMS and Silero probability analysis in saved 60-second batches, a separate background renderer, pause/resume, source fingerprint checks and damaged-batch recovery. Existing transcript jobs and edits are untouched.
+- Timeline Silence detection opens configurable amplitude/VAD thresholds, minimum duration and blue/yellow/green legend. Region deletion and Auto Cut are explicit, preserve source handles, and use normal undo/resize/restore behavior. Project settings persist; derived frame data lives in the source cache.
+- `silence-analysis-test.ts`, `silence-jobs-test.ts`, `silence-state-test.ts`, localization tests and both type checks pass; static/Electron builds pass. Runtime evidence is detailed in Silence-Detection.md.
+- Isolated real analysis: 1,326 frames, all three colors, unchanged transcript/cuts before explicit deletion. Auto Cut + Undo preserved word timestamps; 20% threshold survived reopen. Fresh analysis completed across an editor reload. Dialog visual inspection and Escape were checked.
+- Full-plan completion remains unproven. Remaining areas include selected correction realignment, installed bilingual/Parakeet/migration checks, gameplay/music detector validation, long-video/editor keyboard and boundary audits, and the final requirement-by-requirement audit.

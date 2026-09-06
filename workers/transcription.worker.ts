@@ -1,3 +1,5 @@
+import {nativeModelCache,managedModelUrl} from '@/lib/model-worker-cache';
+import {modelFileUrl,modelFileFromUrl} from '@/lib/model-files';
 import {detectWhisperLanguage} from '@/lib/whisper-language';
 /**
  * Transcription worker: runs entirely in the browser.
@@ -39,7 +41,7 @@ import { en } from "@/lib/i18n/messages/en";
 import type { Word, WorkerRequest, WorkerResponse } from "@/lib/types";
 import {
   MODELS,
-  modelSupportsLanguage,
+  assertModelLanguage,
   isModelId,
   type ParakeetModel,
   isParakeetModel,
@@ -100,6 +102,9 @@ import { isWebGpuDeviceLostError } from "@/lib/webgpu";
 env.fetch = installFetchRetry(self as unknown as { fetch: typeof fetch });
 
 env.allowLocalModels = false;
+let nativeModels=typeof self!=='undefined'&&self.location.protocol==='app:';
+function configureNativeModels(){const fetcher=env.fetch!;env.useCustomCache=true;env.customCache=nativeModelCache(fetcher);env.fetch=(input,init)=>{const url=typeof input==='string'?input:input.href;return fetcher(modelFileFromUrl(url)?managedModelUrl(url):input,init);};}
+if(nativeModels)configureNativeModels();
 /**
  * Where {@link MODELS} entries flagged `local` are served from — an export that
  * has not been published to the Hub yet, sitting in public/models/<id>/.
@@ -327,7 +332,12 @@ function parakeetModel(choice:ParakeetModel): ModelDefinition<ParakeetInstance> 
       ]);
     },
     load: async ({ progress }) => {
-      const { fromHub } = await import("parakeet.js");
+      const { fromHub:hubLoader,fromUrls } = await import("parakeet.js");
+      const fromHub:typeof hubLoader=async(id,options)=>{
+       if(!nativeModels)return hubLoader(id,options);
+       const gpu=options?.backend?.startsWith('webgpu');const url=(file:string)=>managedModelUrl(modelFileUrl(choice,file));
+       return fromUrls({...options,encoderUrl:url(gpu?'encoder-model.fp16.onnx':'encoder-model.int8.onnx'),decoderUrl:url(gpu?'decoder_joint-model.onnx':'decoder_joint-model.fp16.onnx'),tokenizerUrl:url('vocab.txt'),preprocessorUrl:url('nemo128.onnx')});
+      };
       const onProgress = (p: { loaded: number; total: number; file: string }) => {
         if (!p.file) return;
         progress.dispatch({
@@ -1418,13 +1428,14 @@ async function runWhisper(
 
 self.onmessage = async (event: MessageEvent<WorkerRequest>) => {
   const { audio, duration, model, language, preferWasm } = event.data;
+  if(event.data.desktopModels&&!nativeModels){nativeModels=true;configureNativeModels();}
   if(preferWasm)fallbackDevicePolicy.preferWasm();
   try {
     const choice: ModelId = model ?? "base";
     const transcriptLanguage: TranscriptLanguage = language ?? "auto";
 
     if(!isModelId(choice))throw new Error("Unknown speech model: "+String(choice));
-    if(!modelSupportsLanguage(choice,transcriptLanguage))throw new Error("This model supports English only. Choose a multilingual model for Russian.");
+    assertModelLanguage(choice,transcriptLanguage);
     let words: Word[];
     if (isParakeetModel(choice)) {
       words = await runParakeet(audio, duration, transcriptLanguage, choice);

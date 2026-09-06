@@ -1,3 +1,4 @@
+import {assertModelLanguage} from '../lib/models';
 import { promises as fs } from 'node:fs';
 import path from 'node:path';
 import { createHash, randomUUID } from 'node:crypto';
@@ -66,6 +67,7 @@ export class TranscriptionJobs {
     return result.sort((a,b)=>a-b);
   }
   start(id:string,model:string,language:string,transcribe:boolean):Promise<JobState>{return this.serial(async()=>{
+    if(transcribe)assertModelLanguage(model,language);
     const doc=await this.projects.read(id);await this.projects.mediaPath(id);
     const key=createHash('sha256').update(JSON.stringify({fingerprint:doc.media.fingerprint,model,language,task:"transcribe",version:2,chunk:JOB_CHUNK_SECONDS,transcribe})).digest('hex').slice(0,24);
     const old=await this.read(id);
@@ -121,6 +123,7 @@ export class TranscriptionJobs {
     return this.write(job);
   });}
   transcribeRange(id:string,start:number,end:number,model:string,language:string):Promise<JobState>{return this.serial(async()=>{
+    assertModelLanguage(model,language);
     const old=await this.read(id),doc=await this.projects.read(id);
     if(!old || old.status==='preparing'||old.status==='running')throw Error('Wait for audio preparation or pause processing first.');
     if(!Number.isFinite(start)||!Number.isFinite(end)||start<0||end<=start||end>old.sampleCount/RATE)throw Error('Select a valid source range.');

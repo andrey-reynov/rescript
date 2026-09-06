@@ -1,4 +1,6 @@
 "use client";
+import SilenceControls from './SilenceControls';
+import {silenceDetections,detectionCuts,type DetectionRange} from '@/lib/silence-analysis';
 
 import {
   useCallback,
@@ -111,8 +113,10 @@ function DeletionHandles({cuts,selected,duration,pps,onStart}:{cuts:Array<{start
 }
 
 export default function Timeline() {
-  const [context,setContext]=useState<{x:number;y:number;time:number;wordId?:number}|null>(null);
+  const [context,setContext]=useState<{x:number;y:number;time:number;wordId?:number;detection?:DetectionRange}|null>(null);
   const [contextError,setContextError]=useState('');
+  const acoustic=useEditorStore(s=>s.acousticAnalysis),silenceSettings=useEditorStore(s=>s.silenceSettings);
+  const detected=useMemo(()=>silenceDetections(acoustic,silenceSettings).ranges,[acoustic,silenceSettings]);
   const { t } = useI18n();
   const f=useForkI18n();
   const waveform = useEditorStore((s) => s.waveform);
@@ -652,10 +656,11 @@ export default function Timeline() {
     e.preventDefault();e.stopPropagation();const wordEl=(e.target as HTMLElement).closest<HTMLElement>('[data-timeline-word]');
     const wordId=wordEl?Number(wordEl.dataset.timelineWord):undefined;const time=timeFromClientX(e.clientX);const store=useEditorStore.getState();
     if(wordId!==undefined){if(!store.selectedWordIds.includes(wordId))store.selectWordRange((wordEl?.dataset.wordIds??String(wordId)).split(',').map(Number));}else seekTo(time);
-    setContextError('');setContext({x:e.clientX,y:e.clientY,time,wordId});
+    setContextError('');setContext({x:e.clientX,y:e.clientY,time,wordId,detection:detected.find(range=>String(range.start)===(e.target as HTMLElement).closest<HTMLElement>('[data-detection-start]')?.dataset.detectionStart)});
   };
   const safeAction=(action:()=>void)=>()=>{try{action();}catch(e){setContextError(e instanceof Error?e.message:String(e));}};
   const contextActions:MenuAction[]=[];
+  if(context?.detection)contextActions.push({id:'delete-detected',label:f('Delete detected region'),icon:<Trash2 size={13}/>,shortcut:'⌫',run:()=>useEditorStore.getState().cutRanges(detectionCuts([context.detection!],silenceSettings,duration))});
   if(context&&duration>0){
     if(context.wordId!==undefined){
       const word=words.find(w=>w.id===context.wordId);
@@ -738,13 +743,14 @@ export default function Timeline() {
         </div>
 
         <div className="order-2 flex h-9 items-center justify-end gap-1 sm:order-3 sm:h-auto sm:flex-1">
-          <RetranscribeSelection>{retranscribe=><ActionMenu label={f('More timeline tools')} favoritesKey="rescript.timeline-favorites.v1" defaults={['split','delete','restore']} actions={[
+          <SilenceControls>{openSilence=><RetranscribeSelection>{retranscribe=><ActionMenu label={f('More timeline tools')} favoritesKey="rescript.timeline-favorites.v1" defaults={['split','delete','restore']} actions={[
             {id:'split',label:t('timeline.split'),icon:<SquareSplitHorizontal size={13}/>,shortcut:'S',disabled:!ready||!splitOk,title:t(splitOk?'timeline.splitTitle':'timeline.splitDisabled'),run:()=>useEditorStore.getState().splitAtPlayhead()},
             {id:'delete',label:t('timeline.delete'),icon:<Trash2 size={13}/>,shortcut:'⌫',disabled:!ready||!deleteOk,title:t(deleteOk?'timeline.deleteTitle':'timeline.deleteDisabled'),run:()=>useEditorStore.getState().deleteSelectedClip()},
             {id:'restore',label:t('timeline.restore'),icon:<RotateCcw size={13}/>,shortcut:'⌫',disabled:!ready||!restoreOk,title:t(restoreOk?'timeline.restoreTitle':'timeline.restoreDisabled'),run:()=>{const store=useEditorStore.getState();if(store.selectedCutIndex!=null)store.restoreSelectedCut();else if(selectedWordsAllCutOut){store.restoreWords(store.selectedWordIds);store.setSelectedWords([]);}}},
             {id:'skip-deletions',label:f('Skip deletion areas'),icon:<Play size={13}/>,checked:skipDeletions,favoritable:false,run:()=>useEditorStore.getState().toggleSkipDeletions()},
+            {id:'silence',label:f('Silence detection'),icon:<AudioLines size={13}/>,run:openSilence},
             {id:'retranscribe',label:f('Retranscribe'),icon:<AudioLines size={13}/>,disabled:retranscribe.disabled,run:retranscribe.open},
-          ]}/>}</RetranscribeSelection>
+          ]}/>}</RetranscribeSelection>}</SilenceControls>
 
           <div className="mx-0.5 h-4 w-px bg-zinc-200 dark:bg-zinc-700" />
 
@@ -804,6 +810,7 @@ export default function Timeline() {
           style={{ cursor: dragging ? "col-resize" : "default" }}
         >
           <div className="relative h-full" style={{ width: totalWidth }}>
+            {silenceSettings.visible&&detected.filter(range=>range.end*pps>=scrollLeft&&range.start*pps<=scrollLeft+width).map(range=><button key={range.start+':'+range.kind} data-tl-interactive data-detection-start={range.start} type="button" aria-label={f(range.kind==='amplitude'?'Amplitude silence':range.kind==='noSpeech'?'No speech':'Overlap')+' '+range.start.toFixed(2)+'–'+range.end.toFixed(2)} title={f('Select a detected region. Right-click for actions.')} onPointerDown={event=>event.stopPropagation()} onClick={()=>{useEditorStore.setState({selectedClipIndex:null,selectedCutIndex:null,selectedWordIds:[]});}} onKeyDown={event=>{if(event.key==='Delete'||event.key==='Backspace'){event.preventDefault();event.stopPropagation();useEditorStore.getState().cutRanges(detectionCuts([range],silenceSettings,duration));}}} className="absolute z-[5] h-2 rounded-sm opacity-75 hover:opacity-100 focus:outline-2 focus:outline-offset-1 focus:outline-zinc-900 dark:focus:outline-white" style={{left:range.start*pps,width:Math.max(2,(range.end-range.start)*pps),top:RULER_H+WORDBAR_H+1,backgroundColor:silenceSettings.colors[range.kind]}}/>)}
             {/* Split markers between touching clips — hover to reveal "join" */}
             {splits.map((b) => {
               const hovered = hoveredSplitId === b.id;

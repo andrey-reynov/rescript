@@ -47,6 +47,7 @@ export interface ProjectRecord extends ProjectMeta {
   transcriptView?: import("./transcript-schema").TranscriptView;
   showDeleted: boolean;
   skipDeletions?: boolean;
+  silenceSettings?:import("./silence-analysis").SilenceSettings;
   /** Blade/trim cuts not owned by deleted words (optional for older saves). */
   manualCuts?: ManualCut[];
   /** Scene split points in original media time (optional for older saves). */
@@ -245,6 +246,7 @@ export async function putProject(input: ProjectWrite): Promise<string> {
     phrases:input.phrases??[],clipNames:input.clipNames??[],transcriptView:input.transcriptView??"clips",
     showDeleted: input.showDeleted,
     skipDeletions: input.skipDeletions ?? true,
+    silenceSettings:input.silenceSettings,
     manualCuts: input.manualCuts ?? [],
     sceneBoundaries: input.sceneBoundaries ?? [],
     speakers: input.speakers ?? [],

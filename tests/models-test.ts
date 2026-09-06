@@ -104,7 +104,8 @@ assert(MODEL_ORDER.length===Object.keys(MODELS).length,'all registered models se
 for(const id of MODEL_ORDER){
  assert(isWhisperModel(id)!==isParakeetModel(id),'exactly one backend: '+id);
  assert(modelSupportsLanguage(id,'auto'),'Automatic supported: '+id);
- assert(modelSupportsLanguage(id,'ru')===!MODELS[id].englishOnly,'Russian capability: '+id);
+ assert(modelSupportsLanguage(id,'ru')===(MODELS[id].capabilities.languageSelection==='explicit'),'Russian forcing capability: '+id);
+ assert(!modelSupportsLanguage(id,'invalid-language'),'unknown language rejected');
 }
 for(const id of ['medium','largeV2','largeV3','turbo','distilSmall','distilLargeV3','distilLargeV35','tinyEn','parakeetV2'])assert(isModelId(id),'new model registered: '+id);
 for(const id of ['crisperSmall','crisperTurbo','missing',null,{},'toString'])assert(!isWhisperModel(id)&&!isParakeetModel(id),'unknown model rejected');

@@ -417,7 +417,7 @@ export function ModelOption({
             <span className="shrink-0 text-[11px] text-zinc-400 dark:text-zinc-500">{resolvedMeta}</span>
           )}
         </span>
-        {model&&<span className="pl-6 text-[11px] text-zinc-500">{f(model.englishOnly?"English only":model.backend==='parakeet'?"25 European languages, including Russian · automatic detection":"Multilingual, including Russian and English")}</span>}
+        {model&&<span className="pl-6 text-[11px] text-zinc-500">{f(model.capabilities.description)}</span>}
         {children}
       </button>
     </OptionCtx.Provider>

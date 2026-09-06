@@ -276,6 +276,7 @@ export default function Editor() {
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
       if (isTypingTarget(e.target)) return;
+      if((e.target as HTMLElement)?.closest?.('dialog,[role="dialog"],[role="menu"],[role="listbox"]'))return;
       const s = useEditorStore.getState();
       const transcriptTarget=(e.target as HTMLElement)?.closest?.('[data-transcript-editor]');
       if(e.isComposing)return;

@@ -12,6 +12,22 @@ contextBridge.exposeInMainWorld("rescriptDesktop", {
     ipcRenderer.on("project:flush-request", listener);
     return () => { ipcRenderer.removeListener("project:flush-request", listener); };
   },
+  silence:{
+    read:(id:string)=>ipcRenderer.invoke('silence:read',id),result:(id:string)=>ipcRenderer.invoke('silence:result',id),start:(id:string)=>ipcRenderer.invoke('silence:start',id),pause:(id:string)=>ipcRenderer.invoke('silence:pause',id),
+    onChanged:(callback:(id:string)=>void)=>{const listener=(_event:unknown,id:string)=>callback(id);ipcRenderer.on('silence:changed',listener);return()=>ipcRenderer.removeListener('silence:changed',listener);},
+  },
+  silenceProcessing:{take:()=>ipcRenderer.invoke('silence-worker:take'),checkpoint:(index:number,rms:number[],speech:number[])=>ipcRenderer.invoke('silence-worker:checkpoint',index,rms,speech),progress:(value:number)=>ipcRenderer.invoke('silence-worker:progress',value),fail:(message:string)=>ipcRenderer.invoke('silence-worker:fail',message)},
+  models:{
+    status:(gpu:boolean)=>ipcRenderer.invoke('models:status',gpu),
+    download:(id:string,gpu:boolean)=>ipcRenderer.invoke('models:download',id,gpu),
+    remove:(id:string)=>ipcRenderer.invoke('models:remove',id),
+    chooseFolder:()=>ipcRenderer.invoke('models:choose-folder'),
+    relocate:()=>ipcRenderer.invoke('models:relocate'),
+    importStart:(id:string,file:string,size:number)=>ipcRenderer.invoke('models:import-start',id,file,size),
+    importAppend:(token:string,offset:number,bytes:Uint8Array)=>ipcRenderer.invoke('models:import-append',token,offset,bytes),
+    importFinish:(token:string)=>ipcRenderer.invoke('models:import-finish',token),
+    importCancel:(token:string)=>ipcRenderer.invoke('models:import-cancel',token),
+  },
   jobs: {
     start: (id:string,model:string,language:string,transcribe:boolean) => ipcRenderer.invoke('job:start',id,model,language,transcribe),
     read: (id:string) => ipcRenderer.invoke('job:read',id),

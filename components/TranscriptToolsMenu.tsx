@@ -10,7 +10,7 @@ import {
   MIN_SILENCE_DURATION,
 } from "@/lib/silences";
 import Popover, { PopoverContent, PopoverTrigger } from "./Popover";
-import { useI18n } from "./I18nProvider";
+import { useI18n,useForkI18n } from "./I18nProvider";
 import type { MessageKey } from "@/lib/i18n";
 
 /**
@@ -81,7 +81,7 @@ const TOOLS: ToolDef[] = [
  * right now" — and the menu hides itself when that leaves none.
  */
 export default function TranscriptToolsMenu() {
-  const { t } = useI18n();
+  const { t } = useI18n();const f=useForkI18n();
   const words = useEditorStore((s) => s.words);
   const duration = useEditorStore((s) => s.duration);
   const manualCuts = useEditorStore((s) => s.manualCuts);
@@ -157,7 +157,7 @@ export default function TranscriptToolsMenu() {
               key={tool.key}
               type="button"
               role="menuitem"
-              title={t(tool.titleKey, {
+              title={tool.key==='remove-silences'?f('Gaps between recognized words; not measured acoustic silence.'):t(tool.titleKey, {
                 seconds: MIN_SILENCE_DURATION,
               })}
               onClick={() => {
@@ -169,7 +169,7 @@ export default function TranscriptToolsMenu() {
               <span className="shrink-0 text-zinc-400 dark:text-zinc-500">
                 <tool.Icon size={14} />
               </span>
-              <span className="flex-1">{t(tool.labelKey)}</span>
+              <span className="flex-1">{tool.key==='remove-silences'?f('Cut transcript gaps'):tool.key==='restore-silences'?f('Restore empty cuts'):t(tool.labelKey)}</span>
               <span className="shrink-0 text-[11px] tabular-nums text-zinc-400 dark:text-zinc-500">
                 {count}
               </span>

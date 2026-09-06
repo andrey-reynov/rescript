@@ -11,6 +11,7 @@ export interface SourceReference {
 }
 
 export interface ProjectData {
+  silenceSettings?:import("../lib/silence-analysis").SilenceSettings;
   id: string;
   name: string;
   mediaKind: "audio" | "video";

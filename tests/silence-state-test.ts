@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {useEditorStore as store} from '../lib/store';
+import {projectPayload} from '../lib/autosave';
+import {silenceDetections,normalizeSilenceSettings,detectionCuts,type AcousticAnalysis} from '../lib/silence-analysis';
+const words=[{id:1,text:'quiet voice',start:2,end:2.5,speaker:0,deleted:false}];
+const analysis:AcousticAnalysis={version:1,fingerprint:'source',duration:4,frameSeconds:1,rms:[.5,.01,.01,.5],speech:[0,0,1,1]};
+store.setState({words,duration:4,manualCuts:[],past:[],future:[],sceneBoundaries:[],acousticAnalysis:analysis});
+store.getState().setSilenceSettings({thresholdMode:'absolute',absoluteDb:-20,minDuration:0});
+assert.deepEqual(store.getState().words,words);assert.deepEqual(store.getState().manualCuts,[],'settings alone never delete');
+const settings=store.getState().silenceSettings;const detected=silenceDetections(analysis,settings);store.getState().cutRanges(detectionCuts(detected.noSpeech,settings,4));
+assert.ok(store.getState().manualCuts.length);assert.deepEqual(store.getState().words,words,'quiet speech remains outside no-speech cuts');store.getState().undo();assert.deepEqual(store.getState().manualCuts,[]);
+store.setState({videoFile:new File([],'fixture.wav'),mediaKind:'audio',skipTranscription:true});assert.deepEqual(projectPayload().silenceSettings,settings);store.setState({videoFile:null});
+const long:AcousticAnalysis={...analysis,duration:3600,frameSeconds:.032,rms:Array(112500).fill(.1),speech:Array(112500).fill(.8)};
+const began=performance.now();const result=silenceDetections(long,normalizeSilenceSettings());assert.equal(result.ranges.length,0);assert.ok(performance.now()-began<1000,'hour-long analysis remains responsive');
+console.log('Silence state: explicit deletion, undo, settings persistence and hour-long projection passed.');
