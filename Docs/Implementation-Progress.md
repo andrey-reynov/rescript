@@ -162,3 +162,10 @@ Latest static build predates the final small tweaks for Space replacement, no-op
 - Shared correction selection validation now runs before opening any correction draft (typing, double-click, context action or legacy toolbar), and again during commit. Cross-cut/split, disjoint and stale-ID selections cannot hide text in an invalid draft. IDs are normalized to source order.
 - Runtime cross-split selection of four words rejected typing with an explanation, retained all four selected spans and preserved saved words/cuts/splits/phrases. The valid bilingual replacement/Enter/Undo/double-click/Backspace/Escape checks passed again. Fixture restored.
 - Added missing Russian translations for correction/grouping eligibility errors discovered in that runtime check. Structure/state tests and production build pass; item 13 remains open for its remaining acceptance scope.
+
+## Stage eighteen: phrase grouping and clip structure acceptance
+
+- Extracted timeline phrase projection and fixed geometry to include every overlapping member's source span. Mixed phrases use Unknown display metadata and retain each word's attribution unchanged.
+- Regression tests cover overlap, no missing/duplicated words, projection across cuts and splits, and stable persisted group identity. Type checks, focused lint and production build pass.
+- Native runtime grouped/saved/reopened six mixed-speaker words, split into two three-word phrase projections, reopened/joined, verified original-time seeking paused, and ungrouped without word/cut changes. Fixture restored.
+- Item 6 is complete and moved with its original requirements to Completed-Plan-Items.md. The rest of PLAN.md remains pending.

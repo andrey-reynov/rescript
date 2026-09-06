@@ -81,3 +81,17 @@ export function replaceTimedText(words:Word[],ids:number[],text:string,blocks:Tr
  const replacement=(tokens.length?tokens:['']).map((token,i)=>({id:nextId++,text:token,start:start+(end-start)*i/Math.max(tokens.length,1),end:start+(end-start)*(i+1)/Math.max(tokens.length,1),speaker,deleted:false,language:members[0].language,correction:provenance}));
  return [...words.slice(0,from),...replacement,...words.slice(to+1)];
 }
+
+/** Presentation only: retain each original member and its optional attribution. */
+export function timelineWordBlocks(words:Word[],groups:PhraseGroup[],blocks:TranscriptBlock[]):(Word&{memberIds:number[];members:Word[]})[]{
+ const projected=projectPhrases(groups,blocks);
+ const byFirst=new Map(projected.map(group=>[group.wordIds[0],group]));
+ const grouped=new Set(projected.flatMap(group=>group.wordIds));
+ const byId=new Map(words.map(word=>[word.id,word]));
+ return words.flatMap(word=>{
+  const group=byFirst.get(word.id);
+  if(!group)return grouped.has(word.id)?[]:[{...word,memberIds:[word.id],members:[word]}];
+  const members=group.wordIds.map(id=>byId.get(id)!);
+  return [{...word,start:members.reduce((time,member)=>Math.min(time,member.start),Infinity),end:members.reduce((time,member)=>Math.max(time,member.end),-Infinity),speaker:members.every(member=>member.speaker===word.speaker)?word.speaker:-1,text:members.map(member=>member.text).join(' '),memberIds:group.wordIds,members}];
+ });
+}

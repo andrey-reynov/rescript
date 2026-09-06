@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {correctionSelection,transcriptBlocks,groupPhrase,projectPhrases,selectedRange,replaceTimedText} from '../lib/transcript-structure';
+import {timelineWordBlocks,correctionSelection,transcriptBlocks,groupPhrase,projectPhrases,selectedRange,replaceTimedText} from '../lib/transcript-structure';
 import type {Word} from '../lib/types';
 const words:Word[]=Array.from({length:8},(_,id)=>({id,text:'word'+id,start:id,end:id+.8,speaker:id%2,deleted:false}));
 const cut=[{start:3,end:5}],splits=[{id:1,time:6}];
@@ -43,3 +43,19 @@ assert.throws(()=>correctionSelection(words,[2,3,4,5],blocks),/one retained clip
 assert.deepEqual(correctionSelection(words,[1,0],blocks).members.map(w=>w.id),[0,1],'Draft anchor follows source order');
 assert.equal(correctionSelection(overlapping,[0,1],overlapBlocks).end,4);
 console.log('Correction draft preflight rejects stale, disjoint and cross-cut selections.');
+
+const overlapPhrase={id:'stable-group',wordIds:[0,1]};
+const projected=timelineWordBlocks(overlapping,[overlapPhrase],overlapBlocks);
+assert.equal(projected[0].end,4,'Phrase geometry covers all overlapping members');
+assert.equal(projected[0].speaker,-1,'Mixed phrase does not pretend to have its first member speaker');
+assert.deepEqual(projected[0].members.map(w=>w.speaker),[0,1]);
+assert.deepEqual(projected.flatMap(w=>w.memberIds),overlapping.map(w=>w.id));
+const persistedGroup={id:'persistent',wordIds:[0,1,2,3,4,5]};
+for(const projectedBlocks of [transcriptBlocks(words,[],[{id:44,time:3}],8),transcriptBlocks(words,[{start:2,end:4}],[],8)]){
+ const chips=timelineWordBlocks(words,[persistedGroup],projectedBlocks);
+ assert.deepEqual(chips.flatMap(w=>w.memberIds),words.map(w=>w.id),'Boundary changes neither lose nor duplicate words');
+ for(const chip of chips.filter(w=>w.memberIds.length>1))assert.ok(projectedBlocks.some(b=>b.kind==='clip'&&b.start<=chip.start&&b.end>=chip.end));
+}
+assert.deepEqual(persistedGroup,{id:'persistent',wordIds:[0,1,2,3,4,5]},'Projection preserves persisted group identity');
+assert.deepEqual(overlapping,unchanged);
+console.log('Phrase projection: overlap bounds, mixed attribution, split/cut membership and stable persisted identity passed.');

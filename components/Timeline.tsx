@@ -25,7 +25,7 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
-import {transcriptBlocks,projectPhrases} from '@/lib/transcript-structure';
+import {transcriptBlocks,timelineWordBlocks} from '@/lib/transcript-structure';
 import ContextMenu from './ContextMenu';
 import type {MenuAction} from './ActionMenu';
 import ActionMenu from './ActionMenu';
@@ -677,8 +677,7 @@ export default function Timeline() {
 
   // Word labels for the visible window
   const timelineWords=useMemo(()=>{
-    const groups=projectPhrases(phrases,transcriptBlocks(words,cuts,sceneBoundaries,duration));const byFirst=new Map(groups.map(g=>[g.wordIds[0],g]));const grouped=new Set(groups.flatMap(g=>g.wordIds));const byId=new Map(words.map(w=>[w.id,w]));
-    return words.flatMap(w=>{const group=byFirst.get(w.id);if(group){const members=group.wordIds.map(id=>byId.get(id)!);return [{...w,end:members.at(-1)!.end,text:members.map(w=>w.text).join(' '),memberIds:group.wordIds,members}];}return grouped.has(w.id)?[]:[{...w,memberIds:[w.id],members:[w]}];});
+    return timelineWordBlocks(words,phrases,transcriptBlocks(words,cuts,sceneBoundaries,duration));
   },[phrases,words,cuts,sceneBoundaries,duration]);
   const visibleWords=useMemo(()=>{const start=scrollLeft/pps-1,end=(scrollLeft+width)/pps+1;return timelineWords.filter(w=>w.end>=start&&w.start<=end);},[timelineWords,pps,scrollLeft,width]);
 

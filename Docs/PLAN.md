@@ -68,26 +68,6 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 - Gameplay/music without speech can be distinguished from low-amplitude silence; overlap is shown in green.
 - Detector settings and the legend are understandable, and selecting/deleting/resizing regions preserves original media and extendable handles.
 
-### 6. Merge and split speech blocks
-
-**Status:** Implemented baseline; structure/state tests and initial grouping runtime checks pass. Retain remaining cross-boundary, mixed-speaker, and reopen acceptance audit.
-
-**Tracking:** [#5 — Merge and split speech blocks without losing source timestamps](https://github.com/andrey-reynov/rescript/issues/5). Roadmap: `Roadmap/03-Language-and-Transcript-Model.md`.
-
-**Expected behavior:**
-
-- Follow [Transcript editing workflow](Transcript-Editing-Workflow.md): distinguish phrase grouping, edit clip Split/Join, and optional speaker metadata. Merge compatible adjacent blocks in source order and split at a selected word boundary without conflating these operations.
-- Use stable block IDs and preserve every word, word-level source timestamp, and source-media reference.
-- Treat speaker as optional metadata. For mixed speakers, ask for an explicit choice or use Unknown; do not silently assign an incorrect speaker.
-- Keep block structure separate from editing ranges. Persist changes through autosave and project save/load without retranscribing.
-- Coordinate with item 3: choosing a display layout must not perform a structural merge or split.
-
-**Acceptance criteria:**
-
-- Merge/split introduces no missing or duplicated words; Ctrl-click / Go to word still seeks to its original source position; plain click selects without seeking.
-- Existing cuts and source handles remain unchanged, mixed speaker labels remain repairable, and reopening preserves block structure.
-- Cover merge/split and persistence with focused tests, including mismatched speaker labels. Diarization replacement and NLE finishing remain out of scope.
-
 ### 7. Model capability metadata and language compatibility
 
 **Status:** Shared capability profiles and validation implemented. Retain integrated selector/bilingual verification; see [Model-Capabilities.md](Model-Capabilities.md).
