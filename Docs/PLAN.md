@@ -50,23 +50,6 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 
 **Tracking:** No issue assigned yet.
 
-### 4. Resize deletion regions
-
-**Status:** Implemented; focused bounds/undo/persistence tests pass. Retain direct pointer-resize and source-edge runtime audit.
-
-**Tracking:** [#2 — Make it possible to change the length of the deletion region](https://github.com/andrey-reynov/rescript/issues/2).
-
-**Expected behavior:**
-
-- Make deletion boundaries easy to adjust directly from a selected deletion region.
-- Use either dedicated deletion-region handles or reveal the full-size handles of the neighboring speech regions when the deletion region is selected. The latter is the simpler option identified in the issue.
-- Preserve source handles, timestamps, and synchronization while changing only editing ranges.
-
-**Acceptance criteria:**
-
-- Selecting a deletion region exposes clear, usable controls for its start/end instead of requiring tiny inactive neighboring grabbers.
-- Resizing updates the deletion range and adjacent retained ranges consistently, including source-edge cases; undo/redo and save/reopen preserve the result.
-
 ### 5. Silence blocks with separate detectors
 
 **Status:** Implemented; see [Silence-Detection.md](Silence-Detection.md) for behavior and evidence. Retain representative gameplay/music and final installed-build validation.

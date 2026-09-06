@@ -138,3 +138,32 @@ Verified 2026-09-06 through the isolated production-built Electron app, together
 
 **Tracking:** No issue assigned yet.
 
+
+## Item 4 — Resize deletion regions
+
+Verified 2026-09-06 in the isolated production-built Electron app, using real pointer capture/move/release events and native project save/reopen.
+
+- Selecting a 4–8-second deletion exposed distinct accessible start/end sliders, approximately 115px high. They were directly draggable without selecting tiny neighboring speech handles.
+- Dragged start to 5 seconds and end to 10 seconds. Handle values matched within sub-microsecond coordinate rounding. Undo reverted the complete end-drag gesture to 8 seconds in one step while keeping the start at 5; Redo returned the end to 10.
+- Dragged start beyond source zero: it clamped to exactly 0. Selected the second deletion and dragged its end beyond the source: it clamped to the project's 42.4-second duration. Handles remained selectable at the source edges.
+- Original word IDs/text/start/end and the explicit split at source time 9 seconds were unchanged. Editing ranges, rather than media or speech timing, changed. The shared cut projection supplies adjacent retained/deleted sections in both timeline and transcript.
+- Saved and reopened the project, then selected each deletion again: start 0 and end 42.4 were retained. Test fixture data restored afterward.
+- `deletion-resize-test.ts` additionally covers source bounds, preserved source timestamps/splits, gesture-coalesced undo/redo and restoring deleted source. Existing project save/reopen coverage preserves the edited data.
+
+### Original requirements
+
+**Status:** Complete; verified above.
+
+**Tracking:** [#2 — Make it possible to change the length of the deletion region](https://github.com/andrey-reynov/rescript/issues/2).
+
+**Expected behavior:**
+
+- Make deletion boundaries easy to adjust directly from a selected deletion region.
+- Use either dedicated deletion-region handles or reveal the full-size handles of the neighboring speech regions when the deletion region is selected. The latter is the simpler option identified in the issue.
+- Preserve source handles, timestamps, and synchronization while changing only editing ranges.
+
+**Acceptance criteria:**
+
+- Selecting a deletion region exposes clear, usable controls for its start/end instead of requiring tiny inactive neighboring grabbers.
+- Resizing updates the deletion range and adjacent retained ranges consistently, including source-edge cases; undo/redo and save/reopen preserve the result.
+

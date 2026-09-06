@@ -124,3 +124,9 @@ Latest static build predates the final small tweaks for Space replacement, no-op
 - Fixed Import losing its live FileList when resetting the input. Replacement transcript import now preserves effective editing cuts as manual source ranges, explicit splits, clip names and view preferences; stale phrase/selection references are cleared.
 - Runtime menu group/icon/keyboard checks, cancellation/reselection/SRT parsing, preserved cuts, and imported-word seeking pass. Each text layout preserves the playhead and supports Ctrl-click source seeking. Combined with prior exclusive-layout/visibility/natural-flow checks, item 3 is complete and moved to Completed-Plan-Items.md.
 - Import preservation regression covers word-owned deletions, manual ranges, names, boundaries, preferences and cleared stale IDs. Full plan remains active.
+
+
+## Stage twelve: deletion resizing acceptance complete
+
+- Real pointer drags selected/resized dedicated start/end handles, produced expected source-time ranges, and respected both source edges. Undo/Redo operated once per full drag. Native save/reopen retained the resized ranges; word timings and explicit splits stayed unchanged.
+- Combined with the existing focused resizing tests, item 4 is complete and moved to Completed-Plan-Items.md. No application change was needed in this audit; initial harness failures came from clicking before native window resize settled. The final checks waited for layout and used live timeline coordinates. Test fixture restored afterward.
