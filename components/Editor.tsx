@@ -277,6 +277,10 @@ export default function Editor() {
     const handler = (e: KeyboardEvent) => {
       if (isTypingTarget(e.target)) return;
       const s = useEditorStore.getState();
+      const transcriptTarget=(e.target as HTMLElement)?.closest?.('[data-transcript-editor]');
+      if(e.isComposing)return;
+      if(transcriptTarget&&s.selectedWordIds.length&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&(e.key==='Enter'||e.key.length===1))return;
+      if(e.key==='Enter'&&s.selectedWordIds.length&&s.status==='ready'&&!s.exportOpen&&!transcriptTarget){e.preventDefault();e.stopPropagation();s.splitBeforeSelection();return;}
       if (e.code === "Space" && s.videoEl && !s.exportOpen) {
         e.preventDefault();
         e.stopPropagation();
@@ -319,7 +323,7 @@ export default function Editor() {
           const selected = s.words.filter((w) => s.selectedWordIds.includes(w.id));
           const allCutOut =
             selected.length > 0 && selected.every((w) => isWordCutOut(w, cuts));
-          if (allCutOut) s.restoreWords(s.selectedWordIds);
+          if (allCutOut) {if(!transcriptTarget)s.restoreWords(s.selectedWordIds);}
           else s.deleteWords(s.selectedWordIds);
           s.setSelectedWords([]);
           return;

@@ -23,15 +23,18 @@ import {
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
+import {transcriptBlocks,projectPhrases} from '@/lib/transcript-structure';
+import ContextMenu from './ContextMenu';
+import type {MenuAction} from './ActionMenu';
 import ActionMenu from './ActionMenu';
 import RetranscribeSelection from "./RetranscribeSelection";
 import { useEditorStore } from "@/lib/store";
 import {
   canSplitAt,
-  cutRangeAt,
   formatTime,
   getActiveSceneBoundaries,
   getClipSegments,
+  getCutRanges,
   getEditedDuration,
   getKeepRanges,
   isWordCutOut,
@@ -90,6 +93,7 @@ function roundRectPath(
 
 type DragKind =
   | { type: "seek" }
+  | {type:"deletion";edge:"start"|"end";start:number;end:number;lo:number;hi:number}
   | { type: "word"; wordId: number; edge: "start" | "end"; origStart: number; origEnd: number }
   /**
    * `time` tracks where the dragged edge currently sits (mutated as the drag
@@ -98,7 +102,17 @@ type DragKind =
    */
   | { type: "trim"; edge: "in" | "out"; time: number; lo: number; hi: number };
 
+function DeletionHandles({cuts,selected,duration,pps,onStart}:{cuts:Array<{start:number;end:number}>;selected:number|null;duration:number;pps:number;onStart:(e:ReactPointerEvent,index:number,edge:'start'|'end')=>void}){
+ const f=useForkI18n();if(selected===null||!cuts[selected])return null;const index=selected,cut=cuts[index];
+ return <>{(['start','end'] as const).map(edge=><div key={edge} role="slider" tabIndex={0} aria-label={f(edge==='start'?'Deletion start':'Deletion end')} aria-valuemin={edge==='start'?(cuts[index-1]?.end??0):cut.start+.02} aria-valuemax={edge==='end'?(cuts[index+1]?.start??duration):cut.end-.02} aria-valuenow={cut[edge]} data-tl-interactive
+ className="absolute z-20 w-3 -translate-x-1/2 cursor-ew-resize rounded border border-red-500 bg-red-200/60 focus-visible:outline-2 focus-visible:outline-blue-500" style={{left:cut[edge]*pps,top:RULER_H+WORDBAR_H+3,bottom:3}}
+ onKeyDown={e=>{if(!['ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();e.stopPropagation();const delta=(e.key==='ArrowLeft'?-1:1)*(e.shiftKey?.1:.01);const lo=edge==='start'?(cuts[index-1]?.end??0):cut.start+.02,hi=edge==='end'?(cuts[index+1]?.start??duration):cut.end-.02;const next={...cut,[edge]:Math.max(lo,Math.min(hi,cut[edge]+delta))};useEditorStore.getState().resizeDeletion(cut,next);}}
+ onPointerDown={e=>onStart(e,index,edge)}/>)}</>;
+}
+
 export default function Timeline() {
+  const [context,setContext]=useState<{x:number;y:number;time:number;wordId?:number}|null>(null);
+  const [contextError,setContextError]=useState('');
   const { t } = useI18n();
   const f=useForkI18n();
   const waveform = useEditorStore((s) => s.waveform);
@@ -113,6 +127,7 @@ export default function Timeline() {
   const status = useEditorStore((s) => s.status);
 
   const cuts = useCutRanges();
+  const phrases=useEditorStore(s=>s.phrases);
   const skipDeletions=useEditorStore(s=>s.skipDeletions);
   const keeps = useMemo(() => getKeepRanges(cuts, duration), [cuts, duration]);
   const clips = useMemo(
@@ -492,6 +507,11 @@ export default function Timeline() {
         seekTo(t);
         return;
       }
+      if(drag.type==='deletion'){
+        const next=Math.min(drag.hi,Math.max(drag.lo,t));const range={start:drag.start,end:drag.end};
+        if(drag.edge==='start')range.start=Math.min(next,drag.end-.02);else range.end=Math.max(next,drag.start+.02);
+        store.resizeDeletion({start:drag.start,end:drag.end},range);drag.start=range.start;drag.end=range.end;return;
+      }
       if (drag.type === "word") {
         if (drag.edge === "start") {
           store.adjustWordBounds(drag.wordId, t, drag.origEnd);
@@ -625,12 +645,37 @@ export default function Timeline() {
     setCurrentTime(t);
   }, []);
 
+  const startDeletionDrag=useCallback((e:ReactPointerEvent,index:number,edge:'start'|'end')=>{
+    if(e.button!==0)return;e.preventDefault();e.stopPropagation();e.currentTarget.setPointerCapture(e.pointerId);useEditorStore.getState().beginGesture();const cut=cuts[index];dragRef.current={type:'deletion',edge,start:cut.start,end:cut.end,lo:cuts[index-1]?.end??0,hi:cuts[index+1]?.start??duration};setDragging(true);
+  },[cuts,duration]);
+  const openContext=(e:React.MouseEvent)=>{
+    e.preventDefault();e.stopPropagation();const wordEl=(e.target as HTMLElement).closest<HTMLElement>('[data-timeline-word]');
+    const wordId=wordEl?Number(wordEl.dataset.timelineWord):undefined;const time=timeFromClientX(e.clientX);const store=useEditorStore.getState();
+    if(wordId!==undefined){if(!store.selectedWordIds.includes(wordId))store.selectWordRange((wordEl?.dataset.wordIds??String(wordId)).split(',').map(Number));}else seekTo(time);
+    setContextError('');setContext({x:e.clientX,y:e.clientY,time,wordId});
+  };
+  const safeAction=(action:()=>void)=>()=>{try{action();}catch(e){setContextError(e instanceof Error?e.message:String(e));}};
+  const contextActions:MenuAction[]=[];
+  if(context&&duration>0){
+    if(context.wordId!==undefined){
+      const word=words.find(w=>w.id===context.wordId);
+      contextActions.push({id:'seek',label:f('Go to word'),icon:<Play size={13}/>,shortcut:'Ctrl+Click',disabled:!word,run:()=>word&&seekTo(word.start)},
+        {id:'group',label:f('Group into phrase'),icon:<Merge size={13}/>,disabled:!ready||selectedWordIds.length<2,run:safeAction(()=>useEditorStore.getState().groupSelectedPhrase())},
+        {id:'ungroup',label:f('Ungroup'),icon:<SquareSplitHorizontal size={13}/>,disabled:!ready,run:()=>useEditorStore.getState().ungroupSelectedPhrase()});
+    }else{
+      const cut=cuts.find(c=>context.time>=c.start&&context.time<c.end);
+      if(cut)contextActions.push({id:'restore',label:f('Restore deletion area'),icon:<RotateCcw size={13}/>,disabled:!ready,run:()=>useEditorStore.getState().restoreRanges([cut])});
+      else contextActions.push({id:'split',label:t('timeline.split'),icon:<SquareSplitHorizontal size={13}/>,shortcut:'S',disabled:!ready||!canSplitAt(context.time,duration,cuts,sceneBoundaries),run:()=>{seekTo(context.time);useEditorStore.getState().splitAtPlayhead();}},
+        {id:'delete',label:f('Add deletion area'),icon:<Trash2 size={13}/>,disabled:!ready||context.time>=duration-.02,run:()=>{const store=useEditorStore.getState();const range={start:context.time,end:Math.min(duration,context.time+3)};store.cutRanges([range]);const current=useEditorStore.getState();store.setSelectedCutIndex(getCutRanges(current.words,duration,current.manualCuts).findIndex(c=>c.start<=range.start&&c.end>=range.end));}});
+    }
+  }
+
   // Word labels for the visible window
-  const visibleWords = useMemo(() => {
-    const t0 = scrollLeft / pps - 1;
-    const t1 = (scrollLeft + width) / pps + 1;
-    return words.filter((w) => w.end >= t0 && w.start <= t1);
-  }, [words, pps, scrollLeft, width]);
+  const timelineWords=useMemo(()=>{
+    const groups=projectPhrases(phrases,transcriptBlocks(words,cuts,sceneBoundaries,duration));const byFirst=new Map(groups.map(g=>[g.wordIds[0],g]));const grouped=new Set(groups.flatMap(g=>g.wordIds));const byId=new Map(words.map(w=>[w.id,w]));
+    return words.flatMap(w=>{const group=byFirst.get(w.id);if(group){const members=group.wordIds.map(id=>byId.get(id)!);return [{...w,end:members.at(-1)!.end,text:members.map(w=>w.text).join(' '),memberIds:group.wordIds,members}];}return grouped.has(w.id)?[]:[{...w,memberIds:[w.id],members:[w]}];});
+  },[phrases,words,cuts,sceneBoundaries,duration]);
+  const visibleWords=useMemo(()=>{const start=scrollLeft/pps-1,end=(scrollLeft+width)/pps+1;return timelineWords.filter(w=>w.end>=start&&w.start<=end);},[timelineWords,pps,scrollLeft,width]);
 
   const playheadX = currentTime * pps - scrollLeft;
   const showHandles = pps >= HANDLE_VIS_PPS;
@@ -750,6 +795,7 @@ export default function Timeline() {
             autoScrollRef.current = null;
             setScrollLeft(next);
           }}
+          onContextMenu={openContext}
           onPointerDownCapture={onSeekPointerDown}
           onPointerDown={onBackgroundPointerDown}
           onPointerMove={onPointerMove}
@@ -863,17 +909,20 @@ export default function Timeline() {
               );
             })}
 
+            <DeletionHandles cuts={cuts} selected={selectedCutIndex} duration={duration} pps={pps} onStart={startDeletionDrag}/>
             {/* Wordbar chips */}
             {visibleWords.map((w) => {
               const wWidth = Math.max(6, (w.end - w.start) * pps - 1);
               const hovered = hoveredWordId === w.id;
               const cutOut = isWordCutOut(w, cuts);
-              const wordSelected = selectedWordIds.includes(w.id);
+              const wordSelected = w.memberIds.some(id=>selectedWordIds.includes(id));
               const placeholder = isDisfluencyPlaceholder(w.text);
-              const showWordHandles = showHandles && (hovered || wWidth > 28);
+              const showWordHandles = w.memberIds.length===1 && showHandles && (hovered || wWidth > 28);
               return (
                 <div
                   key={w.id}
+                  data-timeline-word={w.id}
+                  data-word-ids={w.memberIds.join(",")}
                   data-tl-interactive
                   className={`tl-word absolute z-[3] flex items-center overflow-hidden rounded-md border text-[10px] leading-none transition-[box-shadow,background-color,border-color] duration-150 ${
                     cutOut
@@ -908,39 +957,12 @@ export default function Timeline() {
                     setHoveredWordId((id) => (id === w.id ? null : id))
                   }
                   onPointerDown={(e) => {
-                    // Clicking the chip body seeks to word start (not a bound drag)
-                    if ((e.target as HTMLElement).dataset.edge) return;
-                    e.stopPropagation();
-                    seekTo(w.start);
-                    const store = useEditorStore.getState();
-                    // Select the word (the transcript mirrors this). Kept words
-                    // also select their clip; cut-out words select the cut so
-                    // Delete / Restore can bring them back.
-                    store.setSelectedWords([w.id]);
-                    if (cutOut) {
-                      const cut = cutRangeAt(w.start + (w.end - w.start) / 2, cuts);
-                      const cutIdx = cut
-                        ? cuts.findIndex(
-                            (c) =>
-                              Math.abs(c.start - cut.start) < 1e-4 &&
-                              Math.abs(c.end - cut.end) < 1e-4
-                          )
-                        : -1;
-                      if (cutIdx >= 0) store.setSelectedCutIndex(cutIdx);
-                      else {
-                        store.setSelectedCutIndex(null);
-                        store.setSelectedClipIndex(null);
-                      }
-                    } else {
-                      const clip = clips.find(
-                        (c) => w.start >= c.start && w.start < c.end
-                      );
-                      store.setSelectedClipIndex(clip?.index ?? null);
-                      store.setSelectedCutIndex(null);
-                    }
+                    if(e.button!==0||(e.target as HTMLElement).dataset.edge)return;e.stopPropagation();
+                    const store=useEditorStore.getState();if(e.ctrlKey){seekTo(w.start);return;}store.selectWordRange(w.memberIds,e.shiftKey);
                   }}
                 >
-                  <span className="pointer-events-none min-w-0 flex-1 truncate px-1.5">
+                  {w.memberIds.length>1&&w.members.filter(member=>selectedWordIds.includes(member.id)).map(member=><span key={member.id} className="pointer-events-none absolute inset-y-0 bg-indigo-400/25" style={{left:`${100*(member.start-w.start)/(w.end-w.start)}%`,width:`${100*(member.end-member.start)/(w.end-w.start)}%`}}/>)}
+                  <span className="pointer-events-none relative min-w-0 flex-1 truncate px-1.5">
                     {w.text}
                   </span>
                   {showWordHandles && (
@@ -1002,6 +1024,8 @@ export default function Timeline() {
           </div>
         )}
       </div>
+      {context&&<ContextMenu label={f('Timeline actions')} point={context} actions={contextActions} onClose={()=>setContext(null)}/>}
+      {contextError&&<div role="alert" className="absolute bottom-52 right-4 z-50 rounded bg-white p-3 text-sm text-red-600 shadow dark:bg-zinc-900" onClick={()=>setContextError('')}>{f(contextError)}</div>}
     </footer>
   );
 }

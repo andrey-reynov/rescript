@@ -240,6 +240,7 @@ interface EditorState {
    * cuts or reclaims. Edges are addressed by time, not clip index, because a
    * trim can merge or split clips mid-drag and renumber them.
    */
+  resizeDeletion: (previous:TimeRange,next:TimeRange)=>void;
   trimEdge: (edge: "in" | "out", from: number, to: number) => void;
   setSelectedClipIndex: (index: number | null) => void;
   setSelectedCutIndex: (index: number | null) => void;
@@ -780,7 +781,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
   correctWords: (ids,text)=>{
-    const s=get();const blocks=transcriptBlocks(s.words,getCutRanges(s.words,s.duration,s.manualCuts),s.sceneBoundaries,s.duration);
+    const s=get();const chosen=new Set(ids);if(s.words.filter(w=>chosen.has(w.id)).map(w=>w.text).join(" ")===text.trim())return;const blocks=transcriptBlocks(s.words,getCutRanges(s.words,s.duration,s.manualCuts),s.sceneBoundaries,s.duration);
     const words=replaceTimedText(s.words,ids,text,blocks);const valid=new Set(words.map(w=>w.id));
     pushEdit(get,set,{words,phrases:s.phrases.map(g=>({...g,wordIds:g.wordIds.filter(id=>valid.has(id))})).filter(g=>g.wordIds.length>1),selectedWordIds:[]});
   },
@@ -816,6 +817,13 @@ export const useEditorStore = create<EditorState>((set, get) => ({
     });
   },
 
+  resizeDeletion:(previous,next)=>{
+    const s=get();const start=Math.max(0,next.start),end=Math.min(s.duration,next.end);if(!Number.isFinite(start)||!Number.isFinite(end)||end-start<.02)return;
+    const restored=restoreRangesResult(s.words,s.manualCuts,[previous],s.nextManualCutId);if(!restored)return;
+    const added=addManualCut(restored.manualCuts,start,end,restored.nextCutId);
+    const words=deleteWordsCoveredBy(restored.words,start,end),cuts=getCutRanges(words,s.duration,added.cuts);
+    pushEdit(get,set,{words,manualCuts:added.cuts,nextManualCutId:added.nextId,selectedWordIds:[],selectedClipIndex:null,selectedCutIndex:cuts.findIndex(c=>c.start<=start&&c.end>=end)});
+  },
   trimEdge: (edge, from, to) => {
     const s = get();
     const result = trimEdgeResult(

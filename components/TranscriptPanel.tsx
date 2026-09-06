@@ -14,11 +14,11 @@ import {
   RotateCcw,
   Scissors,
   VolumeOff,
-  X,
 } from "lucide-react";
 import { FloatingPortal } from "@floating-ui/react";
 import { useEditorStore } from "@/lib/store";
 import { isDisfluencyPlaceholder } from "@/lib/disfluencies";
+import ContextMenu from './ContextMenu';
 import ActionMenu from './ActionMenu';
 import {transcriptBlocks,type TranscriptBlock} from '@/lib/transcript-structure';
 import TranscriptionSetup from "./TranscriptionSetup";
@@ -55,6 +55,7 @@ const WordSpan = memo(function WordSpan({
   cutOut,
   active,
   selected,
+  partial=false,
   onClick,
 }: {
   word: Word;
@@ -62,9 +63,11 @@ const WordSpan = memo(function WordSpan({
   cutOut: boolean;
   active: boolean;
   selected: boolean;
+  partial?:boolean;
   onClick: (word: Word, el: HTMLElement) => void;
 }) {
   const { t } = useI18n();
+  const f=useForkI18n();
   const placeholder = isDisfluencyPlaceholder(word.text);
   // The trailing space lives inside the span so that selection and deletion
   // highlights are continuous across words instead of breaking at each gap.
@@ -74,13 +77,14 @@ const WordSpan = memo(function WordSpan({
       data-sel={selected ? "" : undefined}
       data-cut={cutOut ? "" : undefined}
       data-placeholder={placeholder ? "" : undefined}
-      title={placeholder ? t("transcript.hesitation") : undefined}
+      title={partial?f("Partially cut · source timing preserved"):word.correction?.timing==='approximate'?f("Approximate timing · corrected text"):placeholder ? t("transcript.hesitation") : undefined}
       onClick={(e) => {
         if(e.ctrlKey){useEditorStore.getState().seekTo(word.start);return;}
-        if(e.shiftKey){useEditorStore.getState().selectWordRange([word.id],true);window.getSelection()?.removeAllRanges();return;}
+        if(e.shiftKey){e.currentTarget.closest<HTMLElement>('[data-transcript-editor]')?.focus({preventScroll:true});useEditorStore.getState().selectWordRange([word.id],true);window.getSelection()?.removeAllRanges();return;}
+        e.currentTarget.closest<HTMLElement>('[data-transcript-editor]')?.focus({preventScroll:true});
         onClick(word,e.currentTarget);
       }}
-      className={`py-0.5 cursor-pointer transition-colors duration-75 ${cutOut
+      className={`${partial?'underline decoration-dotted decoration-amber-500':''} py-0.5 cursor-pointer transition-colors duration-75 ${cutOut
         ? "word-deleted bg-red-50 text-red-600 line-through decoration-red-300 dark:bg-red-950/40 dark:text-red-400 dark:decoration-red-800"
         : active
           ? "bg-neutral-200/80 text-zinc-900 dark:bg-neutral-700/80 dark:text-zinc-50"
@@ -126,6 +130,8 @@ const SplitMarker = memo(function SplitMarker({
 
 export default function TranscriptPanel() {
   const f=useForkI18n();
+  const [wordContext,setWordContext]=useState<{x:number;y:number;id:number}|null>(null);
+  const [editError,setEditError]=useState('');
   const view=useEditorStore(s=>s.transcriptView),clipNames=useEditorStore(s=>s.clipNames);
   const { t } = useI18n();
   const words = useEditorStore((s) => s.words);
@@ -264,17 +270,6 @@ export default function TranscriptPanel() {
       offsetMain: 8,
     });
 
-  const { setFloating: setCorrectFloating, floatingStyles: correctStyles } =
-    useWordAnchorFloating({
-      open: !!correcting,
-      wordIds: correcting?.ids,
-      containerRef,
-      placement: "top",
-      offsetMain: 12,
-    });
-
-
-
   const deletedCount = useMemo(() => cutOutIds.size, [cutOutIds]);
   const handleImportTranscript = useCallback(
     async (files: FileList | null) => {
@@ -352,20 +347,8 @@ export default function TranscriptPanel() {
 
   const applyCorrection = useCallback(() => {
     if (!correcting) return;
-    correctWords(correcting.ids, correctText);
-    closeCorrect();
+    try{correctWords(correcting.ids, correctText);setEditError('');closeCorrect();}catch(e){setEditError(e instanceof Error?e.message:String(e));}
   }, [correcting, correctText, correctWords, closeCorrect]);
-
-  // Close the correction popover when clicking outside of it.
-  const popoverRef = useRef<HTMLDivElement>(null);
-  useEffect(() => {
-    if (!correcting) return;
-    const handler = (e: MouseEvent) => {
-      if (!popoverRef.current?.contains(e.target as Node)) closeCorrect();
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, [correcting, closeCorrect]);
 
   // Escape clears the transcript selection chrome. Delete / Backspace are handled
   // globally in Editor (cut words restore; kept words / clips delete).
@@ -384,7 +367,7 @@ export default function TranscriptPanel() {
   // "@" opens the speaker picker for the current selection.
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.key !== "@" || e.metaKey || e.ctrlKey || e.altKey) return;
+      if (view!=="speakers" || e.key !== "@" || e.metaKey || e.ctrlKey || e.altKey) return;
       if (isTypingTarget(e.target)) return;
       if (!selection || assigningSpeaker || correcting) return;
       e.preventDefault();
@@ -392,14 +375,23 @@ export default function TranscriptPanel() {
     };
     document.addEventListener("keydown", handler);
     return () => document.removeEventListener("keydown", handler);
-  }, [selection, assigningSpeaker, correcting, openSpeakerAssign]);
+  }, [view,selection, assigningSpeaker, correcting, openSpeakerAssign]);
 
+  const beginCorrection=(ids:number[],replacement?:string)=>{
+    if(!ids.length)return;freezeSelectionRef.current=true;setEditError('');setCorrecting({ids});setCorrectText(replacement??words.filter(w=>ids.includes(w.id)).map(w=>w.text).join(' '));
+  };
+  const contextRun=(action:()=>void)=>()=>{try{action();setEditError('');}catch(e){setEditError(e instanceof Error?e.message:String(e));}};
+  const editKey=(e:React.KeyboardEvent)=>{
+    if(e.isDefaultPrevented()||e.nativeEvent.isComposing||isTypingTarget(e.target)||e.ctrlKey||e.metaKey||e.altKey||correcting||!selectedWordIds.length||status!=='ready')return;
+    if(e.key==='Enter'){e.preventDefault();e.stopPropagation();useEditorStore.getState().splitBeforeSelection();}
+    else if(e.key.length===1){e.preventDefault();e.stopPropagation();beginCorrection(selectedWordIds,e.key);}
+  };
   const busy = status === "preparing" || status === "transcribing";
 
   return (
     // min-h-0 keeps this pane from growing to the transcript's full height —
     // without it the panel wrapper scrolls instead of the list below.
-    <section className="relative flex min-h-0 min-w-0 overflow-y-hidden flex-1 flex-col bg-white dark:bg-zinc-900">
+    <section data-transcript-editor tabIndex={-1} onKeyDown={editKey} onContextMenu={e=>{const el=(e.target as HTMLElement).closest<HTMLElement>('[data-wid]');if(!el)return;e.preventDefault();const id=Number(el.dataset.wid);if(!useEditorStore.getState().selectedWordIds.includes(id))useEditorStore.getState().selectWordRange([id]);setWordContext({x:e.clientX,y:e.clientY,id});}} onDoubleClick={e=>{const el=(e.target as HTMLElement).closest<HTMLElement>('[data-wid]');if(el)beginCorrection([Number(el.dataset.wid)]);}} className="outline-none relative flex min-h-0 min-w-0 overflow-y-hidden flex-1 flex-col bg-white dark:bg-zinc-900">
       <TranscriptionSetup />
       {/* Floats above the scroller rather than sticking inside it, so the
           rubber-band overscroll only carries the transcript, not the bar. */}
@@ -488,7 +480,7 @@ export default function TranscriptPanel() {
                 // First turn in the full word list has no previous speaker to borrow from.
                 const canMove = turn.sourceStart !== words[0]?.id;
                 return (
-                  <div key={virtualRow.key} ref={virtualizer.measureElement} data-index={virtualRow.index} className="pb-7" style={{position:"absolute",top:0,left:0,width:"100%",transform:`translateY(${virtualRow.start-72}px)`}}>
+                  <div key={virtualRow.key} ref={virtualizer.measureElement} data-index={virtualRow.index} className={view==='continuous'?'pb-0':'pb-7'} style={{position:"absolute",top:0,left:0,width:"100%",transform:`translateY(${virtualRow.start-72}px)`}}>
                     {view==='speakers'&&turn.first&&<>                    <SpeakerLabel
                       speakerId={turn.speaker}
                       turnWordIds={turn.sourceWordIds}
@@ -505,6 +497,7 @@ export default function TranscriptPanel() {
                     </div>}
                     <p className="select-text text-[15px] leading-8">
                       {visible.map((w) => {
+                        if(correcting?.ids.includes(w.id))return w.id===correcting.ids[0]?<input key={w.id} aria-label={f('Correct text')} autoFocus value={correctText} onChange={e=>setCorrectText(e.target.value)} onKeyDown={e=>{e.stopPropagation();if(e.nativeEvent.isComposing)return;if(e.key==='Enter'){e.preventDefault();applyCorrection();}if(e.key==='Escape'){e.preventDefault();closeCorrect();}}} onBlur={applyCorrection} style={{width:`${Math.max(8,Math.min(65,correctText.length+2))}ch`}} className="max-w-full rounded border border-blue-500 bg-white px-1 text-[15px] leading-8 text-zinc-900 dark:bg-zinc-800 dark:text-zinc-100"/>:null;
                         const split = splitBeforeWordId.get(w.id);
                         return (
                           <React.Fragment key={w.id}>
@@ -513,6 +506,7 @@ export default function TranscriptPanel() {
                             )}
                             <WordSpan
                               word={w}
+                              partial={turn.block?.partialIds.includes(w.id)}
                               cutOut={cutOutIds.has(w.id)}
                               active={w.id === activeWordId}
                               selected={selectedIds.has(w.id)}
@@ -575,48 +569,6 @@ export default function TranscriptPanel() {
             />
           )}
 
-          {correcting && (
-            <FloatingPortal>
-              <div
-                ref={(node: HTMLDivElement | null) => {
-                  popoverRef.current = node;
-                  setCorrectFloating(node);
-                }}
-                className="z-40 w-80 max-w-[calc(100vw-16px)] rounded-2xl border border-zinc-200 bg-white p-3 shadow-xl shadow-zinc-900/10 dark:border-zinc-700 dark:bg-zinc-800 dark:shadow-black/40"
-                style={correctStyles}
-              >
-                <div className="mb-2 flex items-center justify-between">
-                  <span className="text-[13px] font-semibold text-zinc-800 dark:text-zinc-100">{t("transcript.correct")}</span>
-                  <button
-                    onClick={closeCorrect}
-                    className="flex h-6 w-6 items-center justify-center rounded-md text-zinc-400 transition hover:bg-zinc-100 hover:text-zinc-700 dark:hover:bg-zinc-700 dark:hover:text-zinc-200"
-                  >
-                    <X size={13} />
-                  </button>
-                </div>
-                <input
-                  autoFocus
-                  value={correctText}
-                  onChange={(e) => setCorrectText(e.target.value)}
-                  onFocus={(e) => e.currentTarget.select()}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") applyCorrection();
-                    else if (e.key === "Escape") closeCorrect();
-                  }}
-                  className="w-full rounded-lg border border-zinc-300 bg-zinc-50 px-2.5 py-1.5 text-sm text-zinc-800 outline-none focus:border-zinc-500 focus:bg-white dark:border-zinc-600 dark:bg-zinc-900 dark:text-zinc-100 dark:focus:border-zinc-400 dark:focus:bg-zinc-950"
-                />
-                <div className="mt-2.5 flex justify-end">
-                  <button
-                    onClick={applyCorrection}
-                    disabled={correctText.trim().length === 0}
-                    className="cursor-pointer flex h-8 items-center rounded-full bg-zinc-900 px-4 text-[13px] font-medium text-white transition hover:bg-zinc-700 disabled:opacity-40 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200"
-                  >
-                    {t("transcript.correct")}
-                  </button>
-                </div>
-              </div>
-            </FloatingPortal>
-          )}
         </div>
       </div>
       {/* Gradient overlay — must match the transcript panel surface */}
@@ -634,6 +586,16 @@ export default function TranscriptPanel() {
           {t("transcript.follow")}
         </button>
       )}
+      {editError&&<div role="alert" className="absolute bottom-4 left-4 z-50 rounded bg-white p-2 text-sm text-red-600 shadow dark:bg-zinc-900" onClick={()=>setEditError('')}>{f(editError)}</div>}
+      {wordContext&&<ContextMenu label={f('Text actions')} point={wordContext} onClose={()=>setWordContext(null)} actions={[
+        {id:'seek',label:f('Go to word'),icon:<ArrowDown size={13}/>,shortcut:'Ctrl+Click',run:()=>{const word=words.find(w=>w.id===wordContext.id);if(word)useEditorStore.getState().seekTo(word.start);}},
+        {id:'cut',label:t('transcript.cut'),icon:<Scissors size={13}/>,shortcut:'Delete',disabled:status!=='ready',run:()=>deleteWords(selectedWordIds)},
+        {id:'restore',label:t('common.restore'),icon:<RotateCcw size={13}/>,disabled:!selectedWordIds.some(id=>cutOutIds.has(id)),run:()=>restoreWords(selectedWordIds)},
+        {id:'correct',label:t('transcript.correct'),icon:<Pencil size={13}/>,disabled:status!=='ready',run:()=>beginCorrection(selectedWordIds)},
+        {id:'split',label:f('Split clip'),icon:<Merge size={13}/>,shortcut:'Enter',disabled:status!=='ready',run:()=>{useEditorStore.getState().splitBeforeSelection();}},
+        {id:'group',label:f('Group into phrase'),icon:<Merge size={13}/>,disabled:selectedWordIds.length<2,run:contextRun(()=>useEditorStore.getState().groupSelectedPhrase())},
+        {id:'ungroup',label:f('Ungroup'),icon:<Merge size={13}/>,run:()=>useEditorStore.getState().ungroupSelectedPhrase()},
+      ]}/>}
       <TranscriptScrollIndicator
         scrollRef={scrollRef}
         contentRef={containerRef}
