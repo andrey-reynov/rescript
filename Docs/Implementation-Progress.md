@@ -270,3 +270,10 @@ Ran the installed silence-analysis worker on a one-minute extraction of the user
 ## Stage 33 — Installed detector visualization and explicit deletion
 
 Confirmed the acceptance window was hidden; showing it rendered all 23 gameplay regions in the expected colors without a source change. A focused overlap Delete applied the configured source handles, and Undo restored the original edit with unchanged media reference. A controlled instrumental/silent-edge fixture completed actual installed VAD/RMS analysis, displayed ten regions, and added no cuts. Its music false positives are explicitly recorded in Silence-Detection.md rather than treated as perfect detection. Combined with existing settings, resize/restore, persistence, and background-job tests, item 5's feature acceptance is complete and retained in Completed-Plan-Items.md. Models-manager acceptance and the full transcript workflow remain open.
+
+
+## Stage 34 — Clip-name drafts and retained merge labels
+
+Item 13 audit found clip names committed and trimmed on every keystroke, preventing ordinary space-separated names and creating per-character Undo steps. ClipNameInput now holds a transient draft, commits on Enter/blur, cancels on Escape, and does not commit an unchanged display value. Composition confirmation is excluded from commit shortcuts. The source-anchored name model remains unchanged: merged labels display together and re-splitting restores each original name unless the user explicitly renames the merged clip.
+
+Runtime validation typed `First`, a separate space, and `clip`; the draft and committed value remained `First clip`. Escape discarded `Discard this`; one Undo restored the original empty name. The isolated fixture was restored afterward. Production build, TypeScript, component lint, and transcript-state tests passed. Transcript-structure regression coverage verifies merged label display, re-split ownership, and unchanged name IDs.
