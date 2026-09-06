@@ -3,6 +3,7 @@ import {ru} from './messages/ru';
 import type {UiLocale} from './locales';
 /** Copy added by the fork. Other locales retain English until translated. */
 export const forkRussian={
+ 'Restoring revision…':'Восстановление ревизии…','Snapshot not found.':'Снимок не найден. Обновите список версий.',
  'Realign selected text':'Уточнить время слов','Realign':'Уточнить','Speech language':'Язык речи',
  'Adjust word timing against the audio. Text and timeline cuts stay unchanged.':'Уточнение времени слов по аудио. Текст и монтажные вырезы не изменятся.',
  'Automatic word alignment is unavailable for this language. Choose the actual spoken language if supported; otherwise use manual timing.':'Для этого языка автоматическое уточнение времени недоступно. Выберите фактический язык речи, если он поддерживается, или измените время вручную.',

@@ -3,7 +3,8 @@ import {useI18n,useForkI18n} from "./I18nProvider";
 import {localizeRuntimeMessage} from "@/lib/i18n";
 import Button from './Button';
 import { useState } from 'react';
-import { FolderOpen, Film, Music, History, X } from 'lucide-react';
+import RevisionDialog from './RevisionDialog';
+import { FolderOpen, Film, Music, History } from 'lucide-react';
 import type { ProjectMeta } from '@/lib/projects';
 
 export default function ProjectLibrary({projects,busyId,onOpen}:{projects:ProjectMeta[];busyId:string|null;onOpen:(id:string)=>void}) {
@@ -30,12 +31,6 @@ export default function ProjectLibrary({projects,busyId,onOpen}:{projects:Projec
         </div>
       </article>)}
     </div>
-    {recovery&&<div role="dialog" aria-modal="true" aria-label={f("Recovery snapshots")} className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6"><div className="flex max-h-[80vh] w-full max-w-md flex-col overflow-hidden rounded-xl bg-white p-5 dark:bg-zinc-900">
-      <div className="flex shrink-0 items-center justify-between gap-3"><h2 className="font-semibold">{f("Recovery snapshots")}</h2><Button variant="icon" aria-label={f("Close revisions")} onClick={()=>setRecovery(null)}><X size={16}/></Button></div><p className="my-2 shrink-0 text-sm text-zinc-500">{f("Restore a prior saved revision. The current file is retained as a recovery backup.")}</p>
-      <div className="min-h-0 overflow-y-auto" aria-label={f("Revision list")}>
-      {!recovery.snapshots.length&&<p className="my-4 text-sm">{f("No snapshots yet. Snapshots appear after subsequent saves.")}</p>}
-      {recovery.snapshots.map((snapshot,i)=><button key={snapshot} className="my-1 block w-full rounded border p-2 text-left text-sm" onClick={()=>{void window.rescriptDesktop!.projects.restore(recovery.id,snapshot).then(()=>{setRecovery(null);onOpen(recovery.id);}).catch(e=>setError(String(e)));}}>{f('Restore {revision}',{revision:i===0?f('latest previous revision'):f('revision {number}',{number:snapshot.replace('.json','')})})}</button>)}
-      </div>
-    </div></div>}
+    {recovery&&<RevisionDialog projectId={recovery.id} snapshots={recovery.snapshots} onClose={()=>setRecovery(null)} onRestored={()=>{setRecovery(null);onOpen(recovery.id);}}/>}
   </section>;
 }

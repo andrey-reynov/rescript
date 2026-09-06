@@ -98,3 +98,10 @@ Latest static build predates the final small tweaks for Space replacement, no-op
 
 - Selected alignment is now available in the word context menu with a shared-style language modal, progress and cancellation. Prepared PCM reads are bounded and checked against the source fingerprint; jobs/checkpoints are not replaced. See [Selected-Text-Alignment.md](Selected-Text-Alignment.md).
 - Real cached-model inference updated one selected word, preserved the remaining data and supported Undo. Cancel preserved all words; an unalignable digit correction failed explicitly and stayed approximate. Focused native/read and localization tests, both type checks, and production static/Electron builds pass. Remaining multi-batch/multi-word alignment cases and the rest of PLAN.md still require audit.
+
+
+## Stage eight: Project Manager acceptance complete
+
+- Extracted revision dialog with initial/return focus, keyboard containment and Escape, visible local restore errors, and a restore-in-progress guard. A failed restore now returns focus to usable dialog controls instead of leaving focus behind the overlay.
+- Item 10 passed its full acceptance checks: Accent Open project, both card icons' hover/pressed/keyboard actions, X/no Cancel, stationary header/description with scrolling list in a short window, light/dark visuals, actual native revision restoration and recovery backup, unchanged project on dismissal, and failure recovery.
+- Removed only item 10 from the pending plan. Its original requirements and detailed evidence are preserved in [Completed-Plan-Items.md](Completed-Plan-Items.md). The rest of the plan remains active.

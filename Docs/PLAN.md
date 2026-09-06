@@ -1,6 +1,6 @@
 # Next Update Plan
 
-Pending features only. Remove completed items as they ship.
+Pending features only. Completed acceptance records are retained in [Completed-Plan-Items.md](Completed-Plan-Items.md). Keep existing item numbers when removing completed work.
 
 GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://github.com/andrey-reynov/rescript/issues). Open issue status is not proof that implementation is missing; entries below retain only pending scope or explicit verification work. Existing items 1–3 remain first; imported issue order does not change release milestones.
 
@@ -183,28 +183,6 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 - Select a word and scroll it above or below the transcript viewport: the toolbar disappears and cannot intercept clicks while hidden.
 - Scroll back: the toolbar returns at the selection, with Cut, Correct, and Speaker working normally.
 - Check both viewport edges, resizing, and multi-word selections. The toolbar must not float over the transcript header, timeline, or unrelated panels when its anchor is offscreen.
-
-**Tracking:** No issue assigned yet.
-
-### 10. Project Manager buttons and revision modal
-
-**Status:** Implemented and shipped in 1.3.0; retain short-window, light/dark, keyboard and revision-restoration runtime audit.
-
-**Expected behavior:**
-
-- Restyle the Project Manager's **Open project…** button using the shared **Accent** button variant from UI-Rules.md.
-- Add consistent hover and pressed/click feedback to the folder and revision buttons on project cards, using the shared icon-button styling. Preserve their existing actions and prevent their clicks from also opening the project card.
-- In the revision modal, add an accessible **X** close button in the top-right corner using the shared icon-button style.
-- Remove the bottom **Cancel** button; retain the existing non-destructive dismissal behavior through the new X button.
-- Keep the modal title, close button, and description stationary. Restrict scrolling to the revision list itself, with a height bounded by the available viewport.
-
-**Acceptance criteria:**
-
-- Open project… matches the Accent style and retains its existing opening behavior.
-- Folder and revision buttons visibly respond to hover and press, remain keyboard accessible, and trigger only their own actions.
-- The revision modal closes from the top-right X without selecting or restoring a revision; no bottom Cancel button remains.
-- With many revisions or a short window, only the list scrolls. The title, description, and X remain visible and usable.
-- Revision selection/restoration continues to work; verify light/dark styling and visible keyboard focus.
 
 **Tracking:** No issue assigned yet.
 
