@@ -319,3 +319,8 @@ Actual renderer check selected words 140–142 and right-clicked middle word 141
 Through the actual editor UI, replaced `Hello.` with `Greetings`, named its clip `Opening remarks`, and grouped words 140–142 while retaining the existing manual cut and explicit split. Autosave preserved the corrected word ID 182, approximate timing, original source ID 137, original text `Hello.`, and source interval 0.095–0.55. Undoing the grouping preserved the earlier correction/name; Redo restored the same phrase identity. Reloading the renderer and reopening the project preserved words, phrase IDs, clip-name IDs, cuts, boundaries, view and silence settings exactly. Rendered transcript/name/phrase checks also passed after reopening. The isolated fixture was restored afterward.
 
 Together with stage 30's legacy migration without retranscription and stages 34–35's name/correction history checks, the detailed combined persistence acceptance item is verified. Long-project edits and composition/multi-batch alignment checks remain open.
+
+
+## Stage 41 — Multi-batch selected alignment publication
+
+Actual cached English CTC inference processed two source-separated batches (7,280 and 25,440 samples). Successful results updated all three selected words atomically and one Undo restored the complete original words array. A second run with unalignable `1985` in batch two completed batch one, then failed with a localized error and left all saved words unchanged. See Selected-Text-Alignment.md for scope and instrumentation. Restored the isolated fixture after stopping the process. No application code change was needed.
