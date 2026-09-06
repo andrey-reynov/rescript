@@ -124,7 +124,7 @@ Full-audio retranscription (plan item 1) must invalidate/reconcile any obsolete 
 - [ ] Delete, resize, and restore update both views; a textless deletion still displays duration and a partial word cut does not retime speech.
 - [ ] Explicit splits survive restoring an adjacent deletion; splitting at an existing boundary creates no empty clip.
 - [ ] Group/Ungroup changes timeline presentation only; words stay selectable and seek to their source positions. Cross-clip grouping is rejected.
-- [ ] Plain click selects without seeking. Shift-click extends forward/backward across both views and shows partial phrase selection correctly.
+- [x] Plain click selects without seeking. Shift-click extends forward/backward across both views and shows partial phrase selection correctly. Verified in Implementation-Progress.md stages 31 and 38, including hidden deleted selection scope.
 - [ ] Ctrl-click and Go to word move the playhead without starting playback. Word right-click preserves the selected action target; waveform right-click retains its separate behavior.
 - [ ] Typing replaces one or multiple selected words. Double-click permits character corrections. Backspace cuts in timed selection but edits characters with a caret; Enter splits in timed selection but commits with a caret.
 - [ ] View toggles, Hide deleted words, and Skip deletion areas remain independent and do not alter edit/export data.

@@ -300,3 +300,10 @@ Gave the isolated NSIS-installed acceptance app a disposable model registry; exi
 Relocation completed through the UI. All seven destination files matched their manifest SHA-256 digests, all original artifact paths were absent, and cleanup was empty. After fully restarting the installed executable, the new default folder and model availability persisted. Deleting the model through its Settings row changed it to Not downloaded with zero managed bytes. All three test project documents compared exactly before/after deletion. Stopped the acceptance app and restored its previous test model registry afterward.
 
 Combined with prior actual offline inference, availability-picker, active-job lock, interruption, and failure/retry checks, item 2's remaining installed-action acceptance is complete. Its original requirements and evidence are retained in Completed-Plan-Items.md. Item 13's full transcript-editing acceptance remains active.
+
+
+## Stage 38 — Cross-view ranges containing hidden deleted text
+
+In an isolated runtime fixture, hid deleted word 139 and selected transcript word 137, then Shift-clicked timeline word 142 with an actual pointer event. Visible highlights were 137,138,140,141,142; the absent word 139 remained represented by the Deleted row's `Hidden selected words: 1` summary. Replacement typing was rejected without opening a correction draft. Starting instead from timeline word 142 and Shift-clicking transcript word 138 selected the backward range; Shift-clicking 144 afterward selected 142–144, proving the original anchor stayed fixed. Playback remained at 0 throughout. The fixture was restored after stopping its test process.
+
+Together with stage 31's partial/full phrase highlight verification, this completes the detailed checklist's plain-click and cross-view Shift-selection item. Other item 13 gates remain unchecked until their complete evidence is audited.
