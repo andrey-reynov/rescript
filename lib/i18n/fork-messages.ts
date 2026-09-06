@@ -3,6 +3,12 @@ import {ru} from './messages/ru';
 import type {UiLocale} from './locales';
 /** Copy added by the fork. Other locales retain English until translated. */
 export const forkRussian={
+ 'Prepare source audio before retranscribing.':'Подготовьте исходное аудио перед повторной расшифровкой.',
+ 'The open project changed. Reopen the transcription dialog.':'Открытый проект изменился. Откройте окно расшифровки заново.',
+ 'Retranscription failed.':'Не удалось запустить повторную расшифровку.',
+ 'Pause active processing before retranscribing.':'Приостановите обработку перед повторной расшифровкой.',
+ 'Pause active processing before retranscribing a selection.':'Приостановите обработку перед повторной расшифровкой выделения.',
+
  'Select text to correct.':'Выберите текст для исправления.',
  'Select consecutive text to correct.':'Выберите последовательные слова для исправления.',
  'Correct visible words within one retained clip.':'Исправляйте видимые слова в пределах одного сохранённого клипа.',

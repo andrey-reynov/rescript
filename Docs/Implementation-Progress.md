@@ -190,3 +190,10 @@ Latest static build predates the final small tweaks for Space replacement, no-op
 - Regression covers scope, full settings, selected independence and stale-save protection. Both type checks, focused lint and production renderer/native builds pass.
 - Real cached Whisper Base inference processed the entire 42.4106875-second source (45 words), changed project source from Tiny English to Base, kept English language, preserved the existing manual cut and a deliberately deleted first-word interval (0.095–0.55). Reopened the project and opened/cancelled the full-audio dialog with Base/English shown. Test project, job manifest and summary restored after shutting down the isolated app.
 - Remaining item 1 checks include model/language changes through the modal itself, selected numeric-range/cancel/error/conflicting-job acceptance; this result does not close the whole item.
+
+## Stage twenty-two: shared retranscription dialog acceptance
+
+- Added initial focus, Tab wrapping, Escape dismissal, busy focus and duplicate-submit guard. Captured project ID prevents submission against a different open project. Current job state gates opening/submitting even when a conflict begins after opening. Initial model/language is normalized for compatibility. Native errors are stripped of transport boilerplate and localized.
+- Runtime: full dialog displayed “Всё аудио”; selected dialog displayed “0.10–0.55 s”. Tab/Shift-Tab wrapped; Escape first closed the model dropdown, then the dialog. Cancelling either preserved saved transcript/cuts/settings and job generation.
+- Temporarily moved only the isolated fixture's job manifest to exercise missing prepared audio. Submission showed an inline error, retained focus and old edit, and remained dismissible. Manifest restored exactly. Added missing Russian error translation afterward.
+- Type checking, focused lint, i18n tests and production renderer build passed before runtime; final busy-focus/translation additions checked again. Active-job conflict and model/language submission through the modal remain open under item 1.
