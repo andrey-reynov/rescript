@@ -12,3 +12,8 @@ export function isTypingTarget(target: EventTarget | null): boolean {
   if (el.tagName === "TEXTAREA") return true;
   return el.tagName === "INPUT" && (el as HTMLInputElement).type !== "file";
 }
+
+/** Some IMEs report their confirmation key as 229 after isComposing clears. */
+export function isCompositionKey(event: {isComposing:boolean;keyCode:number}):boolean {
+  return event.isComposing || event.keyCode===229;
+}

@@ -149,3 +149,10 @@ Latest static build predates the final small tweaks for Space replacement, no-op
 - Added atomic source-span selection with the pointer-down anchor. Backwards drag no longer retains a stale anchor or substitutes the lowest selected ID. Modified pointer gestures and active caret correction are excluded from drag handling.
 - State regression verifies hidden words, both anchor directions, subsequent Shift extension, clearing stale clip/cut picks, unchanged deletion flags and unchanged playhead. Type checking, focused lint and production renderer build pass.
 - Real pointer runtime on the isolated project: drag 142→138 selected 138–142, then Shift-click 144 selected 142–144; drag 138→142 then Shift-click 137 selected 137–138. Playhead remained at 10 seconds. No project edit was made by this test. Cross-view/hidden-range runtime and remaining keyboard/IME acceptance remain under item 13.
+
+## Stage sixteen: correction keyboard routing
+
+- Shared composition guard handles both isComposing and legacy key code 229. Applied to global editor shortcuts, direct transcript typing, correction Enter/Escape, selection Escape and optional speaker shortcut. An IME confirmation must not accidentally commit, split, or clear a selection.
+- Actual renderer input test replaced two selected words with English/Russian text, committed with Enter without changing cuts/splits, verified approximate provenance and saved output, then restored original words with Undo. Double-click opened existing text; native Select All/Backspace edited characters, and Escape discarded the draft without cutting media. Fixture restored.
+- Simulated key-229 Enter left the correction open. This proves event routing, not full OS IME composition entry; that remains pending. The first harness attempt omitted native Select All's virtual key code; adding it made the character-deletion check pass without an app change.
+- Focused composition test and production build pass. Full item 13 acceptance remains open.
