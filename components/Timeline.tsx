@@ -128,6 +128,7 @@ export default function Timeline() {
   const selectedClipIndex = useEditorStore((s) => s.selectedClipIndex);
   const selectedCutIndex = useEditorStore((s) => s.selectedCutIndex);
   const selectedWordIds = useEditorStore((s) => s.selectedWordIds);
+  const selectedWordSet=useMemo(()=>new Set(selectedWordIds),[selectedWordIds]);
   const status = useEditorStore((s) => s.status);
 
   const cuts = useCutRanges();
@@ -655,7 +656,7 @@ export default function Timeline() {
   const openContext=(e:React.MouseEvent)=>{
     e.preventDefault();e.stopPropagation();const wordEl=(e.target as HTMLElement).closest<HTMLElement>('[data-timeline-word]');
     const wordId=wordEl?Number(wordEl.dataset.timelineWord):undefined;const time=timeFromClientX(e.clientX);const store=useEditorStore.getState();
-    if(wordId!==undefined){if(!store.selectedWordIds.includes(wordId))store.selectWordRange((wordEl?.dataset.wordIds??String(wordId)).split(',').map(Number));}else seekTo(time);
+    if(wordId!==undefined){const members=(wordEl?.dataset.wordIds??String(wordId)).split(',').map(Number);if(!members.some(id=>store.selectedWordIds.includes(id)))store.selectWordRange(members);}else seekTo(time);
     setContextError('');setContext({x:e.clientX,y:e.clientY,time,wordId,detection:detected.find(range=>String(range.start)===(e.target as HTMLElement).closest<HTMLElement>('[data-detection-start]')?.dataset.detectionStart)});
   };
   const safeAction=(action:()=>void)=>()=>{try{action();}catch(e){setContextError(e instanceof Error?e.message:String(e));}};
@@ -921,7 +922,9 @@ export default function Timeline() {
               const wWidth = Math.max(6, (w.end - w.start) * pps - 1);
               const hovered = hoveredWordId === w.id;
               const cutOut = isWordCutOut(w, cuts);
-              const wordSelected = w.memberIds.some(id=>selectedWordIds.includes(id));
+              const selectedMembers=w.members.filter(member=>selectedWordSet.has(member.id));
+              const wordSelected=selectedMembers.length===w.memberIds.length;
+              const partiallySelected=selectedMembers.length>0&&!wordSelected;
               const placeholder = isDisfluencyPlaceholder(w.text);
               const displayText = w.text.trim() ? w.text : f("Empty text");
               const showWordHandles = w.memberIds.length===1 && showHandles && (hovered || wWidth > 28);
@@ -930,6 +933,7 @@ export default function Timeline() {
                   key={w.id}
                   data-timeline-word={w.id}
                   data-word-ids={w.memberIds.join(",")}
+                  data-selection={wordSelected?"full":partiallySelected?"partial":"none"}
                   data-tl-interactive
                   className={`tl-word absolute z-[3] flex items-center overflow-hidden rounded-md border text-[10px] leading-none transition-[box-shadow,background-color,border-color] duration-150 ${
                     cutOut
@@ -968,7 +972,7 @@ export default function Timeline() {
                     const store=useEditorStore.getState();if(e.ctrlKey){seekTo(w.start);return;}store.selectWordRange(w.memberIds,e.shiftKey);
                   }}
                 >
-                  {w.memberIds.length>1&&w.members.filter(member=>selectedWordIds.includes(member.id)).map(member=><span key={member.id} className="pointer-events-none absolute inset-y-0 bg-indigo-400/25" style={{left:`${100*(member.start-w.start)/(w.end-w.start)}%`,width:`${100*(member.end-member.start)/(w.end-w.start)}%`}}/>)}
+                  {partiallySelected&&selectedMembers.map(member=><span key={member.id} className="pointer-events-none absolute inset-y-0 bg-indigo-400/25" style={{left:`${100*(member.start-w.start)/(w.end-w.start)}%`,width:`${100*(member.end-member.start)/(w.end-w.start)}%`}}/>)}
                   <span className="pointer-events-none relative min-w-0 flex-1 truncate px-1.5">
                     {displayText}
                   </span>
