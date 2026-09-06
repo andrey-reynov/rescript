@@ -52,7 +52,7 @@ async function processProject() {
           if(message.type==='progress'&&Date.now()-lastProgress>250){lastProgress=Date.now();void bridge.progress(`Batch ${chunk.index+1}/${job.total} · ${message.message}`,message.value).catch(()=>{});}
         };
         worker.onerror=error=>reject(new Error(error.message||'Transcription worker stopped'));
-        const request:WorkerRequest={audio,desktopModels:true,preferWasm:job.preferWasm,duration:audio.length/16000,model:job.model as ModelId,language:job.language as TranscriptLanguage};
+        const request:WorkerRequest={audio,desktopModels:true,retainSpeechModel:true,preferWasm:job.preferWasm,duration:audio.length/16000,model:job.model as ModelId,language:job.language as TranscriptLanguage};
         worker.postMessage(request,[audio.buffer]);
       });
       } catch(error) {

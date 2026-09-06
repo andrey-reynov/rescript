@@ -12,4 +12,4 @@ Legacy cached models migrate in 4 MiB bridge chunks before inference or an expli
 
 Verification: `tests/model-storage-test.ts` covers downloads, concurrency, availability, mutation locks, relocation/restart without network, failure preservation, import bounds, and project isolation. `tests/model-capabilities-test.ts` covers supported speech versus language forcing and pre-job rejection. Runtime checks use an isolated profile, real cached/downloaded Whisper files, and Settings controls.
 
-Further release audit: installed build, Parakeet native-path inference, renderer interruption during import, download interruption/retry, and large-file/multi-window races. Do not infer that the full PLAN.md is complete from model-storage checks alone.
+Completed acceptance: Implementation-Progress.md stages 24–26, 29, and 36–37 record transfer failures/retry, actual Parakeet inference and offline relocation, killed-process recovery, renderer import cancellation, and installed Settings actions. Shared native mutation/start guards and focused storage tests cover concurrent callers. The full plan audit is separate and recorded in stage 44.

@@ -107,9 +107,9 @@ type DragKind =
 function DeletionHandles({cuts,selected,duration,pps,onStart}:{cuts:Array<{start:number;end:number}>;selected:number|null;duration:number;pps:number;onStart:(e:ReactPointerEvent,index:number,edge:'start'|'end')=>void}){
  const f=useForkI18n();if(selected===null||!cuts[selected])return null;const index=selected,cut=cuts[index];
  return <>{(['start','end'] as const).map(edge=><div key={edge} role="slider" tabIndex={0} aria-label={f(edge==='start'?'Deletion start':'Deletion end')} aria-valuemin={edge==='start'?(cuts[index-1]?.end??0):cut.start+.02} aria-valuemax={edge==='end'?(cuts[index+1]?.start??duration):cut.end-.02} aria-valuenow={cut[edge]} data-tl-interactive
- className="absolute z-20 w-3 -translate-x-1/2 cursor-ew-resize rounded border border-red-500 bg-red-200/60 focus-visible:outline-2 focus-visible:outline-blue-500" style={{left:cut[edge]*pps,top:RULER_H+WORDBAR_H+3,bottom:3}}
+ className="tl-trim-handle absolute z-20 -translate-x-1/2 cursor-ew-resize focus-visible:outline-2 focus-visible:outline-indigo-500" style={{left:cut[edge]*pps,top:RULER_H+WORDBAR_H+4,bottom:4}}
  onKeyDown={e=>{if(!['ArrowLeft','ArrowRight'].includes(e.key))return;e.preventDefault();e.stopPropagation();const delta=(e.key==='ArrowLeft'?-1:1)*(e.shiftKey?.1:.01);const lo=edge==='start'?(cuts[index-1]?.end??0):cut.start+.02,hi=edge==='end'?(cuts[index+1]?.start??duration):cut.end-.02;const next={...cut,[edge]:Math.max(lo,Math.min(hi,cut[edge]+delta))};useEditorStore.getState().resizeDeletion(cut,next);}}
- onPointerDown={e=>onStart(e,index,edge)}/>)}</>;
+ onPointerDown={e=>onStart(e,index,edge)}><div className="h-full w-1 rounded-full bg-indigo-500 shadow-[0_0_0_3px_rgba(99,102,241,0.2)] transition-all duration-150"/></div>)}</>;
 }
 
 export default function Timeline() {
@@ -840,7 +840,7 @@ export default function Timeline() {
             {/* Selected cut/silence outline */}
             {selectedCutIndex != null && cuts[selectedCutIndex] && (
               <div
-                className="pointer-events-none absolute z-[4] rounded-sm ring-1 ring-red-400/55 dark:ring-red-300/50"
+                className="pointer-events-none absolute z-[4] rounded-sm ring-1 ring-indigo-400/55 dark:ring-indigo-300/50"
                 style={{
                   left: cuts[selectedCutIndex].start * pps,
                   width: Math.max(
@@ -969,7 +969,7 @@ export default function Timeline() {
                   }
                   onPointerDown={(e) => {
                     if(e.button!==0||(e.target as HTMLElement).dataset.edge)return;e.stopPropagation();
-                    const store=useEditorStore.getState();if(e.ctrlKey){seekTo(w.start);return;}store.selectWordRange(w.memberIds,e.shiftKey);
+                    const store=useEditorStore.getState();if(e.ctrlKey||e.metaKey||e.altKey)return;store.selectWordRange(w.memberIds,e.shiftKey);if(!e.shiftKey)seekTo(w.start);
                   }}
                 >
                   {partiallySelected&&selectedMembers.map(member=><span key={member.id} className="pointer-events-none absolute inset-y-0 bg-indigo-400/25" style={{left:`${100*(member.start-w.start)/(w.end-w.start)}%`,width:`${100*(member.end-member.start)/(w.end-w.start)}%`}}/>)}

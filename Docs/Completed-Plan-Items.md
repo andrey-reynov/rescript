@@ -1,6 +1,6 @@
 # Completed plan items
 
-Acceptance records for requirements removed from the pending plan. Completion applies only to the listed scope.
+Acceptance records for all 13 implemented plan items. Completion applies only to the listed scope. Original requirement sections below retain historical status wording for traceability; each item's completion evidence supersedes those historical pending notes. Current verification is summarized in Implementation-Progress.md and Transcript-Acceptance-Audit.md.
 
 ## Item 10 — Project Manager buttons and revision modal
 
@@ -358,3 +358,31 @@ Verified 2026-09-06 in the isolated production-built Electron app using actual r
 
 
 **Completion evidence:** Stages 25–26 verify actual CPU Parakeet inference and offline use after relocation/restart; stages 29 and 36 verify killed-relocation and renderer-import recovery. Stage 37 verifies Settings-driven download, folder change, relocation, restart availability, and deletion in the real installed app, including file hashes and unchanged project documents. Existing model-storage tests cover active-job mutation guards, failure preservation, retry, and deletion isolation.
+
+
+## Item 13 acceptance complete
+
+### 13. Clip-based transcript editing and phrase grouping
+
+**Status:** Complete. Requirement-by-requirement evidence is recorded in [Transcript-Acceptance-Audit.md](Transcript-Acceptance-Audit.md), with final regression/build verification in Implementation-Progress.md stage 44. Selected correction realignment is documented in [Selected-Text-Alignment.md](Selected-Text-Alignment.md).
+
+**Detailed specification:** [Transcript-Editing-Workflow.md](Transcript-Editing-Workflow.md). This consolidates the agreed large editing update and refines items 3, 4, 6, 9, 11, and 12 without duplicating their implementation.
+
+**Scope:**
+
+- Default to named edit clips separated by deletions or explicit splits, with Deleted/duration blocks and optional speaker metadata/view.
+- Group timeline word blocks into phrases while keeping individual transcript words selectable; separate words, phrases, clips, and editing ranges.
+- Synchronize selection across transcript and timeline. Click selects; Shift-click extends an inclusive range from a shared anchor without seeking.
+- Support replacement typing, double-click caret correction, Backspace/Delete cutting selected timed ranges, and Enter splitting before the first selected word. Inside caret editing, deletion keys edit characters and Enter commits instead.
+- Use Ctrl-click or the Go to word context action to seek without starting playback; no Alt-click requirement for transcript words.
+- Remove the default floating Cut / Correct / Speaker toolbar and expose discoverable context actions. Preserve optional speaker data without allowing it to dictate edit cuts.
+- Preserve original media/timing provenance, make corrected timing uncertainty explicit, and persist names/grouping/corrections with undo, autosave, and migration support.
+
+**Implementation order:** Clip structure/views → shared selection and phrase grouping → direct editing and timing → caption-foundation validation. Full subtitle production remains later roadmap work.
+
+**Acceptance criteria:** Use the detailed specification's checklist, including boundary changes, partial word cuts, cross-view selection, editing-state shortcuts, and long-video responsiveness.
+
+**Tracking:** Related to [#5](https://github.com/andrey-reynov/rescript/issues/5) and [#2](https://github.com/andrey-reynov/rescript/issues/2); no separate issue assigned yet.
+
+
+**Completion evidence:** The detailed specification’s 11 acceptance checks are mapped to focused tests and runtime records in Transcript-Acceptance-Audit.md. Stages 38–43 cover the final cross-view selection, seeking/context scope, combined history/reopening, atomic multi-batch alignment, long-project virtualization, and browser composition checks. Stage 44 verifies the final source, AAF round trip, installer, and main CI. Known accuracy and physical-input test limitations remain documented; finished subtitle production and later roadmap milestones remain outside this update.

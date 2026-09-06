@@ -280,7 +280,7 @@ export default function Editor() {
       const s = useEditorStore.getState();
       const transcriptTarget=(e.target as HTMLElement)?.closest?.('[data-transcript-editor]');
       if(isCompositionKey(e))return;
-      if(transcriptTarget&&s.selectedWordIds.length&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&(e.key==='Enter'||e.key.length===1))return;
+      if(transcriptTarget&&s.selectedWordIds.length&&!e.ctrlKey&&!e.metaKey&&!e.altKey&&e.key==='Enter')return;
       if(e.key==='Enter'&&s.selectedWordIds.length&&s.status==='ready'&&!s.exportOpen&&!transcriptTarget){e.preventDefault();e.stopPropagation();s.splitBeforeSelection();return;}
       if (e.code === "Space" && s.videoEl && !s.exportOpen) {
         e.preventDefault();

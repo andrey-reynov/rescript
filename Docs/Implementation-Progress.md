@@ -1,24 +1,28 @@
 # Plan implementation progress
 
-Objective: implement all of PLAN.md and Transcript-Editing-Workflow.md. This log is evidence and remaining work, not a narrowed substitute for that objective. The user authorized publishing the current implementation stages as release 1.3.0. This release does not mark the full plan complete; remaining requirements stay tracked below.
+Objective: implement all of PLAN.md and its linked transcript-editing specification. All 13 items are complete following the final audit in stage 44. Future roadmap features remain separate.
 
 ## Coverage
 
-| Plan item | Current state | Remaining verification/work |
+| Plan item | Current state | Acceptance evidence (stages below) |
 |---|---|---|
-| 1 Full-audio retranscription | Implemented in shared modal, IPC and job service | Final integrated regression after clip/phrase persistence is added |
-| 2 Models manager | Implemented native storage and Settings controls | Final installed/Parakeet and interruption audit |
-| 3 Transcript views/menu | Implemented baseline clip/speaker/continuous rendering and grouped menu | Final boundary/long-video/UI audit |
-| 4 Resize deletion regions | Implemented direct selected-cut handles and keyboard nudges | Final pointer/edge/overlap audit |
-| 5 Silence blocks | Implemented real RMS/VAD analysis, controls and timeline regions | Final gameplay/music and installed-build audit |
-| 6 Speech block operations | Pending | Resolve through distinct clip/phrase operations in item 13 |
-| 7 Capability metadata | Implemented shared profiles and UI/native/worker guards | Integrated selector and bilingual audit |
-| 8 Russian verification | Pending | Full bilingual/install/migration matrix |
-| 9 Offscreen toolbar | Removed in default clip view; clipping middleware added for legacy toolbar | Runtime scroll test with offscreen anchor after final rebuild |
-| 10 Project Manager UI | Implemented | Final visual/theme/accessibility audit with long revision lists |
-| 11 Context menus | Implemented waveform/word context actions and empty fallback | Final end-of-source, outside dismissal and keyboard audit |
-| 12 Preview skip toggle | Implemented and persisted | Final live playback/persistence checks with edited clips |
-| 13 Editing workflow | Core model/state and transcript views implemented | Timeline phrase rendering/selection, context/caret editing, boundary UI, exhaustive persistence/migration/performance audit |
+| 1 Full-audio retranscription | Complete | 23; fresh full/selected runs, preserved cuts, modal/error/conflict checks |
+| 2 Models manager | Complete | 24–26, 29, 36–37; installed actions, offline relocated inference, interruption recovery |
+| 3 Transcript views/menu | Complete | 11; exclusive layouts, hidden text, import and edit preservation |
+| 4 Resize deletion regions | Complete | 12; real pointer/keyboard edges, overlap, history and reopening |
+| 5 Silence blocks | Complete | 33; installed gameplay/instrumental analysis, three colors, explicit deletion |
+| 6 Speech block operations | Complete | 18, 34; phrase/clip distinction, mixed attribution, names and persistence |
+| 7 Capability metadata | Complete | 27; selector/backend restrictions and bilingual inference |
+| 8 Russian verification | Complete | 27, 30; independent locales, installed UI/native menus, migration |
+| 9 Offscreen toolbar | Complete | 10; 10,000-word scroll/resize and restored actions |
+| 10 Project Manager UI | Complete | 8; native open, card effects, revision list, themes and keyboard |
+| 11 Context menus | Complete | 13, 31, 39; target, positioning, zoom/scroll, keyboard and selection |
+| 12 Preview skip toggle | Complete | 9; actual playback, persistence, independent visibility/export |
+| 13 Editing workflow | Complete | 28, 31, 34–35, 38–43; detailed Transcript-Acceptance-Audit.md mapping |
+
+## Reading the stage history
+
+The following entries are chronological records. “Pending,” “next,” and build-version statements describe the state at that stage, not current outstanding work. Later acceptance records and the coverage table above supersede them without erasing the original scope.
 
 ## Stage one evidence
 
@@ -342,3 +346,23 @@ Found and fixed initial Windows Process/229 routing: the selected transcript sec
 Runtime verification first showed focus on SECTION/no input before the fix, then INPUT after it. Chromium Input.imeSetComposition produced trusted compositionstart/update events and entered `ni`; a 229 confirmation key left the draft open. Completing to `你好` through Input.insertText and pressing normal Enter saved the correction with original `Hello.` provenance. Undo restored the exact words/cuts/splits. A second composition was cancelled and Escape restored `Hello.` with no active draft. This exercises Chromium's composition path; completion from the automation API reports isTrusted=false and is not evidence of operating a physical Windows IME candidate window.
 
 Production build/type checking, component lint (existing TanStack warning only), and keyboard tests passed. Alongside prior selection/caret/name/modal shortcut checks, the automated keyboard acceptance is complete. Final current-tree verification remains required before marking PLAN complete.
+
+
+## Stage 44 — Final plan and release audit
+
+- Inspected every retained plan item, the full transcript specification, UI rules, model storage/capability guidance, and selected-alignment evidence. All 13 original items remain preserved in Completed-Plan-Items.md; item 13’s detailed mapping is in Transcript-Acceptance-Audit.md. Reconciled stale progress summaries without removing requirements.
+- Final application source is development `059a315` / main merge `0ff1624` (identical source trees). The 35-file regression suite, renderer and Electron type checks passed. Full lint had no errors and only the existing thumbnail/virtualizer warnings. AAF round-trip validation passed with `PYTHON=python` and the existing pyaaf2 package, resolving the optional test skip. Additional models-test.ts and align-models-test.ts passed during this final audit.
+- Built Windows release 1.5.2 using the normal desktop packaging command (`pnpm --package=npm@10 dlx npm run dist -- --win --publish never`). Both x64 and ARM64 were packaged. Opened the resulting x64 packaged application in a separate user-data profile and verified Project Manager plus native menus; no user project was opened or changed. Detailed edited-project behavior was exercised in stages 38–43.
+- Main CI passed: https://github.com/andrey-reynov/rescript/actions/runs/34016784020 . Published release: https://github.com/andrey-reynov/rescript/releases/tag/fork-v1.5.2 . Uploaded 280,124,116-byte installer and SHA256SUMS both matched GitHub’s remote SHA256 digests.
+- Verification limits remain explicit: composition was exercised through Chromium rather than a physical Windows IME candidate window; model recognition/VAD/alignment are estimates, and language-wide accuracy or finished subtitle production is not claimed. These limitations do not replace the implemented keyboard routing, independent detectors, provenance, or atomic alignment requirements. No pending implementation/acceptance gate remains for this plan.
+
+
+## Post-plan revision — Playback-first gestures and batch model lifetime
+
+The user changed the interaction requirements after the original plan was complete. Plain word/phrase click now selects and seeks, Space plays/pauses, Ctrl-click has no special word action, and typing alone does not begin correction. Double-click and the explicit Correct command enter editing. Shift/drag selection remains independent of playback. The current revision in Transcript-Editing-Workflow.md supersedes prior gesture acceptance records.
+
+Clip headers now show a fixed number, separator, editable display name, and Rename menu. Name editing keeps the prior commit/cancel/history behavior. Non-favoritable timeline menu commands reserve the same icon slot as favorites. Deletion handles and selected outlines match retained clip controls.
+
+Native transcription requests retain the loaded speech model across checkpoint batches. The owning runner still terminates its worker when complete or stopped, and GPU fallback creates a fresh CPU worker. Browser one-shot transcription retains the original memory-release behavior. Native model reads report Loading speech model from cache instead of claiming a download.
+
+Validation: renderer type check, changed-code lint (only the existing virtualizer warning), production UI/Electron builds, and focused keyboard/transcript-state/deletion-resize tests passed. In the isolated production UI, a word click sought to 1.65 seconds; Space started playback without opening correction; typing q did not edit; double-click opened correction; Escape canceled; clicking the displayed clip name opened its current default name for editing. A real cached Parakeet v3 CPU worker completed two three-second silent batches: the first emitted Loading speech model from cache, the second emitted no model-loading events and went directly to Detecting speech. Both completed without error, then the test terminated the worker. This check proves repeated-batch model reuse, not a speech-recognition accuracy benchmark. The isolated app was closed afterward.

@@ -25,3 +25,10 @@ The timeline meatballs sits after favorite tools and before the zoom divider. Sp
 The top meatballs replaces Export. Move Save, Open, Save As, project location, Close Project, Export, and processing pause/resume into it. Keep Undo/Redo and Settings in place; remove the divider after Undo/Redo. Top actions have no favorites yet. Leave room for readable process status instead of truncating it to a narrow fixed width.
 
 Localize new labels. Check light/dark themes, pointer and keyboard use, narrow windows, selection preservation, and persistent favorites. Use these shared components for future custom controls instead of copying classes.
+
+
+## Clip headers and menu alignment
+
+Clip view uses a fixed sequence number, dot separator, editable display name (Clip N by default), and a Settings-style meatballs with Rename clip. Show an input only during renaming. Unchanged drafts do not create history; Escape cancels. Keep the existing explicit-boundary Join action.
+
+Keep menu group headings outside hoverable action rows. In timeline menus, non-favoritable actions reserve the same icon slot as favoritable actions so icons, text, and row height align. Selected deletion boundaries use the same thin indigo handle, outline, and hover treatment as retained clip boundaries; deletion stripes still identify excluded content.

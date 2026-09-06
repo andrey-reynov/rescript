@@ -1,6 +1,18 @@
 # Clip-based transcript editing specification
 
-Status: implementation in progress; the acceptance checklist is not yet complete. See [Implementation-Progress.md](Implementation-Progress.md) for verified behavior. This document records the agreed workflow and guides implementation of [PLAN.md item 13](PLAN.md#13-clip-based-transcript-editing-and-phrase-grouping). It refines plan items 3, 4, 6, 9, 11, and 12; it does not mark them complete. Follow [UI-Rules.md](UI-Rules.md) for shared controls.
+Status: implemented and acceptance audit complete. See [Transcript-Acceptance-Audit.md](Transcript-Acceptance-Audit.md) and Implementation-Progress.md stage 44 for evidence and verification limits. This document retains the agreed workflow for [completed plan item 13](Completed-Plan-Items.md#13-clip-based-transcript-editing-and-phrase-grouping) and refines completed items 3, 4, 6, 9, 11, and 12. Follow [UI-Rules.md](UI-Rules.md) for shared controls.
+
+## Current interaction revision
+
+The user revised the original gestures after testing release 1.5.2. This section supersedes conflicting historical gesture descriptions below and in earlier acceptance records:
+
+- Plain word/phrase click selects and seeks to its source start. It does not start playback; Space plays/pauses from that position.
+- Ctrl-click is no longer a special transcript or timeline-word action. Ctrl+Z and Ctrl+Shift+Z remain history shortcuts outside text inputs.
+- Typing while timed words are selected does not begin correction. Double-click enters word correction; the Correct context command remains available for a selected phrase. Inside correction, typing/Space edits text, Enter commits, and Escape cancels.
+- Shift-click and drag still select ranges without seeking. Enter still splits selected timed text; Delete/Backspace still cuts it outside correction.
+- Clip headings use `number · name · menu`. The name defaults to Clip N and enters inline editing on click or Rename clip from its menu. There is no permanent separate empty name field. The fixed number selects the clip interval; existing Join remains available at explicit boundaries.
+
+Earlier runtime records describe the gestures at the time they were tested. Implementation-Progress.md records the updated checks.
 
 ## Goal
 
@@ -134,4 +146,4 @@ Evidence and remaining gates: [Transcript-Acceptance-Audit.md](Transcript-Accept
 - [x] No floating selection toolbar remains in default clip view; any retained legacy toolbar respects viewport visibility.
 - [x] Long-video virtualization continues to work: offscreen rendering does not lose selection, group membership, or edits, and updates do not rebuild every word on each pointer event.
 
-Implementation details requiring explicit resolution during development: deterministic ownership/rendering of partially cut words, custom-name retention when clips merge, and the corrected-token timing/allocation algorithm. These must respect the invariants above and be documented with tests; do not infer precise timing or discard names silently.
+Resolved implementation details (see the audit and structure tests): deterministic ownership/rendering of partially cut words, custom-name retention when clips merge, and the corrected-token timing/allocation algorithm. These must respect the invariants above and be documented with tests; do not infer precise timing or discard names silently.
