@@ -284,3 +284,10 @@ Runtime validation typed `First`, a separate space, and `clip`; the draft and co
 RealignSelection now reserves submission synchronously before any await, preventing rapid repeated activation from starting competing workers. Starting the job focuses the modal so disabling its button cannot return media shortcuts to the editor. Failure releases the reservation for retry; existing cancel/generation handling still discards stale work.
 
 Actual English CTC runtime alignment of a corrected three-word phrase published all measured word timings atomically, preserved provenance and unrelated edits, and reverted in one Undo. See Selected-Text-Alignment.md for measured ranges. The isolated project fixture was restored afterward. Production build and focused correction-alignment tests pass; the full item 13 audit remains open.
+
+
+## Stage 36 — Installed cache-import interruption and manager state
+
+In the real isolated installed app, started a 100-byte cached-artifact transfer and appended only four bytes. Storage reported busy and created one temporary file. Reloading the renderer removed that file through model-ipc's owner cleanup, released busy state, and did not mark the model available. A fresh import was accepted and cancelling it also left storage idle. The first harness retry intentionally/accidentally reached the old renderer during navigation and was correctly rejected as `Model import owner closed`; retry after the new document loaded passed. No project or existing model was removed.
+
+Opened Settings → Models in the installed Russian UI. It displayed the configured offline-model-validation folder, language capability descriptions, installed Tiny English/Base/Medium/Turbo sizes, disabled Download for available variants, and enabled Download for absent variants. Parakeet's CPU files existed but the GPU-required variant correctly remained unavailable on this GPU-capable device. Full installed download/delete/relocate actions remain a separate gate; these read-only controls and owner-reload checks do not claim those mutations were exercised.

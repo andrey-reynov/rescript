@@ -8,7 +8,7 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 
 ### 2. Models manager in Settings
 
-**Status:** Implemented; native/runtime checks recorded in [Implementation-Progress.md](Implementation-Progress.md). Retain final installed, Parakeet and interruption acceptance audit.
+**Status:** Implemented; native/runtime checks recorded in [Implementation-Progress.md](Implementation-Progress.md). Parakeet CPU inference/relocation and interruption recovery are verified (stages 25–26, 29, 36); retain final installed download/delete/relocate action acceptance.
 
 **Expected behavior:**
 
