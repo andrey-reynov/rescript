@@ -142,3 +142,10 @@ Latest static build predates the final small tweaks for Space replacement, no-op
 - Fixed correction allocation and phrase eligibility to use the minimum selected start and maximum selected end. Source-ordered words can overlap, so the final word's end is not a safe boundary. This prevents shortened correction ranges and rejects grouping/correction when an earlier selected word crosses a deletion or explicit split.
 - Focused regression checks cover overlap, unchanged unselected/source words, approximate timing provenance, mixed speakers remaining Unknown, and rejection across both cuts and splits. Transcript structure/state and selected alignment tests pass.
 - This closes an implementation defect under items 6/13, not their complete acceptance audit. Remaining keyboard/IME, cross-view selection and installed model/language checks remain pending.
+
+## Stage fifteen: dragged selection anchor and hidden scope
+
+- Drag selection now includes the complete source-ordered word range, including hidden deleted words, consistently with Shift-click. Existing deletion summaries communicate hidden selection scope; grouping/correction remain constrained to one retained clip.
+- Added atomic source-span selection with the pointer-down anchor. Backwards drag no longer retains a stale anchor or substitutes the lowest selected ID. Modified pointer gestures and active caret correction are excluded from drag handling.
+- State regression verifies hidden words, both anchor directions, subsequent Shift extension, clearing stale clip/cut picks, unchanged deletion flags and unchanged playhead. Type checking, focused lint and production renderer build pass.
+- Real pointer runtime on the isolated project: drag 142→138 selected 138–142, then Shift-click 144 selected 142–144; drag 138→142 then Shift-click 137 selected 137–138. Playhead remained at 10 seconds. No project edit was made by this test. Cross-view/hidden-range runtime and remaining keyboard/IME acceptance remain under item 13.

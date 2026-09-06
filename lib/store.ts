@@ -134,6 +134,7 @@ interface EditorState {
   selectionAnchor: number|null;
   setTranscriptView: (view:TranscriptView)=>void;
   selectWordRange: (ids:number[],extend?:boolean)=>void;
+  selectWordSpan: (anchor:number,target:number)=>void;
   groupSelectedPhrase: ()=>void;
   ungroupSelectedPhrase: ()=>void;
   renameClip: (time:number,name:string)=>void;
@@ -803,6 +804,7 @@ export const useEditorStore = create<EditorState>((set, get) => ({
   applyWordAlignment:(selection,result)=>{const s=get();const blocks=transcriptBlocks(s.words,getCutRanges(s.words,s.duration,s.manualCuts),s.sceneBoundaries,s.duration);const words=applyAlignment(s.words,selection,result,blocks);pushEdit(get,set,{words});},
   setSilenceSettings:value=>{set({silenceSettings:normalizeSilenceSettings({...get().silenceSettings,...value})});bumpAutosave();},
   setTranscriptView:transcriptView=>{set({transcriptView});bumpAutosave();},
+  selectWordSpan:(anchor,target)=>{const s=get();set({selectionAnchor:anchor,selectedWordIds:selectedRange(s.words,anchor,[target]),selectedClipIndex:null,selectedCutIndex:null});},
   selectWordRange:(ids,extend=false)=>{const s=get();const anchor=extend?s.selectionAnchor??ids[0]:ids[0];set({selectionAnchor:anchor??null,selectedWordIds:extend?selectedRange(s.words,anchor,ids):ids,selectedClipIndex:null,selectedCutIndex:null});},
   groupSelectedPhrase:()=>{const s=get();const blocks=transcriptBlocks(s.words,getCutRanges(s.words,s.duration,s.manualCuts),s.sceneBoundaries,s.duration);pushEdit(get,set,{phrases:groupPhrase(s.words,s.phrases,s.selectedWordIds,blocks,crypto.randomUUID())});},
   ungroupSelectedPhrase:()=>{const s=get();const selected=new Set(s.selectedWordIds);pushEdit(get,set,{phrases:s.phrases.filter(g=>!g.wordIds.some(id=>selected.has(id)))});},
