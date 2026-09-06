@@ -197,3 +197,9 @@ Latest static build predates the final small tweaks for Space replacement, no-op
 - Runtime: full dialog displayed “Всё аудио”; selected dialog displayed “0.10–0.55 s”. Tab/Shift-Tab wrapped; Escape first closed the model dropdown, then the dialog. Cancelling either preserved saved transcript/cuts/settings and job generation.
 - Temporarily moved only the isolated fixture's job manifest to exercise missing prepared audio. Submission showed an inline error, retained focus and old edit, and remained dismissible. Manifest restored exactly. Added missing Russian error translation afterward.
 - Type checking, focused lint, i18n tests and production renderer build passed before runtime; final busy-focus/translation additions checked again. Active-job conflict and model/language submission through the modal remain open under item 1.
+
+## Stage twenty-three: full retranscription acceptance complete
+
+- Dialog model/language submission and conflict acceptance passed with real cached Base inference. Full generation covered the original 42.4106875-second source despite a one-word selection and timeline cut, and published 45 words with Base/Automatic preferences.
+- Existing fixture's cut had no recognized speech, so the initial output-overlap assertion was inconclusive. Repeated with a known spoken word deleted; recognition included it while its exact deletion survived. This establishes the requested behavior directly instead of assuming speech inside the first cut.
+- Together with the previous modal cancellation/error, atomic job/recovery and source-edit preservation evidence, item 1 is complete. Moved original requirements/evidence to Completed-Plan-Items.md. Test fixture restored; overall goal remains active.

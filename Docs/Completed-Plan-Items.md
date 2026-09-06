@@ -232,3 +232,37 @@ Verified 2026-09-06 in the isolated production-built Electron app using actual r
 - Runtime native save/reopen fixture with alternating speaker metadata: grouped six words, reopened with the exact persisted phrase ID and members, split before the fourth word, reopened, joined the clips, and ungrouped. Every original word, timestamp, per-word speaker and existing manual cut stayed unchanged. Ctrl-click sought to 0.095 seconds with playback paused. Fixture restored.
 - Structure regression covers grouping rejection across deletions and explicit splits, disjoint selections, complete membership after split/cut projection, stable persisted IDs and full overlapping-word bounds. Mixed phrase display metadata is Unknown; original per-word attribution remains untouched and repairable through the optional speaker workflow (action verified in item 9).
 - Item 3's completed view-switching checks establish that layout changes do not alter edit structure. Existing state tests cover grouping undo/redo and persisted payload. Item 13 retains the broader direct-editing/caption-foundation acceptance scope.
+
+## Item 1 acceptance complete
+
+### 1. Retranscribe all from the top menu
+
+**Status:** Implemented and shipped in 1.3.0; retain final full/selected modal, cancellation/error, and conflicting-job acceptance audit.
+
+**Expected behavior:**
+
+- Add **Retranscribe all** to the top meatballs (Project actions) menu, with an appropriate icon and the shared menu styling.
+- Open the same modal used for selected-range retranscription, reusing its model and transcription-language dropdowns and regular buttons.
+- Display **Full audio** instead of a numeric range such as `1540.17–1557.57 s`. Localize both new labels.
+- Allow the user to change the model and language before starting. Opening or cancelling the modal must not start processing or change the transcript.
+- On Transcribe, start a fresh transcription/alignment run for the entire original source audio, from zero to its full duration, regardless of the current selection or timeline cuts. Do not resume a checkpoint from the previous model/language run.
+- Use the existing job progress and recovery infrastructure. Preserve source media and timeline edits; replace the full transcript only when the new result is ready.
+- Disable the action when no source is loaded or a conflicting job prevents retranscription.
+
+**Acceptance criteria:**
+
+- The top menu opens the shared modal with **Full audio**, including when nothing is selected.
+- Changing the model/language and confirming processes the full source, including regions outside the current selection and regions excluded by timeline cuts.
+- Cancelling leaves the current project unchanged. Errors do not discard the existing transcript or edits.
+- Selected-range retranscription retains its numeric range and existing behavior.
+
+**Tracking:** No issue assigned yet.
+
+
+**Completion evidence:**
+
+- Same full/selected component, model/language dropdowns and regular buttons. Runtime verified full label with no selected words and numeric selected range; localized labels, Tab wrapping, nested Escape, cancellation and native error recovery preserve project/job state (stage twenty-two).
+- Runtime dialog selection changed Tiny English/English to Whisper Base/Automatic, with one word selected. Started a fresh generation over 0–42.4106875 seconds, completed with 45 words beyond the selection, and saved the new preferences. Prior native regression also verifies fresh checkpoint generation and full/partial atomic publication.
+- Repeated full run with a known spoken word deleted: recognized “This” at 1.275–1.4330952380952382 while retaining that exact source-time cut and the prior manual cut. Group IDs are pruned, names/splits retained, original media is untouched. See stages nineteen through twenty-one for queued saves/import generation and preference preservation tests.
+- An active real job disabled Transcribe in an already open dialog and the top menu action; a second native start was rejected. Pausing allowed the next fresh run. The action also requires a project and usable selection/duration in source.
+- Restored the isolated project, job manifest and summary after closing the test app. Remaining broader model/installed/language and item 13 requirements remain in PLAN.md.

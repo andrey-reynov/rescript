@@ -6,29 +6,6 @@ GitHub issues reviewed on 2026-09-06 from [andrey-reynov/rescript](https://githu
 
 ## Features
 
-### 1. Retranscribe all from the top menu
-
-**Status:** Implemented and shipped in 1.3.0; retain final full/selected modal, cancellation/error, and conflicting-job acceptance audit.
-
-**Expected behavior:**
-
-- Add **Retranscribe all** to the top meatballs (Project actions) menu, with an appropriate icon and the shared menu styling.
-- Open the same modal used for selected-range retranscription, reusing its model and transcription-language dropdowns and regular buttons.
-- Display **Full audio** instead of a numeric range such as `1540.17–1557.57 s`. Localize both new labels.
-- Allow the user to change the model and language before starting. Opening or cancelling the modal must not start processing or change the transcript.
-- On Transcribe, start a fresh transcription/alignment run for the entire original source audio, from zero to its full duration, regardless of the current selection or timeline cuts. Do not resume a checkpoint from the previous model/language run.
-- Use the existing job progress and recovery infrastructure. Preserve source media and timeline edits; replace the full transcript only when the new result is ready.
-- Disable the action when no source is loaded or a conflicting job prevents retranscription.
-
-**Acceptance criteria:**
-
-- The top menu opens the shared modal with **Full audio**, including when nothing is selected.
-- Changing the model/language and confirming processes the full source, including regions outside the current selection and regions excluded by timeline cuts.
-- Cancelling leaves the current project unchanged. Errors do not discard the existing transcript or edits.
-- Selected-range retranscription retains its numeric range and existing behavior.
-
-**Tracking:** No issue assigned yet.
-
 ### 2. Models manager in Settings
 
 **Status:** Implemented; native/runtime checks recorded in [Implementation-Progress.md](Implementation-Progress.md). Retain final installed, Parakeet and interruption acceptance audit.
