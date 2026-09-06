@@ -9,6 +9,7 @@ const before=store.getState(),cuts=getCutRanges(before.words,before.duration,bef
 const parsed=parseTranscript('1\n00:00:00,000 --> 00:00:05,000\nNew imported words\n','test.srt');
 store.getState().importWords(parsed.words,parsed.speakers);
 const after=store.getState();
+assert.ok(after.transcriptImportId);assert.notEqual(after.transcriptImportId,before.transcriptImportId);
 assert.deepEqual(after.words,parsed.words);assert.deepEqual(getCutRanges(after.words,after.duration,after.manualCuts),cuts);
 assert.deepEqual(after.sceneBoundaries,before.sceneBoundaries);assert.deepEqual(after.clipNames,before.clipNames);assert.equal(after.nextBoundaryId,8);
 assert.deepEqual(after.phrases,[]);assert.deepEqual(after.selectedWordIds,[]);assert.equal(after.selectionAnchor,null);

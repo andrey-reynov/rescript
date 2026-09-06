@@ -17,6 +17,7 @@ export interface JobState {
   preferWasm?:boolean;
   replacementChunks?:number[];
   replacementRange?:{start:number;end:number};
+  replacementImportId?:string|null;
   model:string;
   language:string;
   transcribe:boolean;
@@ -129,7 +130,7 @@ export class TranscriptionJobs {
     if(!Number.isFinite(start)||!Number.isFinite(end)||start<0||end<=start||end>old.sampleCount/RATE)throw Error('Select a valid source range.');
     if(old.sourceFingerprint!==doc.media.fingerprint)throw Error('Source media changed. Prepare audio again.');
     return this.write({...old,key:randomUUID(),baseKey:undefined,model,language,transcribe:true,preferWasm:undefined,
-      replacementChunks:undefined,replacementRange:{start,end},completed:[],total:Math.ceil((end-start)/JOB_CHUNK_SECONDS),status:'running',message:'Transcribing selected range'});
+      replacementChunks:undefined,replacementImportId:doc.data.transcriptImportId??null,replacementRange:{start,end},completed:[],total:Math.ceil((end-start)/JOB_CHUNK_SECONDS),status:'running',message:'Transcribing selected range'});
   });}
   async transcribeAll(id:string,model:string,language:string):Promise<JobState>{
     const previous=await this.read(id);

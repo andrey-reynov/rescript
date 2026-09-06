@@ -60,6 +60,19 @@ async function main(){
   const afterLate=(await projects.read(id)).data;
   assert.deepEqual(getCutRanges(afterLate.words as Word[],125,afterLate.manualCuts as ManualCut[]),getCutRanges(editData.words,125,[...(editData.manualCuts as ManualCut[]),lateCut]));
   assert.deepEqual(afterLate.phrases,[],'Queued save cannot revive obsolete phrase IDs');
+  const imported={...editData,source:'import',transcriptImportId:'first-import'};
+  const importedResult=publishTranscriptionProgress(imported,{...allJob,key:'import-retranscribed',replacementImportId:'first-import'},[word(0,1,22)]);
+  await projects.update(id,()=>importedResult);
+  await projects.save(id,imported);
+  assert.deepEqual((await projects.read(id)).data.words,importedResult.words,'An old imported-transcript save cannot overwrite completed retranscription');
+  const freshImport={...imported,transcriptImportId:'second-import',words:[word(70,4,5)]};
+  assert.equal(publishTranscriptionProgress(freshImport,{...allJob,key:'late-result',replacementImportId:'first-import'},[word(0,1,22)]),freshImport,'A job started before a deliberate import cannot overwrite it');
+  await projects.save(id,freshImport);
+  assert.deepEqual((await projects.read(id)).data.words,freshImport.words,'A deliberate new import still replaces the transcript');
+  const legacyImported={...editData,source:'import'};
+  await projects.update(id,()=>publishTranscriptionProgress(legacyImported,{...allJob,key:'legacy-import-retranscribed'},[word(0,1,22)]));
+  await projects.save(id,legacyImported);
+  assert.equal((await projects.read(id)).data.transcriptionResultKey,'legacy-import-retranscribed','Legacy imported projects also protect completed results');
   console.log('Range transcription: preparation-only, exact bounds, model/language, resume, atomic publication and edit preservation passed.');
  }finally{await fs.rm(root,{recursive:true,force:true});}
 }

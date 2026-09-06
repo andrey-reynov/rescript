@@ -61,6 +61,7 @@ export interface ProjectRecord extends ProjectMeta {
   mediaName?: string;
   currentTime?: number;
   transcriptionComplete?: boolean;
+  transcriptImportId?: string;
   transcriptionResultKey?: string;
   transcriptionChunks?: number[];
   sourceAudio?: import("./audio-export").SourceAudioLayout;
@@ -242,6 +243,7 @@ export async function putProject(input: ProjectWrite): Promise<string> {
     transcriptLanguage: isTranscriptLanguage(input.transcriptLanguage)
       ? input.transcriptLanguage
       : DEFAULT_TRANSCRIPT_LANGUAGE,
+    transcriptImportId: input.transcriptImportId,
     words: input.words,
     phrases:input.phrases??[],clipNames:input.clipNames??[],transcriptView:input.transcriptView??"clips",
     showDeleted: input.showDeleted,

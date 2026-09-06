@@ -9,6 +9,7 @@ export function publishTranscriptionProgress(data:ProjectData,job:JobState,gener
   if(job.replacementRange){
     // A range replacement commits atomically, including a valid empty result.
     if(job.status!=='complete'||data.transcriptionResultKey===job.key)return data;
+    if((job.replacementImportId??undefined)!==data.transcriptImportId)return data;
     const {start,end}=job.replacementRange;
     const existing=data.words as JobWord[];
     const keep=existing.filter(word=>word.end<=start||word.start>=end);

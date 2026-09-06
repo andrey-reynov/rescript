@@ -176,3 +176,10 @@ Latest static build predates the final small tweaks for Space replacement, no-op
 - Protect materialized ranges and pruned phrase IDs against a queued old-generation autosave. Reassign preserved-range IDs against incoming manual cuts so a concurrent new cut remains intact. Renderer publication also checks manual cut/split reference changes during its save/read round trip.
 - Native regression covers full and partial/empty replacement, exact effective cut geometry, retained names/splits, obsolete phrases, idempotent publication, paused/error atomicity, and late saves with a new manual cut. Progressive result tests and both type checks pass.
 - Item 1 remains pending: integrated fresh inference/modal checks, and the explicit-import exception in ProjectFiles.save versus a retranscription of an imported transcript still needs audit. Model/language preference publication and concurrent edit behavior require end-to-end verification before closing the item.
+
+## Stage twenty: imported transcript generation protection
+
+- Explicit imports receive a persisted identity, carried through autosave and project load (optional for legacy files). ProjectFiles.save now distinguishes a deliberate import from an old imported-transcript save; the blanket source=import exception no longer overwrites a completed replacement result.
+- Replacement jobs capture the import identity at start. A newer import invalidates publication from that older job, protecting the reverse race even if cancellation and worker completion overlap.
+- Native regression covers imported and legacy-imported late saves, deliberate replacement import, and a job finishing after a newer import. Import edit-preservation, project files, progressive results and both type checks pass.
+- Item 1 remains active for end-to-end modal/fresh model-language and conflict acceptance; this stage resolves the import exception identified in stage nineteen.

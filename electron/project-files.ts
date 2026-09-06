@@ -30,6 +30,7 @@ export interface ProjectData {
   thumbnail?: string;
   transcriptionPreservedCuts?: Array<{start:number;end:number}>;
   transcriptionComplete?: boolean;
+  transcriptImportId?: string;
   transcriptionResultKey?: string;
   transcriptionChunks?: number[];
   sourceAudio?: import("../lib/audio-export").SourceAudioLayout;
@@ -212,7 +213,9 @@ export class ProjectFiles {
     return this.update(id,old=>{
       // An editor may have queued this save before the worker committed its result.
       // Keep the authoritative transcript until that editor has acknowledged it.
-      if(old.transcriptionResultKey && data.transcriptionResultKey!==old.transcriptionResultKey && data.source!=='import'){
+      const newImport=data.source==='import'&&!!data.transcriptImportId&&data.transcriptImportId!==old.transcriptImportId;
+      if(newImport)return data;
+      if(old.transcriptionResultKey && data.transcriptionResultKey!==old.transcriptionResultKey){
         let manualCuts=data.manualCuts;
         if(old.transcriptionPreservedCuts?.length){
           const incoming=(data.manualCuts??[]) as Array<{id:number;start:number;end:number}>;
