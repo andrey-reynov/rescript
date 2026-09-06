@@ -260,3 +260,8 @@ Combined with stage 27's English/Russian and model-capability matrix, item 8's r
 Item 13 audit found that a partial selection still filled the entire phrase chip and right-click tested only the phrase's first word, expanding an existing selection when a later member was selected. Full-chip highlighting now requires every member; partial selection uses only the member-time overlays. Right-click retains a selection intersecting the clicked phrase and selects the phrase only when none of its members is selected. Selection membership uses a memoized set for visible chip projection.
 
 Production UI build and TypeScript passed. Isolated runtime fixture grouped words 140–142: selecting transcript word 141 yielded `partial`, one overlay, no full-chip fill, and just word 141 selected. Opening its phrase context menu preserved that target. A real pointer click on the phrase selected 140–142 and showed `full`; the playhead stayed at 0. The disposable fixture was restored after stopping its test process. The full item 13 checklist remains open.
+
+
+## Stage 32 — Actual gameplay analysis in the installed app
+
+Ran the installed silence-analysis worker on a one-minute extraction of the user's existing gameplay VOD, in a separate test project. It completed all 1,875 frames, produced distinct RMS/VAD/overlap ranges, and added no cuts or transcript data. See Silence-Detection.md for measured durations and the explicit accuracy limits. Cached results and dialog candidates survived reopening. The installed colored-lane check exposed a hidden-window sizing/visibility issue and remains open; item 5 is not marked complete.

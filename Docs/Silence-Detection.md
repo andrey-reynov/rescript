@@ -26,3 +26,12 @@ The former Remove silences transcript cleanup is now labeled **Cut transcript ga
 - Isolated runtime on 42.4106875 seconds: 1,326 actual speech probabilities, all three colors, analysis without edit changes; explicit cuts changed one existing deletion to six and Undo restored it with source word times intact. A 20% threshold persisted through reopen. A fresh analysis completed after reloading the editor.
 
 Final release audit still includes installed-build operation, representative gameplay/music validation, and integration with the remaining editing requirements.
+
+
+### Installed gameplay analysis sample (2026-09-06)
+
+A disposable 60-second mono 16 kHz WAV was extracted from source minutes 10–11 of the existing CS Challenge gameplay VOD. The original media/project were read only. The isolated NSIS-installed acceptance app analyzed the sample through the timeline dialog: 960,000 samples, 1,875 RMS/VAD frames, one completed batch, and 100% progress. The test project retained zero words and zero deletion ranges after detection.
+
+With default settings, the real results project to 19.840 seconds of no-speech-only regions, 0.736 seconds of amplitude-only regions, and 1.568 seconds of overlap (RMS threshold 0.0022967835). This verifies that real gameplay yields distinct detector outputs; these are detector classifications, not a manually annotated accuracy benchmark. The cached result remains available on reopening and the dialog shows four overlap cut candidates without applying them.
+
+Installed timeline visualization remains unverified in this run: the hidden test window exposed zero rendered detection buttons while its canvas had nonzero width but the timeline retained its fallback 50 px/s width. Changing the emulated viewport did not resolve it. Investigate window visibility/ResizeObserver delivery and validate the colored lane before closing item 5. Dedicated music accuracy/visual validation also remains open.
